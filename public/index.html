@@ -38,6 +38,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style id="rifaiDigitsFont">
+/* RifaiDigits — خط أرقام مخصّص: يرسم 0-9 بأشكال الأرقام العربية (٠-٩) + الفاصلة العشرية والآلاف.
+   بيتفعّل على الأرقام بس (unicode-range)، والنص باقي الخط بيفضل Tajawal. القيمة الفعلية جوه الـ DOM
+   والـ inputs بتفضل أرقام لاتينية عادية، فمفيش أي خطر على الحسابات أو الـ parsing. */
+@font-face{font-family:'RifaiDigits';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAMMAAsAAAAABRwAAALAAAGzMwAAAAAAAAAAAAAAAAAAAAAAAAAABmAANBEMCoUYhAcBNgIkAzQLHAAEIAU6ByAbrgNgHoVxw10aJpOj2GL51+L5/79P97kZ5sdZoWAwwQBmRUNTJ61IOKZd5VoBC1gu1r4P5n29tP2DZCCrs24X5g3UjToK8b/u9LccA4/k+DA+UNp2igLNLAmoLW1LmycAbek2UfKIcAjFcNHTgF52kMVQUA+uCHBEN0/wUQgMwF4Hn9m9dfYjitewjZvxb52r/I8MAgL55oatbGCFQ/QEc30bMNQXZT9s+w/YDlv//7/3czMCiDJWHTTBAqxAwxfgH9AHJIryU32BmVnpaDAVFS1KtQsLCvPzFUzI58UnjGH6APfOcH9IpYiTVHLg8hQMdyYTMjSTck4TsfAxkctdTN1LeAiPGtGlj/IfYUrvYdrt8LhA1Pn8mz1CbJULVxHxcT4vUkqY/AjcrIIVs1JWxipZOS2hRdX8USq5PCZi7BkBn0W+BFP3/OXQwilMUYlsYnL+CSIaLKfSXiLuYzKm8rqLkguSViC+xcVaI6pdDEuMjdoSsT4lbiNu+kWN+sdHhoTH2ITbfj7IVpOMhsZEhZZHla/78KI8aDS8KNs93jErqiYvJS8s2+u+k/MDr6CAoIDYIA+P2OCAslQ8/VgW7FPtnJEpKAv5Zr9z8mpK+Wxl5aKG/bmaQ/GTURwhc8cGhWmBj4mbxP92Pi51fcSWqMTYsM04ucsvcfFnYdnnxL1+0GNUZ09IXPZFWPwF2o0f9bC7W+DcX3RvfWJCWk6aHCPXZJeP+JpPeXnigCMhrs6ubkbOzog6lFsLhitVNJu1defq+iclRdsAEOTD98xc9ROVmmFfVQj/HuDnadcDgN8XZ5dBr9tY6lwkoKdA+J3MubYNvQqi9iz8WXoFJ3eQkBmILlckZAJOOQK7zIBxnkFvzqyEbWowh1igBMHC+pmMcxECr/qqiAbBipuTai0bDrba5KjXqF9bSg8eXN0nHwAA) format('woff2');unicode-range:U+0030-0039,U+066B-066C;}
+@font-face{font-family:'RifaiDigits';font-style:normal;font-weight:500;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAMUAAsAAAAABSgAAALKAAGzMwAAAAAAAAAAAAAAAAAAAAAAAAAABmAANBEMCoUYhAYBNgIkAzQLHAAEIAVIByAbuwNRlO5FA+KB5/n3rHNfOsobe0WmmRWQXbdr4U/8InrsTMsyyCDDNDvNPirg2WigQ8i2n0af7cfXbOotJlnsrn6/oBYY8le+4gfKo7KAehaUthgSDuCPsenCuYp07DeEyhT2760m/l/OFeOnDAMEQC6pEemZpKMAwUCAYFzkBvxxISjK+Pf2+YDC/r18Tt39tQbhCEERiPL5CAMgBIBEIBQ4A3wHAFwAgMyEQj8ul07OiAjWgYHhwT/NSNttW5afdlmG81hrTA9qGOMfDKh4QqGcqrmfZrz2ijDqaXpKHPuWPG6wNxh/U9XuwPi7Wlu289h+aD2EB/VvmNu77RsPaJ/QFueRZTimKdr7EKXb6ha6lW6t2+k2Zkszq4McMT05H4nT7HQJtHTUlfFnS3i1N5/tyHrtZbzpsQoeF0cWmJ5t4mzPqjOTslr7DK1atqJGaHV3LJVDj1euX7v6uibLqlWYRlrxUaXr1ihfoXHhctlG5LIKVHePKla2dLE2jdvcLjaK521Kj67UtG7hH/Wo0tmu17qhla91thxt8pWvUrHQnlwqz9rC7Qo3IHNfy+7braJtSxdrn7dRY1NZFZOt9rlnqjqnPpaoNLisMXpwfzUksHzFwXwNPVSh6rIm66rXr115Jic2F2859bbLc7vltuJExzB8G5GH8/OEhv6smSfjSduco1tHnKhTu6m7wWhrTPNaTUV7FjhcWIycH2hZSCSiWIniJUqUoE7Xkt3TlCriFzEjOu5JbPnmuU4DgACyv1j+XFsetwsr/y1QjHcAj570bwHw5vmZ+UT7lqp0VQkwUAAIfE9QFQsI0SkIPk0I74mTQHLzgpoykyqqIjVlHrnlGNlkJgnyhWiKTami4UyTVGwECCHjoRhkKVIxEFcQQjKEUhG6XHM60PPAw36sN+k0oAud6cEQ+tCULnRjCL3pwEAMAPD9xQA=) format('woff2');unicode-range:U+0030-0039,U+066B-066C;}
+@font-face{font-family:'RifaiDigits';font-style:normal;font-weight:700;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAMkAAsAAAAABSQAAALaAAGzMwAAAAAAAAAAAAAAAAAAAAAAAAAABmAANBEMCoUohAsBNgIkAzQLHAAEIAU0ByAbrAMgjsK25XOpmFFVRsRcGC/5//9e/j430650UsOpgMwT9AvzDzQYNKa5L5ElUvXk6gaoAFDNVZH8ygkzR4osqilgN8/Cb9oZZ1Echq9BiEW1DfjF4dLRQGcW72YBbfqSD1Be3aZEER3ZIGWzpwhwhrFDUALMsgkAKd6kOXDShCMe1VI4l9dSey8s8XS3sIn/VnJOVqSVAAgAdGvqltawhAEQHASgigxHAGVkEIwgd8v//wBPd/N/SM8/10FoImB4mE8EAFADkcYA6gCnAL4DAECGWRo9dl3LKRNMbXV5gee1VDXUxXwxL09JkOVxiruBAOQWbFuA9Oa3wfvk1h65LgFSoEPqY4EZ2UeolXNFUlAr46ooP4R0ucHyYF7x7dF3mtzKvPMLTD63Fu+Ovo1UWFxU5HEKuZ+EmbcxgTKhUCgWSoRyoVReJC+opE1ya39HrZyrgU7WYbApRXnXNTNDuYgSpAtyRFp5tHV41PsgWWpFt3qc5tvxxISJ7YY0jrhw7BghMrw9UcxO2TC4xMulBLd9d4cjctNjg4ebgwy5P6PRsWPDNo6ONqVdpTZODjZ4WFqcE5W0U6VGRHHlYantnZUWncYmnRaJYrr1IjNhoVVtYidevl+u+lW4pucoMRIrwosaitfSAOMqggv9s8SYinhqrqgup9JWPFDfd/FeMrghRcxOrMWhg9J4/yJWXyQdl6A78bodJUmz7A+ADz/8yyWnd9hNr9wkDGSwq8NTo6UhPiYq1ok9HJl04F2syLLfynqaNTOfbGnVj9CNXycpzyCzWguLDju/4AwAAAiAzn2MHyQ/5yOhX3niXgBw597OBwDPHt7sofu/lPWySBAcDAAg8EcdWyNAdAdAYB41PhBVLhwlR7zWIsrUIV774KjLZLUWRsYEusvTOQragGnUDBJb24c6MMUwh4OcKiDUQRhi8KiTSyVNB/RfrIVo2mmhBg4AwP8/cNAA) format('woff2');unicode-range:U+0030-0039,U+066B-066C;}
+@font-face{font-family:'RifaiDigits';font-style:normal;font-weight:800;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAM0AAsAAAAABUQAAALnAAGzMwAAAAAAAAAAAAAAAAAAAAAAAAAABmAANBEMCoUshAgBNgIkAzQLHAAEIAVOByAbwwMRVZsawEdCddsrpswhCR5NC1+bMTp4nv9OO/dNqnk1UmlNZ7ucrPAJUGkAtrXN645vp4SDDDIMMA8D6cBRoBn1edb2pXFQyIFpesM1DlJSijwGMJQy7LiBslQToHpSaYUh/qTyxLaLs/K26z2QMvK4p3L+30lbuhwQADmuhtoT2FGAYCCANzbSAHdsCIqi7rlcQB73uWBc+rWQQAWFJ2qC9wPAB4BIgK/sKPgKADYAQKJQsstm66ejEwI9vT09A7wD/Bo3atywoZtWDQ3HDa0xLVR3zZirplVsp2ml0MBNM0Y7RTTVVr394qhv4Ub9CytxJWNWNXM7gUVaN2x+reE1uFrnrGnVO9xIHI1vNLzaYN2F1tBwmKZcU3YfSrfSTXVz3UK31i3NZmaTtrLUtFKui6P+Be2sewnVzGFaaxlT0Kmdqe3HMGavae0XcciCA9q5r+aOsO3iQPMQY+qsrLCvydx5c2eVj6aib4WZP5TxXVijeeM6S6bMyUiqxM0CY4eXa9qgUpHVwwoHqBczalaYOTzKbo9qObZlVHxcFI9aZkwrX77SilJUalur5uCcjpG/Q0P/RNZo3yAqOlQksHiXBjm8/dipYOG22XUaKmncr3XL7j0XUkO1K960cN2mDRuVlRb1mzap3Y5rvnOS0udMWdLwklW5HntXFJjVa5DqM2j26gIEryiwdXWB2X0Gq16DcfO9Nj8qetKQhBkdv2XUqJsodarPqJ2dHrIpssRRwxaUiVstkaR3KSnvk5VIwu2klHccaTHtZImEf8lJPzOql5mgAUAA2ZLfXrBG89Z+Jb55ivES4Pr9XucBnj86OJtgl1M1V2UAAwWAwId6NXQCCa4gcI0PP0TIUNIkhkqyirJqKJXkLGlygzhZRYTKTbCL5CaJspPJMopuCOBDwqUMe4pYDMTmhZAAPafwJYEGtKWbwODn9cBORYYwgH60pRy96UEH6tGRzgykB23phwEArr8MCAAAAA==) format('woff2');unicode-range:U+0030-0039,U+066B-066C;}
+@font-face{font-family:'RifaiDigits';font-style:normal;font-weight:900;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAMkAAsAAAAABTgAAALYAAGzMwAAAAAAAAAAAAAAAAAAAAAAAAAABmAANBEMCoUohAMBNgIkAzQLHAAEIAVGByAbtgNRVE3KAB8L5eaSjXgCNrGIqtPgeV7v69wXDMIBsSIrustfoZpyiVKdiIqIT4373u4XDqIrEekmJDr0m+7Bc7rZBjbANDj4SSL1HGUHPh30CFHUAikC122GWPm0ksakpxVoWldtCQZQq9RQQA80ymisSQBgAGWu8K1646fPxRNLc4pa/H8d5/QyWQcIADmjFubmowkFCAwIwIaJIcCECYHiZE4JQ6DWnBw26fqvzQhvCBQuNAzxAOAAIB3gAk4CHwEAHQAgvULtOl3fIVTLk+LaXK6U7XtDBifExbEENE7rijgWWIhdBTXZQtDzgL/KeYe/Sh4DDQECazURL1rd0Uck4hMhuTvgapUVWCdssKy4ES+DbsOtvtdi1eAsSHgbdKv4dCSO0cWPJYKeqEMoK91KslKsVCvDSotNjk0cR+ZKsP6rficCD97wCJcuIWg05pRCTieCa9mjRMgmSfrQbJfBHvSn8WmCnkuB90N3Ly/Nz8+jk+u745O27kRc+1evbVPDWiqWeNiwriU49K1z08lJe6nKp+1DfOdbZBQUZdJG0mQUFWTwfFRFv5/bR+PGDEHXxRHhnWMlZvqGZtHlqfEVInIVJZlj+Ph5QkPHTPPIeIqhizMzywe2w3LdEh2iUvMjXKN8IiN8onHRXamiNTw1m8RcD3bHoV2283lJtGDYwootEjc539twQaP0H0C5l/0TVeu6NCcLfeyDwmPyrGOc5zw0NSQmxpuza3X3jfShhBi1NzbxNWaIfh9DYx98mOfJ1Nf3MtYLNQ3TuOIfBwAByP4G7Lo3x3gtv0WL9g7gzpPJMwC8eX6sjsRwmZqu2gI0KAAEfE5PrVUgZGsgHN0O/6TJJkqlHv6yj3bqlM7yFI48I1vyNNUB2XxI3lMgO1gpC0iFABy0XirBnEIdBkSPgaAM7j5FPLNYsijOsGFZKZp4U0oWOZQQTR4F1K2gGgZQCw9SHwAA) format('woff2');unicode-range:U+0030-0039,U+066B-066C;}
+</style>
 <style>
 /* ═══════════════════════════════════════════════════════
    AL-RIFAI ERP — DESIGN SYSTEM
@@ -313,127 +323,154 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   النجفة التفاعلية — مبدّل ثيم مميز إضافي (Al-Rifai signature)
-   -----------------------------------------------------------
-   • عنصر عالمي واحد بس (مش مكرر لكل صفحة). في الوضع "full" (شاشات ≥900px)
-     بيعيش كأول عنصر جوه .sidebar فبيتحط طبيعي فوق .sidebar-brand (flex
-     column بيدفعها لتحت من غير أي تداخل)، ودايمًا ظاهر لأن .sidebar نفسها
-     ثابتة الارتفاع (100vh) ومش بتتأثر بسكرول المحتوى.
-   • في الوضع "compact" (شاشات <900px، لما .sidebar تبقى display:none)
-     الـ JS (relocate) بينقل نفس الـ element جوه شريط الأدوات العلوي، وهنا
-     بيتحول شكله لأيقونة صغيرة مضغوطة بدل التجربة الكاملة بالسلسلة —
-     تفاعل السحب الدقيق بإصبع على شاشة صغيرة مش مريح، فبيبقى تفاعل بالضغط.
-   • الإضاءة (مضاءة/مطفأة) بالكامل عن طريق CSS [data-theme] — مفيش state
-     تاني منفصل ممكن يعارض الثيم الفعلي.
+   النجفة التفاعلية v2 — مبدّل ثيم (Al-Rifai signature)
+   ───────────────────────────────────────────────────────
+   • الحالة (مضاءة/مطفأة) بتتحدد بالكامل من [data-theme] على <html> —
+     مفيش state منفصل ممكن يتعارض مع الثيم الفعلي.
+   • الحركة (سحب السلسلة + تأرجح النجفة) فيزياء زنبركية بالـ JS،
+     بس بتشتغل أثناء الحركة الفعلية (مفيش requestAnimationFrame شغال وهي ساكنة).
+   • وضعين: full (شريط جانبي ≥1200px) و compact (شريط علوي <1200px،
+     بنفس السحب الكامل — مش ضغطة بس زي الأول).
 ═══════════════════════════════════════════════════════ */
 .chandelier-widget {
   position: relative;
   width: 100%;
-  height: 108px;
+  height: 132px;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
   padding-top: 6px;
-  --chand-pull: 0px;   /* مسافة السحب الحالية (بكسل) — بيحدّثها JS وقت السحب بس */
+  z-index: 6;
+  --chand-fw: 92px;
   --chand-swing: 0deg;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .chandelier-fixture {
-  width: 74px;
+  width: var(--chand-fw);
   height: auto;
   overflow: visible;
-  transform-origin: 50% 4%;
-  transition: filter 0.5s ease;
-  filter: grayscale(55%) brightness(0.6) saturate(60%); /* مطفأة افتراضيًا (Dark) */
+  transform-origin: 50% 5%;
+  transform: rotate(var(--chand-swing));
+  transition: filter 0.6s ease;
+  filter: saturate(0.5) brightness(0.62);          /* مطفأة (Dark) */
+  position: relative;
+  z-index: 2;
 }
-
 [data-theme="light"] .chandelier-fixture {
-  filter: drop-shadow(0 0 5px rgba(232, 184, 74, 0.28)); /* توهج خفيف جدًا بس، من غير ما يلفت الانتباه عن المحتوى */
+  filter: drop-shadow(0 2px 7px rgba(232, 184, 74, 0.42));
 }
 
-.chand-bulb-glow { opacity: 0; transition: opacity 0.6s ease; }
-[data-theme="light"] .chand-bulb-glow { opacity: 0.85; }
+/* اللمبات: طبقة خافتة دايمًا + طبقة مضيئة بتظهر بالـ opacity (تنعّم الانتقال) */
+.chand-bulb-lit  { opacity: 0; transition: opacity 0.5s ease; }
+.chand-bulb-glow { opacity: 0; transition: opacity 0.7s ease; transform-box: fill-box; transform-origin: center; }
+.chand-crystal   { opacity: 0.32; transition: opacity 0.7s ease; }
+.chand-star      { opacity: 0; transform-box: fill-box; transform-origin: center; }
 
-.chandelier-cord {
-  position: absolute;
-  top: 74px;
-  left: calc(50% - 14px); /* شوية لشمال المنتصف — عشان تبان كعنصر منفصل واضح مش مختفية تحت القطرة المركزية */
-  width: 2px;
-  height: calc(16px + var(--chand-pull));
-  background: linear-gradient(#e8b84a, #b8841a); /* ذهبي ثابت (زي شعار العلامة) في الثيمين الاتنين، مش متغيّر مع الثيم */
-  border-radius: 2px;
-  transform: translateX(-50%);
-  transition: height 0.45s cubic-bezier(.34,1.56,.64,1);
-  pointer-events: none;
+[data-theme="light"] .chand-bulb-lit  { opacity: 1; }
+[data-theme="light"] .chand-bulb-glow { opacity: 0.9; animation: chandBreath 4.6s ease-in-out infinite alternate; }
+[data-theme="light"] .chand-crystal   { opacity: 1; }
+[data-theme="light"] .chand-star      { animation: chandTwinkle 3.6s ease-in-out infinite; }
+[data-theme="light"] .chand-star.s2   { animation-delay: 0.7s; }
+[data-theme="light"] .chand-star.s3   { animation-delay: 1.4s; }
+[data-theme="light"] .chand-star.s4   { animation-delay: 2.1s; }
+[data-theme="light"] .chand-star.s5   { animation-delay: 2.8s; }
+
+@keyframes chandBreath  { from { transform: scale(0.94); opacity: 0.78; } to { transform: scale(1.06); opacity: 1; } }
+@keyframes chandTwinkle {
+  0%, 62%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  74%           { opacity: 0.95; transform: scale(1) rotate(20deg); }
+  86%           { opacity: 0; transform: scale(0.35) rotate(45deg); }
 }
 
-/* مقبض السحب — ذهبي ثابت وواضح وبحجم أكبر عشان يبان كعنصر ممكن تمسكه
-   وتسحبه (مش تفصيلة زخرفية صغيرة)، وبيفضل ذهبي واضح في الوضعين الداكن
-   والفاتح (مش هيبهت للبرونزي الغامق زي باقي عناصر التطبيق في الوضع الفاتح) */
-.chandelier-handle {
-  position: absolute;
-  top: calc(74px + 16px + var(--chand-pull));
-  left: calc(50% - 14px);
-  transform: translate(-50%, 0);
-  width: 24px;
-  height: 24px;
+/* وميض التشغيل (زي لمبة بتسخن): بيتفعّل ٧٥٠ms بس عند التنوير */
+.chandelier-widget.is-igniting .chand-bulb-lit { animation: chandIgnite 0.75s linear both; }
+@keyframes chandIgnite {
+  0% { opacity: 0; } 10% { opacity: 1; } 20% { opacity: 0.2; } 32% { opacity: 0.95; }
+  46% { opacity: 0.45; } 68% { opacity: 1; } 100% { opacity: 1; }
+}
+
+/* هالة + شعاع الضوء */
+.chand-halo {
+  position: absolute; left: 50%; top: -44px; width: 250px; height: 250px;
+  transform: translateX(-50%) scale(0.55);
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 236, 190, 0.6);
-  padding: 0;
-  cursor: grab;
-  background: radial-gradient(circle at 35% 30%, #fbe3a8 0%, #e8b84a 55%, #b8841a 100%);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.4), 0 0 0 2px rgba(232,184,74,0.22);
-  transition: top 0.45s cubic-bezier(.34,1.56,.64,1), transform 0.15s ease, box-shadow 0.2s ease;
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
+  background: radial-gradient(circle, rgba(255, 214, 120, 0.55) 0%, rgba(232, 184, 74, 0.2) 36%, transparent 68%);
+  opacity: 0; pointer-events: none; z-index: 1;
+  transition: opacity 0.8s ease, transform 1s var(--ease-spring);
 }
-.chandelier-handle:hover { transform: translate(-50%, 0) scale(1.08); box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 0 3px rgba(232,184,74,0.28); }
-.chandelier-handle:active,
+[data-theme="light"] .chand-halo { opacity: 0.85; transform: translateX(-50%) scale(1); }
+
+.chand-beam {
+  position: absolute; left: 50%; top: 52px; width: 240px; height: 190px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, rgba(255, 222, 140, 0.34), transparent 88%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  opacity: 0; pointer-events: none; z-index: 1;
+  transition: opacity 0.9s ease;
+}
+[data-theme="light"] .chand-beam { opacity: 0.55; }
+
+/* السلسلة: سلك رفيع + خرز ذهبي (نفس ذهب العلامة في الثيمين) */
+.chand-cord-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+#chandWirePath { stroke: #b8841a; stroke-width: 0.9; stroke-linecap: round; }
+#chandCordPath { stroke: #f0c97a; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0.01 4.6; filter: drop-shadow(0 0.5px 0.6px rgba(0,0,0,0.45)); }
+
+/* مقبض السحب */
+.chandelier-handle {
+  position: absolute; left: 0; top: 0;
+  width: 24px; height: 28px;
+  border-radius: 50% 50% 46% 46% / 42% 42% 58% 58%;
+  border: 1.5px solid rgba(255, 236, 190, 0.65);
+  padding: 0; cursor: grab; z-index: 4;
+  background: radial-gradient(circle at 36% 28%, #fff1c9 0%, #f0c97a 30%, #e8b84a 58%, #b8841a 100%);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.42), 0 0 0 2px rgba(232,184,74,0.2);
+  transition: box-shadow 0.25s ease, filter 0.25s ease;
+  touch-action: none; -webkit-user-select: none; user-select: none;
+  will-change: transform;
+}
+.chandelier-handle::before { content: ''; position: absolute; inset: -14px; border-radius: 50%; }   /* منطقة لمس ٥٠px+ */
+.chandelier-handle::after  { content: ''; position: absolute; left: 22%; top: 14%; width: 30%; height: 22%; border-radius: 50%; background: rgba(255,255,255,0.65); filter: blur(0.6px); }
+.chandelier-handle:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.45), 0 0 0 3px rgba(232,184,74,0.3); }
 .chandelier-widget.is-dragging .chandelier-handle { cursor: grabbing; }
-.chandelier-widget.is-dragging .chandelier-cord,
-.chandelier-widget.is-dragging .chandelier-handle { transition: none; }
+.chandelier-widget.is-armed .chandelier-handle { box-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 0 4px rgba(240,201,122,0.42), 0 0 22px rgba(240,201,122,0.85); filter: brightness(1.12); }
+.chandelier-handle:focus-visible { outline: 2px solid var(--gold-0, #f0c97a); outline-offset: 4px; }
 
-.chandelier-handle:focus-visible {
-  outline: 2px solid var(--gold-0, #f0c97a);
-  outline-offset: 3px;
-}
+/* شرارات التشغيل (بتتولّد بالـ JS) */
+.chand-spark { position: absolute; width: 5px; height: 5px; pointer-events: none; z-index: 5; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffe39a 45%, transparent 72%); }
 
-/* أرجحة بسيطة وطبيعية بعد أي تفعيل (سحب أو ضغطة) — مش كرتونية، درجات قليلة وبتخمد بسرعة */
-@keyframes chandSwing {
-  0%   { transform: rotate(0deg); }
-  28%  { transform: rotate(-3deg); }
-  58%  { transform: rotate(2deg); }
-  82%  { transform: rotate(-0.8deg); }
-  100% { transform: rotate(0deg); }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .chandelier-widget.is-toggling .chandelier-fixture { animation: chandSwing 0.6s ease-out; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .chandelier-cord, .chandelier-handle { transition: none; }
-  .chandelier-fixture { transition: none; }
-}
-
-/* ── الوضع المضغوط على الشاشات الصغيرة (<900px) — الـ JS بينقل نفس الـ
-   element هنا جوه شريط الأدوات العلوي بدل التجربة الكاملة بالسلسلة ── */
+/* ── الوضع المضغوط (<1200px): نفس النجفة بالسلسلة كاملة جوه الشريط العلوي ── */
 .chandelier-widget[data-mode="compact"] {
-  position: static;
-  width: auto;
-  height: 32px;
-  padding-top: 0;
-  align-items: center;
-  gap: 2px;
+  width: 58px; height: 64px; padding-top: 3px; flex: none; margin-inline: 2px;
+  --chand-fw: 40px; z-index: 60;
 }
-.chandelier-widget[data-mode="compact"] .chandelier-fixture { width: 24px; }
-.chandelier-widget[data-mode="compact"] .chandelier-cord { display: none; }
-.chandelier-widget[data-mode="compact"] .chandelier-handle {
-  position: static;
-  transform: none;
-  width: 26px;
-  height: 26px;
+.chandelier-widget[data-mode="compact"] .chand-halo { width: 130px; height: 130px; top: -34px; }
+.chandelier-widget[data-mode="compact"] .chand-beam { display: none; }
+.chandelier-widget[data-mode="compact"] .chandelier-handle { width: 18px; height: 22px; }
+.chandelier-widget[data-mode="compact"] #chandCordPath { stroke-width: 2.4; stroke-dasharray: 0.01 3.6; }
+
+/* على الموبايل النجفة بديل زرار الشمس/القمر (الزرار فضل موجود لقارئات الشاشة بس مخفي بصريًا) */
+@media (max-width: 599px) {
+  #themeToggleBtn { display: none !important; }
 }
-.chandelier-widget[data-mode="compact"] .chandelier-handle:hover { transform: scale(1.08); }
+
+@media (prefers-reduced-motion: reduce) {
+  .chand-bulb-glow, .chand-star { animation: none !important; }
+  .chandelier-widget.is-igniting .chand-bulb-lit { animation: none !important; }
+}
+
+/* ═══ كشف الثيم الدائري (View Transitions) — الضوء بيتفتح من النجفة ═══ */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html[data-going="dark"]::view-transition-old(root)  { z-index: 2147483646; }
+html[data-going="dark"]::view-transition-new(root)  { z-index: 1; }
+html[data-going="light"]::view-transition-old(root) { z-index: 1; }
+html[data-going="light"]::view-transition-new(root) { z-index: 2147483646; }
+
+/* بديل للمتصفحات اللي مش بتدعم View Transitions: توهّج بيتّسع من النجفة */
+.theme-bloom { position: fixed; z-index: 99998; pointer-events: none; border-radius: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; transform: scale(0); opacity: 0.95; }
+.theme-bloom.to-light { background: radial-gradient(circle, #fff8e1 0%, #ffe39a 40%, rgba(255,214,120,0) 72%); }
+.theme-bloom.to-dark  { background: radial-gradient(circle, #1a1610 0%, #0f0d10 55%, rgba(15,13,16,0) 75%); }
 
 .sidebar-brand {
   padding: var(--s-lg) var(--s-md) var(--s-md);
@@ -2454,6 +2491,155 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
   border: 0.5px solid rgba(220,90,90,0.35); border-radius: 999px; padding: 6px 16px;
   font-size: 0.78rem; font-family: 'Tajawal', sans-serif;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   UX LAYER — أرقام عربية + تمييز الأرقام المالية + لمسات موبايل/حركة
+   (إضافات فقط؛ مفيش قاعدة قديمة اتحذفت)
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── الأرقام العربية في كل حتة: RifaiDigits أول خط في كل عائلة (بيمسك 0-9 بس) ── */
+:root {
+  --font-display: 'RifaiDigits', 'Cormorant Garamond', 'Tajawal', Georgia, serif;
+  --font-body:    'RifaiDigits', 'Tajawal', system-ui, sans-serif;
+  --font-mono:    'RifaiDigits', 'Tajawal', 'JetBrains Mono', monospace;
+  --money-ink:    var(--cream-0);
+}
+input, select, textarea, button { font-family: inherit; }
+.mono, code, kbd { font-variant-numeric: normal; }
+body { font-feature-settings: "kern", "liga"; }
+
+/* ── الأرقام المالية: أكبر وأوضح وأثقل، من غير مبالغة ── */
+.amt {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1.14em;
+  letter-spacing: 0.01em;
+  color: var(--money-ink);
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+.amt-cur {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--cream-4);
+  margin-inline-start: 0.28em;
+  white-space: nowrap;
+}
+/* الألوان الدلالية (أحمر/أخضر/ذهبي) اللي حاطينها الكود بـ inline style تفضل — الرقم بيورثها */
+.amt-cell .amt, .stat-value .amt, .is-money .amt, .amt-xl .amt { color: inherit; }
+td.amt-cell { font-size: 0.95rem; }
+td.amt-cell .amt { font-size: 1.22em; }
+td.amt-cell, th.amt-th { text-align: center; }
+th.amt-th { color: var(--gold-1); }
+.rdv-compact-table td.amt-cell { font-size: 0.9rem; }
+
+.stat-value .amt { font-size: 1em; font-weight: 700; }
+.stat-value .amt-cur { font-size: 0.42em; font-weight: 700; opacity: 0.85; }
+
+.amt-xl .amt { font-size: 1.3em; font-weight: 800; }
+.amt-xl { text-shadow: 0 0 22px var(--gold-glow); }
+
+/* شريط ذهبي رفيع يسبق المبالغ المهمة في كروت الموبايل */
+.rdv-card-row.is-money {
+  padding: 8px 10px; margin-inline: -4px;
+  background: linear-gradient(90deg, var(--gold-glow-sm), transparent 85%);
+  border-radius: var(--r-md);
+  border-inline-start: 2px solid var(--gold-border);
+}
+.rdv-card-row.is-money .rdv-card-label { font-size: 0.78rem; font-weight: 700; color: var(--cream-3); }
+.rdv-card-row.is-money .rdv-card-value { font-size: 1rem; }
+.rdv-card-row.is-money .amt { font-size: 1.32em; }
+
+/* صف الأرقام في الجداول: hover أوضح يساعد المراجعة */
+tbody tr:hover td.amt-cell { background: var(--gold-glow-sm); }
+
+/* ── حركة دخول الصفحات + ظهور متتابع للكروت ── */
+@keyframes uxRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.page.enter-anim .stat-card,
+.page.enter-anim .section-card,
+.page.enter-anim .rdv-card,
+.page.enter-anim .product-card,
+.page.enter-anim .table-wrap { animation: uxRise .5s cubic-bezier(.22,.8,.24,1) both; }
+.page.enter-anim .stat-card:nth-child(2), .page.enter-anim .rdv-card:nth-child(2), .page.enter-anim .product-card:nth-child(2) { animation-delay: .05s; }
+.page.enter-anim .stat-card:nth-child(3), .page.enter-anim .rdv-card:nth-child(3), .page.enter-anim .product-card:nth-child(3) { animation-delay: .10s; }
+.page.enter-anim .stat-card:nth-child(4), .page.enter-anim .rdv-card:nth-child(4), .page.enter-anim .product-card:nth-child(4) { animation-delay: .15s; }
+.page.enter-anim .rdv-card:nth-child(n+5), .page.enter-anim .product-card:nth-child(n+5) { animation-delay: .2s; }
+
+/* ── ripple ── */
+.rip-host { overflow: hidden; }
+.rip { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(240,201,122,.5) 0%, rgba(240,201,122,0) 68%);
+  transform: scale(0); opacity: .9; animation: uxRip .6s ease-out forwards; }
+@keyframes uxRip { to { transform: scale(1); opacity: 0; } }
+
+/* ── ظل الشريط العلوي عند التمرير ── */
+.topbar { transition: box-shadow .25s ease, background .3s ease; }
+.topbar.is-scrolled { box-shadow: 0 6px 22px rgba(0,0,0,.28); }
+[data-theme="light"] .topbar.is-scrolled { box-shadow: 0 6px 20px rgba(35,28,16,.10); }
+
+/* ── تنعيم تبديل الثيم للعناصر الرئيسية (بيتقفل وقت الكشف الدائري عشان مايتعارضش) ── */
+html:not([data-going]) .sidebar, html:not([data-going]) .topbar, html:not([data-going]) .card,
+html:not([data-going]) .stat-card, html:not([data-going]) .modal, html:not([data-going]) .rdv-card {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: .35s;
+}
+
+/* ═══ موبايل ═══ */
+@media (max-width: 599px) {
+  /* شريط علوي: النجفة + العنوان على سطر، البحث تحتهم */
+  .topbar { padding-inline: var(--s-sm); }
+  /* النجفة في نفس صف العنوان (طرف الشريط)، والبحث في صف تاني تحتهم */
+  .topbar .chandelier-widget[data-mode="compact"] { order: 5; margin-inline-start: auto; height: 60px; align-self: flex-start; }
+  .topbar .topbar-spacer { display: none; }
+
+  /* شريط سفلي: عنصر نشط بمؤشر ذهبي + حركة */
+  .bottom-nav { backdrop-filter: blur(14px) saturate(1.3); background: color-mix(in srgb, var(--ink-1) 88%, transparent); }
+  .bnav-item { transition: color .2s ease, transform .2s var(--ease-spring); }
+  .bnav-item:active { transform: scale(.9); }
+  .bnav-item.active::before {
+    content: ''; position: absolute; top: 0; left: 24%; right: 24%; height: 3px;
+    border-radius: 0 0 6px 6px; background: linear-gradient(90deg, var(--gold-2), var(--gold-0), var(--gold-2));
+    box-shadow: 0 2px 10px var(--gold-glow); animation: uxPop .35s var(--ease-spring);
+  }
+  .bnav-item.active .nav-icon { transform: translateY(-1px) scale(1.12); transition: transform .25s var(--ease-spring); }
+  @keyframes uxPop { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* كروت */
+  .rdv-card { padding: var(--s-lg); border-radius: var(--r-xl); }
+  .rdv-card-title { font-size: 1.05rem; }
+  .rdv-card-value { font-size: 0.92rem; }
+  .rdv-card:active { transform: scale(.985); }
+
+  /* كروت الإحصائيات: رقم أكبر بس بيتكسّر بذكاء لو طويل */
+  .stat-value { font-size: 2.1rem; overflow-wrap: anywhere; }
+  .stat-value .amt-cur { font-size: 0.4em; }
+
+  /* ملخصات الفاتورة/أمر الشراء بالنماذج */
+  #ifTotal.amt-xl, #poTotalDisp.amt-xl { font-size: 1.5rem !important; }
+  .amt-xl .amt { font-size: 1.25em; }
+
+  /* نوافذ: مقبض السحب أكبر وأوضح */
+  .modal-overlay .modal::before { width: 46px; height: 5px; margin-top: 12px; background: var(--gold-border); }
+  .modal-overlay.open .modal { transition-duration: .38s; }
+
+
+  /* شبكات inline داخل النوافذ (3-5 أعمدة) كانت بتطلع من الشاشة على الموبايل */
+  .modal-body [style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .modal-body [style*="repeat(3"], .modal-body [style*="repeat(4"], .modal-body [style*="repeat(5"] { grid-template-columns: repeat(2, 1fr) !important; }
+  .modal-body [style*="grid-template-columns"] > * { min-width: 0; }
+
+  .modal-body div[style*="width:260px"] { width: 100% !important; }
+
+  /* Toast فوق الشريط السفلي */
+  .toast-container { left: var(--s-md); right: var(--s-md); bottom: calc(var(--bottom-nav-h) + var(--bottom-nav-safe) + var(--s-md)); }
+  .toast { min-width: 0; width: 100%; }
+}
+
+/* تابلت: نفس الأرقام الأوضح */
+@media (max-width: 1199px) and (min-width: 600px) {
+  td.amt-cell .amt { font-size: 1.16em; }
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"
   onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';document.head.appendChild(s);"></script>
@@ -2565,7 +2751,11 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
          الزرار العادي لتبديل الثيم (themeToggleBtn) يفضل شغال بالكامل
          بغض النظر عن العنصر ده. -->
     <div class="chandelier-widget" id="chandelierWidget" data-mode="full">
-      <svg class="chandelier-fixture" id="chandelierFixture" viewBox="0 0 100 78" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+      <!-- هالة الضوء + شعاع يتفتح تحت النجفة لما تنور (Light theme) -->
+      <div class="chand-halo" aria-hidden="true"></div>
+      <div class="chand-beam" aria-hidden="true"></div>
+
+      <svg class="chandelier-fixture" id="chandelierFixture" viewBox="0 0 100 72" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="chandGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#f0c97a"/>
@@ -2576,6 +2766,17 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
             <stop offset="0%" stop-color="#ffdfa0" stop-opacity="0.95"/>
             <stop offset="100%" stop-color="#ffdfa0" stop-opacity="0"/>
           </radialGradient>
+          <radialGradient id="chandBulbLit" cx="50%" cy="40%" r="65%">
+            <stop offset="0%" stop-color="#fffdf2"/>
+            <stop offset="55%" stop-color="#ffe7a6"/>
+            <stop offset="100%" stop-color="#f0b84a"/>
+          </radialGradient>
+          <linearGradient id="chandCrystal" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fff7de" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#e8b84a" stop-opacity="0.55"/>
+          </linearGradient>
+          <path id="chandDrop" d="M0 0 L2.3 3.6 L0 8.6 L-2.3 3.6 Z"/>
+          <path id="chandStar" d="M0 -3.4 L0.75 -0.75 L3.4 0 L0.75 0.75 L0 3.4 L-0.75 0.75 L-3.4 0 L-0.75 -0.75 Z"/>
         </defs>
 
         <!-- طبق تثبيت بالسقف + الساق + الكرة العلوية -->
@@ -2586,33 +2787,52 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
         <!-- قوس التاج الرئيسي -->
         <path d="M18 30 Q50 6 82 30" stroke="url(#chandGoldGrad)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
 
-        <!-- الذراع الأوسط + القطرة المركزية (أكبر قطرة) -->
+        <!-- المركز -->
         <line x1="50" y1="30" x2="50" y2="36" stroke="url(#chandGoldGrad)" stroke-width="1.3"/>
-        <circle class="chand-bulb-glow" cx="50" cy="47" r="13" fill="url(#chandBulbGlow)"/>
+        <circle class="chand-bulb-glow" cx="50" cy="47" r="14" fill="url(#chandBulbGlow)"/>
         <ellipse class="chand-bulb" cx="50" cy="47" rx="5" ry="8.5" fill="url(#chandGoldGrad)"/>
+        <ellipse class="chand-bulb-lit" cx="50" cy="47" rx="5" ry="8.5" fill="url(#chandBulbLit)"/>
+        <use class="chand-crystal" href="#chandDrop" x="50" y="56.5" fill="url(#chandCrystal)"/>
 
         <!-- ذراعان داخليان -->
         <line x1="34" y1="31.5" x2="34" y2="36.5" stroke="url(#chandGoldGrad)" stroke-width="1.1"/>
-        <circle class="chand-bulb-glow" cx="34" cy="44.5" r="9.5" fill="url(#chandBulbGlow)"/>
+        <circle class="chand-bulb-glow" cx="34" cy="44.5" r="10" fill="url(#chandBulbGlow)"/>
         <ellipse class="chand-bulb" cx="34" cy="44.5" rx="3.6" ry="6" fill="url(#chandGoldGrad)" opacity="0.92"/>
+        <ellipse class="chand-bulb-lit" cx="34" cy="44.5" rx="3.6" ry="6" fill="url(#chandBulbLit)"/>
+        <use class="chand-crystal" href="#chandDrop" x="34" y="51.5" fill="url(#chandCrystal)"/>
 
         <line x1="66" y1="31.5" x2="66" y2="36.5" stroke="url(#chandGoldGrad)" stroke-width="1.1"/>
-        <circle class="chand-bulb-glow" cx="66" cy="44.5" r="9.5" fill="url(#chandBulbGlow)"/>
+        <circle class="chand-bulb-glow" cx="66" cy="44.5" r="10" fill="url(#chandBulbGlow)"/>
         <ellipse class="chand-bulb" cx="66" cy="44.5" rx="3.6" ry="6" fill="url(#chandGoldGrad)" opacity="0.92"/>
+        <ellipse class="chand-bulb-lit" cx="66" cy="44.5" rx="3.6" ry="6" fill="url(#chandBulbLit)"/>
+        <use class="chand-crystal" href="#chandDrop" x="66" y="51.5" fill="url(#chandCrystal)"/>
 
         <!-- ذراعان خارجيان -->
         <line x1="21" y1="30.5" x2="21" y2="34" stroke="url(#chandGoldGrad)" stroke-width="0.9"/>
-        <circle class="chand-bulb-glow" cx="21" cy="39.5" r="6.5" fill="url(#chandBulbGlow)"/>
+        <circle class="chand-bulb-glow" cx="21" cy="39.5" r="7" fill="url(#chandBulbGlow)"/>
         <ellipse class="chand-bulb" cx="21" cy="39.5" rx="2.6" ry="4.2" fill="url(#chandGoldGrad)" opacity="0.8"/>
+        <ellipse class="chand-bulb-lit" cx="21" cy="39.5" rx="2.6" ry="4.2" fill="url(#chandBulbLit)"/>
+        <use class="chand-crystal" href="#chandDrop" x="21" y="45.5" fill="url(#chandCrystal)"/>
 
         <line x1="79" y1="30.5" x2="79" y2="34" stroke="url(#chandGoldGrad)" stroke-width="0.9"/>
-        <circle class="chand-bulb-glow" cx="79" cy="39.5" r="6.5" fill="url(#chandBulbGlow)"/>
+        <circle class="chand-bulb-glow" cx="79" cy="39.5" r="7" fill="url(#chandBulbGlow)"/>
         <ellipse class="chand-bulb" cx="79" cy="39.5" rx="2.6" ry="4.2" fill="url(#chandGoldGrad)" opacity="0.8"/>
+        <ellipse class="chand-bulb-lit" cx="79" cy="39.5" rx="2.6" ry="4.2" fill="url(#chandBulbLit)"/>
+        <use class="chand-crystal" href="#chandDrop" x="79" y="45.5" fill="url(#chandCrystal)"/>
+
+        <!-- لمعة الكريستال (بتظهر وهي منوّرة بس) -->
+        <use class="chand-star s1" href="#chandStar" x="21" y="50" fill="#fff"/>
+        <use class="chand-star s2" href="#chandStar" x="34" y="57" fill="#fff"/>
+        <use class="chand-star s3" href="#chandStar" x="50" y="63" fill="#fff"/>
+        <use class="chand-star s4" href="#chandStar" x="66" y="57" fill="#fff"/>
+        <use class="chand-star s5" href="#chandStar" x="79" y="50" fill="#fff"/>
       </svg>
 
-      <!-- سلسلة السحب — بتنزل شوية على شمال المنتصف (مش بالظبط تحت القطرة
-           المركزية) عشان تبان كعنصر تفاعلي منفصل وواضح، مش جزء زخرفي بس. -->
-      <div class="chandelier-cord" id="chandelierCord" aria-hidden="true"></div>
+      <!-- سلسلة خرز ذهبية (SVG) — بتتحرك بفيزياء زنبركية بالـ JS -->
+      <svg class="chand-cord-svg" id="chandCordSvg" aria-hidden="true" focusable="false">
+        <path id="chandWirePath" d="" fill="none"/>
+        <path id="chandCordPath" d="" fill="none"/>
+      </svg>
       <button type="button" class="chandelier-handle" id="chandelierHandle" aria-label="اسحب النجفة لتبديل الثيم"></button>
     </div>
 
@@ -2749,7 +2969,7 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
       <div id="topbarUser" style="font-size:0.78rem; color:var(--cream-4);"></div>
 
       <!-- Theme toggle (Dark/Light) -->
-      <button class="btn btn-icon btn-subtle" id="themeToggleBtn" onclick="toggleTheme()" title="تبديل الثيم (داكن/فاتح)" aria-label="تبديل الثيم (داكن/فاتح)">
+      <button class="btn btn-icon btn-subtle" id="themeToggleBtn" onclick="toggleTheme(event)" title="تبديل الثيم (داكن/فاتح)" aria-label="تبديل الثيم (داكن/فاتح)">
         <svg id="themeToggleIconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg id="themeToggleIconSun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </button>
@@ -4855,6 +5075,9 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
    Connects to /api/* endpoints on same origin
 ═══════════════════════════════════════════════════ */
 
+// نفس خط الأرقام العربية بيتحقن في نوافذ الطباعة (A4 / حراري / كشوف)
+const DIGITS_CSS = (document.getElementById('rifaiDigitsFont') || {}).textContent || '';
+
 // ── State ──
 const state = {
   token: localStorage.getItem('arToken'),
@@ -4915,10 +5138,66 @@ function setTheme(theme, opts) {
   if (!opts || !opts.silent) refreshChartsForTheme();
 }
 
-function toggleTheme() {
+// ── تبديل الثيم بحركة: الضوء بيتفتح (أو بينسحب) من مكان النجفة ──────────────
+// setTheme() فوق بتفضل هي المصدر الوحيد لتغيير الثيم فعليًا. الدالة دي بتلفّها
+// بحركة كشف دائرية (View Transitions API) — ولو المتصفح مش بيدعمها بنستخدم
+// توهّج بيتّسع من نفس النقطة. ولو المستخدم مفعّل "تقليل الحركة" بنبدّل فورًا.
+function prefersReducedMotionNow() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+function setThemeAnimated(theme, origin) {
+  theme = THEME_ORDER.includes(theme) ? theme : 'dark';
+  if (theme === getTheme()) return;
+  const root = document.documentElement;
+  const swap = () => setTheme(theme);
+  if (prefersReducedMotionNow()) { swap(); return; }
+
+  const x = (origin && typeof origin.x === 'number') ? origin.x : window.innerWidth / 2;
+  const y = (origin && typeof origin.y === 'number') ? origin.y : 0;
+  const R = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) + 24;
+  const toLight = theme === 'light';
+  root.setAttribute('data-going', theme);
+
+  if (typeof document.startViewTransition === 'function') {
+    let vt;
+    try { vt = document.startViewTransition(swap); }
+    catch (e) { root.removeAttribute('data-going'); swap(); return; }
+    vt.ready.then(() => {
+      const grow = [`circle(0px at ${x}px ${y}px)`, `circle(${R}px at ${x}px ${y}px)`];
+      root.animate(
+        { clipPath: toLight ? grow : grow.slice().reverse() },
+        { duration: toLight ? 850 : 700, easing: 'cubic-bezier(.22,.8,.24,1)',
+          pseudoElement: toLight ? '::view-transition-new(root)' : '::view-transition-old(root)' }
+      );
+    }).catch(() => {});
+    vt.finished.finally(() => root.removeAttribute('data-going'));
+    return;
+  }
+
+  // بديل: توهّج بيتّسع من النجفة، والتبديل الفعلي عند ذروة التغطية
+  const bloom = document.createElement('div');
+  bloom.className = 'theme-bloom to-' + theme;
+  bloom.style.left = x + 'px'; bloom.style.top = y + 'px';
+  document.body.appendChild(bloom);
+  const scale = (R / 20) * 2.2;
+  const anim = bloom.animate(
+    [{ transform: 'scale(0)', opacity: 0.95 }, { transform: `scale(${scale})`, opacity: 0.95, offset: 0.55 }, { transform: `scale(${scale})`, opacity: 0 }],
+    { duration: 900, easing: 'cubic-bezier(.22,.8,.24,1)' }
+  );
+  setTimeout(swap, 380);
+  anim.onfinish = () => { bloom.remove(); root.removeAttribute('data-going'); };
+}
+
+function toggleTheme(evt) {
   const current = getTheme();
   const next = THEME_ORDER[(THEME_ORDER.indexOf(current) + 1) % THEME_ORDER.length];
-  setTheme(next);
+  let origin = null;
+  if (evt && evt.currentTarget && evt.currentTarget.getBoundingClientRect) {
+    const r = evt.currentTarget.getBoundingClientRect();
+    origin = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+  setThemeAnimated(next, origin);
 }
 
 // مزامنة أولية لشكل الزرار + meta theme-color مع القيمة اللي اتحطت بالفعل
@@ -4926,33 +5205,35 @@ function toggleTheme() {
 // render أصلاً في أول تحميل).
 setTheme(getTheme(), { silent: true });
 
-// ── النجفة التفاعلية (Chandelier Theme Switcher) ──────────────────────────
-// ميزة إضافية وليست بديلة: زرار الثيم العادي فوق (themeToggleBtn) بيفضل
-// شغال زي ما هو تمامًا بغض النظر عن أي حاجة هنا. النجفة دي عنصر عالمي واحد
-// بس (مش متكرر في كل صفحة) — بيتنقل بالـ JS بين أعلى الشريط الجانبي على
-// الشاشات الكبيرة، وجوه شريط الأدوات العلوي على الشاشات الصغيرة (نفس الـ
-// element بالظبط، مفيش تكرار markup ولا event listeners).
+// ── النجفة التفاعلية v2 (Chandelier Theme Switcher) ────────────────────────
+// ميزة إضافية وليست بديلة: زرار الثيم العادي فوق (themeToggleBtn) بيفضل شغال.
+// النجفة عنصر عالمي واحد بس — بيتنقل بالـ JS بين الشريط الجانبي (≥1200px) وشريط
+// الأدوات العلوي (<1200px) وهو هو نفس الـ element، ودلوقتي بسلسلة سحب كاملة
+// في الوضعين (الموبايل كمان).
 //
-// مصدر الحقيقة الوحيد للثيم يفضل زي ما هو (setTheme/getTheme فوق) — شكل
-// النجفة (مضاءة/مطفأة) بيتحدد بالكامل عن طريق CSS مرتبط بـ [data-theme]
-// على <html>، مفيش أي state تاني منفصل ممكن يتعارض معاه. أي تفاعل (سحب أو
-// ضغطة/إنتر) بينادي toggleTheme() الموجودة بالفعل، زي الزرار العادي بالظبط.
+// الفيزياء: السلسلة زنبرك مخمّد (spring-damper)، والنجفة بندول بيتأرجح بعد كل
+// تفعيل. حلقة الأنيميشن (rAF) بتشتغل بس أثناء الحركة الفعلية وبتقف لما كل حاجة
+// تهدى — يعني صفر استهلاك وهي ساكنة.
 //
-// أمان الفشل: كل حاجة هنا لفّة بـ try/catch — لو أي جزء فشل (مثلاً المتصفح
-// مش بيدعم Pointer Events، أو عنصر مش موجود)، زرار الثيم العادي والثيم نفسه
-// بيفضلوا شغالين عادي، النجفة بس مابتشتغلش.
+// السحب زي سلسلة لمبة حقيقية: التبديل بيحصل لحظة تعدّي "الـ detent" (مش عند
+// الإفلات) مع اهتزاز لمس + نقرة صوت خفيفة، والسلسلة بترجع بارتداد.
+//
+// أمان الفشل: كل حاجة لفّة بـ try/catch — لو أي جزء فشل، زرار الثيم العادي
+// والثيم نفسه بيفضلوا شغالين، النجفة بس مابتتحركش.
 (function () {
-  function safe(fn) { try { return fn(); } catch (e) { /* صامت عمدًا — شوف الشرح فوق */ } }
+  function safe(fn) { try { return fn(); } catch (e) { /* صامت عمدًا */ } }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  let widget, handle;
-  let dragging = false, startY = 0, startTime = 0, moved = 0;
-  const MAX_PULL = 34;      // أقصى مسافة سحب "طبيعية" قبل ما نبدأ مقاومة مطاطية
-  const TRIGGER_PULL = 20;  // مسافة السحب اللي لو اتعدّت بتفعّل تبديل الثيم
-  const TAP_MOVE_LIMIT = 6; // حركة أقل من كده بتتحسب "ضغطة" مش سحب فعلي
-
-  function prefersReducedMotion() {
-    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  }
+  let widget, handle, fixture, cordPath, wirePath;
+  let mode = 'full';
+  // هندسة (px نسبةً لـ widget)
+  let anchorX = 0, anchorY = 0, pivotX = 0, pivotY = 0, rest = 30, maxPull = 48, trigger = 24;
+  // فيزياء
+  let pull = 0, vel = 0, swing = 0, swingV = 0;
+  let dragging = false, crossed = false, interacted = false;
+  let startY = 0, startT = 0, lastY = 0, lastT = 0, lastV = 0, moved = 0;
+  let raf = 0, lastFrame = 0;
+  let audioCtx = null;
 
   function updateLabel() {
     if (!handle) return;
@@ -4963,49 +5244,204 @@ setTheme(getTheme(), { silent: true });
     handle.setAttribute('title', label);
   }
 
-  function setPull(px) { if (widget) widget.style.setProperty('--chand-pull', px + 'px'); }
+  // ── هندسة النجفة: نقطة تعليق السلسلة + محور التأرجح ──
+  // مقاسات النجفة نسبةً للـ widget (SVG مالوش offsetLeft/offsetWidth فبنستخدم getBoundingClientRect)
+  function fixBox() {
+    const fr = fixture.getBoundingClientRect(), wr = widget.getBoundingClientRect();
+    const w = parseFloat(getComputedStyle(fixture).width) || fr.width;   // العرض قبل أي دوران
+    const h = w * 0.72;                                                 // نسبة viewBox 100×72
+    return { left: (fr.left + fr.width / 2 - wr.left) - w / 2, top: fr.top - wr.top + (fr.height - h) / 2, w, h };
+  }
+  function layout() {
+    if (!widget || !fixture) return;
+    if (!widget.getClientRects().length) return; // مخفية حاليًا
+    const b = fixBox();
+    const s = b.w / 100;                         // px لكل وحدة viewBox
+    anchorX = b.left + 34 * s;                   // تحت الذراع الداخلي الأيسر
+    anchorY = b.top + 59 * s;
+    pivotX = b.left + b.w / 2;
+    pivotY = b.top + b.h * 0.05;
+    rest = mode === 'full' ? 30 : 18;
+    maxPull = mode === 'full' ? 48 : 40;
+    trigger = mode === 'full' ? 24 : 21;
+    draw();
+  }
 
-  function activate() {
-    if (typeof toggleTheme !== 'function') return;
-    toggleTheme();
-    updateLabel();
-    if (!prefersReducedMotion() && widget) {
-      widget.classList.add('is-toggling');
-      setTimeout(() => widget.classList.remove('is-toggling'), 650);
+  function draw() {
+    if (!widget || !handle) return;
+    // نقطة التعليق بعد تدوير النجفة (البندول) حوالين المحور
+    const rad = swing * Math.PI / 180, cs = Math.cos(rad), sn = Math.sin(rad);
+    const dx = anchorX - pivotX, dy = anchorY - pivotY;
+    const ax = pivotX + dx * cs - dy * sn;
+    const ay = pivotY + dx * sn + dy * cs;
+    const whip = clamp(-vel * 0.011, -6, 6);              // السلسلة بتتقوّس مع السرعة
+    const hx = ax - swing * 0.28 + whip * 0.5;
+    const hy = ay + rest + pull;
+    const cx = (ax + hx) / 2 - whip;
+    const cy = (ay + hy) / 2;
+    const d = `M${ax.toFixed(2)} ${ay.toFixed(2)} Q${cx.toFixed(2)} ${cy.toFixed(2)} ${hx.toFixed(2)} ${hy.toFixed(2)}`;
+    cordPath.setAttribute('d', d);
+    wirePath.setAttribute('d', d);
+    handle.style.transform = `translate3d(${(hx - handle.offsetWidth / 2).toFixed(2)}px, ${(hy - 1).toFixed(2)}px, 0) rotate(${(whip * -1.6).toFixed(2)}deg)`;
+    widget.style.setProperty('--chand-swing', swing.toFixed(2) + 'deg');
+  }
+
+  function step(dt) {
+    if (!dragging) {
+      const k = 420, c = 15;                              // زنبرك مخمّد (ارتداد خفيف)
+      vel += (-k * pull - c * vel) * dt;
+      pull += vel * dt;
+      if (pull < -10) { pull = -10; vel = Math.abs(vel) * 0.3; }
+    }
+    swingV += (-70 * swing - 1.9 * swingV) * dt;          // بندول
+    swing += swingV * dt;
+  }
+
+  function tick(t) {
+    const dt = clamp((t - lastFrame) / 1000 || 0.016, 0.001, 0.032);
+    lastFrame = t;
+    step(dt);
+    draw();
+    const active = dragging || Math.abs(pull) > 0.06 || Math.abs(vel) > 0.6 || Math.abs(swing) > 0.03 || Math.abs(swingV) > 0.06;
+    if (active) raf = requestAnimationFrame(tick);
+    else { raf = 0; pull = vel = swing = swingV = 0; draw(); }
+  }
+  function kick() {
+    if (prefersReducedMotionNow()) { pull = vel = swing = swingV = 0; draw(); return; }
+    if (!raf) { lastFrame = performance.now(); raf = requestAnimationFrame(tick); }
+  }
+
+  // ── حواس: اهتزاز + صوت نقرة خفيفة ──
+  function haptic(ms) { safe(() => { if (navigator.vibrate) navigator.vibrate(ms); }); }
+  function clickSound(turningOn) {
+    safe(() => {
+      // لإيقاف الصوت: localStorage.setItem('arChandSound','off')
+      if (localStorage.getItem('arChandSound') === 'off' || prefersReducedMotionNow()) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = audioCtx || new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const t = audioCtx.currentTime;
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(turningOn ? 560 : 400, t);
+      o.frequency.exponentialRampToValueAtTime(110, t + 0.05);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.06, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.065);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + 0.07);
+      const len = Math.floor(audioCtx.sampleRate * 0.02);
+      const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate), ch = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const n = audioCtx.createBufferSource(), ng = audioCtx.createGain();
+      n.buffer = buf; ng.gain.value = 0.045; n.connect(ng); ng.connect(audioCtx.destination); n.start(t);
+    });
+  }
+
+  // ── شرارات التنوير ──
+  function burst() {
+    if (prefersReducedMotionNow() || !widget.animate) return;
+    const bx = fixBox(), s = bx.w / 100, ox = bx.left, oy = bx.top;
+    const pts = [[50, 47], [34, 44.5], [66, 44.5], [21, 39.5], [79, 39.5]];
+    const full = mode === 'full';
+    for (let i = 0; i < 16; i++) {
+      const p = pts[i % pts.length];
+      const el = document.createElement('i');
+      el.className = 'chand-spark';
+      el.style.left = (ox + p[0] * s - 2.5) + 'px';
+      el.style.top = (oy + p[1] * s - 2.5) + 'px';
+      widget.appendChild(el);
+      const ang = Math.random() * Math.PI * 2;
+      const dist = (full ? 34 : 22) + Math.random() * (full ? 40 : 26);
+      const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist * 0.8 - 8;
+      const a = el.animate(
+        [{ transform: 'translate(0,0) scale(0.4)', opacity: 1 },
+         { transform: `translate(${dx}px,${dy}px) scale(${(0.8 + Math.random() * 0.9).toFixed(2)})`, opacity: 0 }],
+        { duration: 600 + Math.random() * 450, easing: 'cubic-bezier(.16,.8,.3,1)', fill: 'forwards' }
+      );
+      a.onfinish = () => el.remove();
     }
   }
 
-  function onPointerDown(e) {
-    dragging = true; moved = 0; startY = e.clientY; startTime = Date.now();
-    if (widget) widget.classList.add('is-dragging');
+  function originPoint() {
+    if (fixture && fixture.getClientRects().length) {
+      const r = fixture.getBoundingClientRect();
+      return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.62 };
+    }
+    const b = document.getElementById('themeToggleBtn');
+    if (b && b.getClientRects().length) {
+      const r = b.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+    return null;
+  }
+
+  let lastAct = 0;
+  function activate() {
+    const nowT = performance.now();
+    if (nowT - lastAct < 450) return;          // حارس: pointerup + click بيطلعوا لنفس اللمسة
+    lastAct = nowT;
+    interacted = true;
+    const next = THEME_ORDER[(THEME_ORDER.indexOf(getTheme()) + 1) % THEME_ORDER.length];
+    const turningOn = next === 'light';
+    clickSound(turningOn);
+    haptic(turningOn ? [10, 30, 16] : 14);
+    setThemeAnimated(next, originPoint());
+    updateLabel();
+    swingV += 26;
+    if (turningOn) {
+      widget.classList.remove('is-igniting');
+      void widget.offsetWidth;
+      widget.classList.add('is-igniting');
+      burst();
+      setTimeout(() => widget.classList.remove('is-igniting'), 800);
+    }
+    kick();
+  }
+
+  function tug() { vel = Math.max(vel, 560); kick(); }   // سحبة سريعة وارتداد (للضغطة/الكيبورد/التلميح)
+
+  // ── مؤشر (ماوس/لمس/قلم) ──
+  function onDown(e) {
+    if (e.button !== undefined && e.button > 0) return;
+    dragging = true; crossed = false; moved = 0; vel = 0;
+    startY = lastY = e.clientY; startT = lastT = performance.now(); lastV = 0;
+    widget.classList.add('is-dragging');
     safe(() => handle.setPointerCapture(e.pointerId));
+    kick();
   }
-
-  function onPointerMove(e) {
+  function onMove(e) {
     if (!dragging) return;
-    let d = e.clientY - startY;
-    if (d < 0) d = 0; // مينفعش السلسلة "تتدفع" لفوق
-    moved = Math.max(moved, d);
-    const visual = d > MAX_PULL ? MAX_PULL + (d - MAX_PULL) * 0.25 : d;
-    setPull(Math.min(visual, MAX_PULL * 1.6));
+    const now = performance.now();
+    const d = e.clientY - startY;
+    moved = Math.max(moved, Math.abs(d));
+    lastV = (e.clientY - lastY) / Math.max(1, now - lastT) * 1000;
+    lastY = e.clientY; lastT = now;
+    let v = d < 0 ? d * 0.12 : d;                              // لأعلى = مقاومة شديدة
+    if (v > maxPull) v = maxPull + (v - maxPull) * 0.22;        // مطاطية بعد أقصى سحب
+    pull = Math.min(v, maxPull * 1.5);
+    if (!crossed && pull >= trigger) {                           // عدّى الـ detent → بدّل
+      crossed = true;
+      widget.classList.add('is-armed');
+      activate();
+    }
   }
-
-  function endDrag() {
+  function onUp() {
     if (!dragging) return;
     dragging = false;
-    if (widget) widget.classList.remove('is-dragging');
-    setPull(0);
-    const elapsed = Date.now() - startTime;
-    const isTap = moved < TAP_MOVE_LIMIT && elapsed < 500;
-    const isDragTrigger = moved >= TRIGGER_PULL;
-    if (isTap || isDragTrigger) activate();
+    widget.classList.remove('is-dragging', 'is-armed');
+    const isTap = !crossed && moved < 6 && (performance.now() - startT) < 450;
+    vel = clamp(lastV * 0.6, -300, 900);
+    if (isTap) { tug(); activate(); }
+    kick();
   }
-
   function onClick(e) {
-    // مسار لوحة المفاتيح فقط: Enter/Space على <button> بيطلّعوا click بـ
-    // detail=0. تفاعل الماوس/اللمس اتعالج بالكامل فوق في pointerup/endDrag،
-    // فمنعرفش هنا تاني عشان مانفعّلش الثيم مرتين لنفس الضغطة.
-    if (e.detail === 0) activate();
+    // مسار الكيبورد فقط (Enter/Space بيطلّعوا click بـ detail=0)؛ الماوس/اللمس اتعالجوا فوق.
+    if (e.detail === 0) { tug(); activate(); }
+  }
+  function onKey(e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); tug(); activate(); }
   }
 
   function relocate() {
@@ -5013,40 +5449,70 @@ setTheme(getTheme(), { silent: true });
     const sidebar = document.querySelector('.sidebar');
     const themeBtn = document.getElementById('themeToggleBtn');
     if (!sidebar || !themeBtn || !themeBtn.parentElement) return;
-    const isRoomy = window.matchMedia('(min-width: 900px)').matches;
-    if (isRoomy) {
+    // ≥1200px الشريط الجانبي ظاهر؛ أقل من كده مخفي (900–1199 كان فيه ثغرة: النجفة
+    // كانت بتتحط جوه شريط مخفي) فالنجفة بتروح للشريط العلوي.
+    const roomy = window.matchMedia('(min-width: 1200px)').matches;
+    if (roomy) {
       if (sidebar.firstElementChild !== widget) sidebar.insertBefore(widget, sidebar.firstChild);
-      widget.setAttribute('data-mode', 'full');
+      mode = 'full';
     } else {
       if (widget.nextElementSibling !== themeBtn) themeBtn.parentElement.insertBefore(widget, themeBtn);
-      widget.setAttribute('data-mode', 'compact');
+      mode = 'compact';
     }
+    widget.setAttribute('data-mode', mode);
+    layout();
+  }
+
+  // تلميح أول مرات الاستخدام: السلسلة "بتترجّح" مرتين عشان المستخدم يعرف إنها بتتسحب
+  function maybeHint() {
+    safe(() => {
+      const n = parseInt(localStorage.getItem('arChandHint') || '0', 10);
+      if (n >= 3 || prefersReducedMotionNow()) return;
+      let tries = 0;
+      const timer = setInterval(() => {
+        if (interacted || ++tries > 30) { clearInterval(timer); return; }
+        if (widget.getClientRects().length) {          // ظاهرة (بعد تسجيل الدخول)
+          clearInterval(timer);
+          localStorage.setItem('arChandHint', String(n + 1));
+          setTimeout(() => { if (!interacted) tug(); }, 700);
+          setTimeout(() => { if (!interacted) tug(); }, 1500);
+        }
+      }, 1000);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', () => safe(() => {
     widget = document.getElementById('chandelierWidget');
     handle = document.getElementById('chandelierHandle');
-    if (!widget || !handle) return;
+    fixture = document.getElementById('chandelierFixture');
+    cordPath = document.getElementById('chandCordPath');
+    wirePath = document.getElementById('chandWirePath');
+    if (!widget || !handle || !fixture || !cordPath || !wirePath) return;
+    handle.style.transformOrigin = '50% 0';
 
-    handle.addEventListener('pointerdown', (e) => safe(() => onPointerDown(e)));
-    handle.addEventListener('pointermove', (e) => safe(() => onPointerMove(e)));
-    handle.addEventListener('pointerup', () => safe(endDrag));
-    handle.addEventListener('pointercancel', () => safe(endDrag));
+    handle.addEventListener('pointerdown', (e) => safe(() => onDown(e)));
+    handle.addEventListener('pointermove', (e) => safe(() => onMove(e)));
+    handle.addEventListener('pointerup', () => safe(onUp));
+    handle.addEventListener('pointercancel', () => safe(onUp));
+    handle.addEventListener('lostpointercapture', () => safe(onUp));
     handle.addEventListener('click', (e) => safe(() => onClick(e)));
+    handle.addEventListener('keydown', (e) => safe(() => onKey(e)));
 
     updateLabel();
     relocate();
+    window.addEventListener('load', () => safe(layout));
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => safe(relocate), 150);
     });
+    maybeHint();
   }));
 
-  // بتتنادى من setTheme() (فوق) بعد أي تغيير ثيم — حتى لو حصل من الزرار
-  // العادي مش من النجفة — عشان نص aria-label يفضل متزامن مع الحالة الفعلية.
+  // بتتنادى من setTheme() بعد أي تغيير ثيم — حتى لو حصل من الزرار العادي.
   window.__chandelierSyncLabel = updateLabel;
 })();
+
 
 // ── API ──
 const API = {
@@ -7252,7 +7718,7 @@ function buildStatementPrintHTML(s) {
       <td style="padding:8px 10px; font-size:10.5px; font-weight:700;">${st.period.from || '—'}</td>
       <td colspan="2" style="padding:8px 10px; font-size:10.5px; font-weight:700;">رصيد افتتاحي (${s.accountType === 'customer' ? 'العميل' : 'المورد'})</td>
       <td style="text-align:center;">—</td><td style="text-align:center;">—</td><td style="text-align:center;">—</td>
-      <td style="text-align:center; padding:8px 10px; font-family:monospace; font-weight:800;">${money(st.opening_balance)}</td>
+      <td style="text-align:center; padding:8px 10px; font-family:'RifaiDigits','Tajawal',monospace; font-weight:800;">${money(st.opening_balance)}</td>
     </tr>`;
 
   const rows = st.transactions.map((t, i) => {
@@ -7262,21 +7728,22 @@ function buildStatementPrintHTML(s) {
     return `
     <tr style="background:${i % 2 ? '#faf7f0' : '#fff'};">
       <td style="padding:7px 10px; font-size:10.5px;">${t.date}</td>
-      <td style="padding:7px 10px; font-size:10.5px; font-family:monospace; color:#6b4708;">${t.doc_number}</td>
+      <td style="padding:7px 10px; font-size:10.5px; font-family:'RifaiDigits','Tajawal',monospace; color:#6b4708;">${t.doc_number}</td>
       <td style="padding:7px 10px; font-size:10.5px;">${t.type_label}</td>
-      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:monospace; color:#b3261e;">${isDebitDoc ? money(t.debit) : '—'}</td>
-      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:monospace; color:#8a5a00;">${isReturn ? money(t.credit) : '—'}</td>
-      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:monospace; color:#1f7a42;">${isCollection ? money(t.credit) : '—'}</td>
-      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:monospace; font-weight:700;">${money(t.running_balance)}</td>
+      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:'RifaiDigits','Tajawal',monospace; color:#b3261e;">${isDebitDoc ? money(t.debit) : '—'}</td>
+      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:'RifaiDigits','Tajawal',monospace; color:#8a5a00;">${isReturn ? money(t.credit) : '—'}</td>
+      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:'RifaiDigits','Tajawal',monospace; color:#1f7a42;">${isCollection ? money(t.credit) : '—'}</td>
+      <td style="padding:7px 10px; font-size:10.5px; text-align:center; font-family:'RifaiDigits','Tajawal',monospace; font-weight:700;">${money(t.running_balance)}</td>
     </tr>`;
   }).join('');
 
   return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
   <title>${accountTypeLabel} — ${st.account.name}</title>
   <style>
+    ${DIGITS_CSS}
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Tajawal',Arial,sans-serif;background:#f2ede2;color:#241c11;direction:rtl;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{font-family:'RifaiDigits','Tajawal',Arial,sans-serif;background:#f2ede2;color:#241c11;direction:rtl;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     @page{size:A4;margin:10mm 9mm 16mm;}
     @media print{
       body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -7297,7 +7764,7 @@ function buildStatementPrintHTML(s) {
     .brand-sub{font-size:9.5px;color:#c9b48a;margin-top:3px;}
     .doc-title{text-align:left;position:relative;z-index:1;}
     .doc-title .t{font-size:16px;font-weight:800;color:#f0c97a;border-bottom:2px solid #e8b84a;padding-bottom:4px;}
-    .doc-title .n{font-size:9px;color:#a89070;margin-top:6px;font-family:monospace;}
+    .doc-title .n{font-size:9px;color:#a89070;margin-top:6px;font-family:'RifaiDigits','Tajawal',monospace;}
     .gold-strip{height:4px;background:linear-gradient(90deg,#e8b84a,#f0c97a,#d4a030,#f0c97a,#e8b84a);}
 
     /* ── شريط بيانات (العميل/المورد + الفترة) ── */
@@ -7315,7 +7782,7 @@ function buildStatementPrintHTML(s) {
     .summary .box.final{background:linear-gradient(180deg,#1a1208,#241a0d);border-color:#e8b84a;}
     .summary .box .l{font-size:8.5px;color:#8a7c5f;margin-bottom:5px;letter-spacing:0.03em;}
     .summary .box.final .l{color:#c9b48a;}
-    .summary .box .v{font-size:15px;font-weight:800;font-family:monospace;}
+    .summary .box .v{font-size:15px;font-weight:800;font-family:'RifaiDigits','Tajawal',monospace;}
 
     table{width:100%;border-collapse:collapse;border:1px solid #e8b84a33;}
     thead tr{background:#1a1208;color:#e8b84a;}
@@ -11457,9 +11924,9 @@ function buildReturnDocumentHTML(ret, items) {
   const rows = (items || []).map(it => `
     <tr>
       <td style="font-weight:600;padding:8px 12px;">${it.product_name || '—'}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${it.quantity}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${it.quantity}</td>
       <td style="text-align:center;padding:8px 12px;">${ITEM_CONDITIONS[it.condition]||'—'}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${fmt(it.unit_price)}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${fmt(it.unit_price)}</td>
       <td style="text-align:left;padding:8px 12px;font-weight:700;">${fmt(it.quantity * it.unit_price)}</td>
     </tr>`).join('');
 
@@ -11471,16 +11938,17 @@ function buildReturnDocumentHTML(ret, items) {
   }[ret.return_type] || '';
 
   const styles = `
+    ${DIGITS_CSS}
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:'Tajawal',Arial,sans-serif; direction:rtl; font-size:13px; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body { font-family:'RifaiDigits','Tajawal',Arial,sans-serif; direction:rtl; font-size:13px; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     @page { size:A4; margin:12mm 10mm; }
     .page { max-width:190mm; margin:0 auto; }
     .header { background:linear-gradient(135deg,#1a1208 0%,#2d2010 100%); color:#e8b84a; padding:22px 28px; display:flex; justify-content:space-between; align-items:center; border-radius:4px 4px 0 0; }
     .brand-name { font-size:20px; font-weight:900; }
     .brand-sub { font-size:10px; color:#a89070; margin-top:2px; }
     .doc-num .label { font-size:9px; color:#a89070; letter-spacing:.1em; }
-    .doc-num .num { font-size:18px; font-weight:700; color:#f0c97a; font-family:monospace; text-align:left; }
+    .doc-num .num { font-size:18px; font-weight:700; color:#f0c97a; font-family:'RifaiDigits','Tajawal',monospace; text-align:left; }
     .meta-bar { display:grid; grid-template-columns:repeat(4,1fr); background:#e8b84a22; border:1px solid #e8b84a33; border-top:none; }
     .meta-cell { padding:10px 14px; background:#faf7f0; border-left:1px solid #e8b84a22; }
     .meta-cell:last-child { border-left:none; }
@@ -11760,10 +12228,10 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
   const itemsRows = (items || []).map(it => isA4 ? `
     <tr>
       <td style="font-weight:600;padding:8px 12px;">${it.product_name || '—'}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${it.quantity}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${fmt(it.unit_price)}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${it.discount_pct || 0}%</td>
-      <td style="text-align:left;padding:8px 12px;font-family:monospace;font-weight:700;">${fmt(it.line_total)}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${it.quantity}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${fmt(it.unit_price)}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${it.discount_pct || 0}%</td>
+      <td style="text-align:left;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;font-weight:700;">${fmt(it.line_total)}</td>
     </tr>` : `
     <tr>
       <td style="padding:3px 4px;font-size:10px;">${it.product_name || '—'}</td>
@@ -11776,7 +12244,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
     <tr>
       <td style="padding:6px 12px;">قسط #${ins.installment_number}</td>
       <td style="padding:6px 12px;text-align:center;">${new Date(ins.due_date).toLocaleDateString('ar-EG')}</td>
-      <td style="padding:6px 12px;text-align:left;font-family:monospace;">${fmt(ins.amount)} ج.م</td>
+      <td style="padding:6px 12px;text-align:left;font-family:'RifaiDigits','Tajawal',monospace;">${fmt(ins.amount)} ج.م</td>
     </tr>
   `).join('');
 
@@ -11799,11 +12267,12 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
   }
 
   const styles = isA4 ? `
+    ${DIGITS_CSS}
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     html, body { width:100%; background:#fff; }
     body {
-      font-family:'Tajawal',Arial,sans-serif;
+      font-family:'RifaiDigits','Tajawal',Arial,sans-serif;
       background:#fff; color:#1a1a1a;
       direction:rtl; font-size:13px;
       -webkit-print-color-adjust:exact;
@@ -11836,7 +12305,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
     .brand-sub  { font-size:10px; color:#a89070; margin-top:2px; letter-spacing:0.06em; }
     .brand-contact { font-size:10px; color:#a89070; margin-top:3px; line-height:1.6; }
     .invoice-num { text-align:left; }
-    .invoice-num .num   { font-size:18px; font-weight:700; color:#f0c97a; font-family:monospace; }
+    .invoice-num .num   { font-size:18px; font-weight:700; color:#f0c97a; font-family:'RifaiDigits','Tajawal',monospace; }
     .invoice-num .label { font-size:9px;  color:#a89070; letter-spacing:0.1em; }
     /* ─── Meta bar ─── */
     .meta-bar {
@@ -11888,7 +12357,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
       font-size:12px;
       gap:12px;
     }
-    .t-row .v { font-family:monospace; white-space:nowrap; }
+    .t-row .v { font-family:'RifaiDigits','Tajawal',monospace; white-space:nowrap; }
     .t-row.grand {
       background:#1a1208; color:#e8b84a;
       font-size:15px; font-weight:700;
@@ -11944,7 +12413,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
     }
     ` : `
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:'Courier New',monospace; background:#fff; color:#000; direction:rtl; font-size:${fontSize}; width:${pageW}; }
+    body { font-family:'RifaiDigits','Courier New',monospace; background:#fff; color:#000; direction:rtl; font-size:${fontSize}; width:${pageW}; }
     @page { size:80mm auto; margin:3mm; }
     @media print { body { -webkit-print-color-adjust:exact; } }
     .page { width:${pageW}; background:#fff; padding:3mm; }
@@ -12097,19 +12566,20 @@ function buildSupplierInvoiceHTML(order, items) {
   const itemsRows = (items || []).map(it => `
     <tr>
       <td style="font-weight:600;padding:8px 12px;">${it.product_name || '—'}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${it.qty_ordered}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${it.qty_received||0}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${fmt(it.unit_cost)}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${it.discount_pct || 0}%</td>
-      <td style="text-align:left;padding:8px 12px;font-family:monospace;font-weight:700;">${fmt(it.line_total)}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${it.qty_ordered}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${it.qty_received||0}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${fmt(it.unit_cost)}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${it.discount_pct || 0}%</td>
+      <td style="text-align:left;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;font-weight:700;">${fmt(it.line_total)}</td>
     </tr>`
   ).join('');
 
   const styles = `
+    ${DIGITS_CSS}
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     html, body { width:100%; background:#fff; }
-    body { font-family:'Tajawal',Arial,sans-serif; background:#fff; color:#1a1a1a; direction:rtl; font-size:13px;
+    body { font-family:'RifaiDigits','Tajawal',Arial,sans-serif; background:#fff; color:#1a1a1a; direction:rtl; font-size:13px;
       -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     @page { size:A4; margin:12mm 10mm; }
     @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .no-print { display:none !important; } }
@@ -12120,7 +12590,7 @@ function buildSupplierInvoiceHTML(order, items) {
     .brand-sub  { font-size:10px; color:#a89070; margin-top:2px; letter-spacing:0.06em; }
     .brand-contact { font-size:10px; color:#a89070; margin-top:3px; line-height:1.6; }
     .invoice-num { text-align:left; }
-    .invoice-num .num   { font-size:18px; font-weight:700; color:#f0c97a; font-family:monospace; }
+    .invoice-num .num   { font-size:18px; font-weight:700; color:#f0c97a; font-family:'RifaiDigits','Tajawal',monospace; }
     .invoice-num .label { font-size:9px;  color:#a89070; letter-spacing:0.1em; }
     .meta-bar { display:grid; grid-template-columns:repeat(5,1fr); background:#e8b84a22; border:1px solid #e8b84a33; border-top:none; }
     .meta-cell { padding:10px 14px; background:#faf7f0; overflow:hidden; border-left:1px solid #e8b84a22; }
@@ -12138,7 +12608,7 @@ function buildSupplierInvoiceHTML(order, items) {
     .totals-wrap { display:flex; justify-content:flex-start; margin-top:18px; }
     .totals-inner { min-width:220px; max-width:280px; width:auto; border:1px solid #e8b84a44; border-radius:6px; overflow:hidden; }
     .t-row { display:flex; justify-content:space-between; align-items:center; padding:7px 14px; border-bottom:0.5px solid #e8b84a22; font-size:12px; gap:12px; }
-    .t-row .v { font-family:monospace; white-space:nowrap; }
+    .t-row .v { font-family:'RifaiDigits','Tajawal',monospace; white-space:nowrap; }
     .t-row.grand { background:#1a1208; color:#e8b84a; font-size:15px; font-weight:700; border-bottom:none; }
     .t-row.grand .v { color:#f0c97a; }
     .status-bar { margin-top:16px; padding:12px 16px; background:#faf7f0; border-radius:6px; border:1px solid #e8b84a33; display:flex; justify-content:space-between; align-items:center; }
@@ -12237,23 +12707,24 @@ function buildGoodsReceiptHTML(receipt, items) {
   const rows = (items || []).map(it => `
     <tr>
       <td style="font-weight:600;padding:8px 12px;">${it.product_name || '—'}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;">${it.sku||'—'}</td>
-      <td style="text-align:center;padding:8px 12px;font-family:monospace;font-weight:700;">${it.qty_received}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;">${it.sku||'—'}</td>
+      <td style="text-align:center;padding:8px 12px;font-family:'RifaiDigits','Tajawal',monospace;font-weight:700;">${it.qty_received}</td>
       <td style="text-align:center;padding:8px 12px;">${it.unit||'—'}</td>
       <td style="text-align:left;padding:8px 12px;">${it.location_name||'—'}</td>
     </tr>`).join('');
 
   const styles = `
+    ${DIGITS_CSS}
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:'Tajawal',Arial,sans-serif; background:#fff; color:#1a1a1a; direction:rtl; font-size:13px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body { font-family:'RifaiDigits','Tajawal',Arial,sans-serif; background:#fff; color:#1a1a1a; direction:rtl; font-size:13px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     @page { size:A4; margin:12mm 10mm; }
     .page { width:100%; max-width:190mm; margin:0 auto; }
     .header { background:linear-gradient(135deg,#1a1208 0%,#2d2010 100%); color:#e8b84a; padding:22px 28px; display:flex; justify-content:space-between; align-items:center; border-radius:4px 4px 0 0; }
     .brand-name { font-size:20px; font-weight:900; color:#e8b84a; }
     .brand-sub { font-size:10px; color:#a89070; margin-top:2px; }
     .doc-num .label { font-size:9px; color:#a89070; letter-spacing:0.1em; }
-    .doc-num .num { font-size:18px; font-weight:700; color:#f0c97a; font-family:monospace; text-align:left; }
+    .doc-num .num { font-size:18px; font-weight:700; color:#f0c97a; font-family:'RifaiDigits','Tajawal',monospace; text-align:left; }
     .meta-bar { display:grid; grid-template-columns:repeat(4,1fr); background:#e8b84a22; border:1px solid #e8b84a33; border-top:none; }
     .meta-cell { padding:10px 14px; background:#faf7f0; border-left:1px solid #e8b84a22; }
     .meta-cell:last-child { border-left:none; }
@@ -13175,9 +13646,10 @@ function printCollectionsReport() {
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>قائمة تحصيل — ${filterLabel}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+  ${DIGITS_CSS}
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'Tajawal',Arial,sans-serif; direction:rtl; font-size:12px; color:#1a1a1a; }
+  body { font-family:'RifaiDigits','Tajawal',Arial,sans-serif; direction:rtl; font-size:12px; color:#1a1a1a; }
   @page { size:A4 landscape; margin:10mm; }
   .header { background:linear-gradient(135deg,#1a1208,#2d2010); color:#e8b84a; padding:16px 22px; display:flex; justify-content:space-between; align-items:center; }
   .header h1 { font-size:17px; }
@@ -13693,6 +14165,339 @@ async function saveSettings() {
       }
     }
   } catch (e) { /* أي فشل هنا لا يجب أن يوقف تحميل التطبيق أبداً */ }
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   AL-RIFAI ERP — UX LAYER
+   طبقة إضافية مستقلة (additive) فوق الواجهة الحالية — مفيش أي دالة قديمة
+   اتغيّر منطقها. بتعمل:
+     1) الأرقام المالية: تكبير/تمييز أي رقم محتاج مراجعة (فواتير، أرصدة عملاء
+        وموردين، أقساط، مدفوعات...) في الجداول وكروت الموبايل والنماذج.
+        الأرقام كلها بتتعرض بالشكل العربي (٠-٩) عن طريق خط RifaiDigits
+        (شوف CSS) — القيمة الفعلية في الـ DOM/الـ inputs بتفضل لاتينية.
+     2) عدّاد تصاعدي (count-up) لأرقام لوحة التحكم.
+     3) حركة دخول الصفحات، تموّج اللمس (ripple)، سحب الـ bottom sheet للإغلاق.
+   كل حاجة هنا بتحترم prefers-reduced-motion وبتفشل بصمت (try/catch) من غير
+   ما تأثر على النظام الأساسي.
+═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  function safe(fn) { try { return fn(); } catch (e) { if (window.__UX_DEBUG) console.error('[ux]', e); } }
+  const reduced = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ───────────── 1) الأرقام المالية ───────────── */
+  const AR = '٠١٢٣٤٥٦٧٨٩';
+  const DIG = '[\\d٠-٩]';
+  const SKIP = 'script,style,textarea,input,select,option,svg,[contenteditable="true"],.no-amt,.amt,.amt-cur,.chandelier-widget';
+  const CUR = '(?:ج\\.م|EGP|جنيه|ر\\.س|SAR|د\\.إ|AED)';
+  // أي رقم (مع علامة اختيارية وفواصل) + عملة اختيارية بعده
+  const RE_ALL = new RegExp('([+\\-−]?)(' + DIG + '[\\d٠-٩.,٬٫]*)(\\s*' + CUR + ')?', 'g');
+  // رقم لازم تبقى بعده عملة (سياق عام: أي مكان في الصفحة)
+  const RE_CUR = new RegExp('([+\\-−]?)(' + DIG + '[\\d٠-٩.,٬٫]*)(\\s*' + CUR + ')', 'g');
+
+  // تسميات الأعمدة/الصفوف اللي تخص فلوس (وليس عدد/رقم/تاريخ)
+  const MONEY_YES = /مبلغ|إجمالي|رصيد|متبقي|مدفوع|سعر|تكلفة|قيمة|مستحق|قسط|خصم|ضريبة|ربح|عمولة|مدين|دائن|صافي|مصروف|استرداد|دفعة|مديونية|الأجل|مبيعات|مشتريات|إيراد|تحصيل|سداد|(?:^|\s)(?:له|عليه)(?:\s|$)/;
+  const MONEY_NO  = /رقم|عدد|هاتف|كود|تاريخ|حالة|النوع|كمية|نظام|مخزون|%|نسبة|النسبة|اسم|ملاحظ|طريقة|بيان|مرجع/;
+  const isMoneyLabel = (t) => { t = (t || '').replace(/\s+/g, ' ').trim(); return !!t && MONEY_YES.test(t) && !MONEY_NO.test(t); };
+
+  // عناصر النماذج/الملخصات اللي أرقامها مالية دايمًا
+  const AMT_SELECTORS = '#ifSubtotal,#ifDiscount,#ifTax,#ifTotal,#ifStoreCreditAvail,#poSubtotalDisp,#poTotalDisp,[id^="ilTotal"],[data-amt]';
+  const AMT_XL = '#ifTotal,#poTotalDisp';
+
+  function wrapTextNode(node, re) {
+    const txt = node.nodeValue;
+    if (!txt || !/[\d٠-٩]/.test(txt)) return false;
+    re.lastIndex = 0;
+    let m, last = 0, changed = false;
+    const frag = document.createDocumentFragment();
+    while ((m = re.exec(txt))) {
+      let sign = m[1] || '', num = m[2], cur = m[3] || '';
+      // شيل فاصلة/نقطة زايدة في آخر الرقم (نهاية جملة)
+      const trail = num.match(/[.,٬٫]+$/);
+      let extra = '';
+      if (trail) { extra = trail[0]; num = num.slice(0, -extra.length); }
+      const after = txt.charAt(m.index + m[0].length - (cur ? 0 : extra.length));
+      if (!cur && /^\s*%/.test(txt.slice(m.index + m[0].length - extra.length))) { continue; } // نسبة مئوية مش مبلغ
+      if (m.index > last) frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
+      const a = document.createElement('span');
+      a.className = 'amt';
+      a.textContent = sign + num;
+      frag.appendChild(a);
+      if (cur) {
+        const c = document.createElement('span');
+        c.className = 'amt-cur';
+        c.textContent = cur.trim();
+        frag.appendChild(c);
+      }
+      if (extra) frag.appendChild(document.createTextNode(extra));
+      last = m.index + m[0].length;
+      changed = true;
+    }
+    if (!changed) return false;
+    if (last < txt.length) frag.appendChild(document.createTextNode(txt.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+    return true;
+  }
+
+  function wrapIn(root, re) {
+    if (!root || root.nodeType !== 1) return;
+    const nodes = [];
+    const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(n) {
+        const p = n.parentElement;
+        if (!p || p.closest(SKIP)) return NodeFilter.FILTER_REJECT;
+        return /[\d٠-٩]/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    while (tw.nextNode()) nodes.push(tw.currentNode);
+    nodes.forEach(n => wrapTextNode(n, re));
+  }
+
+  function enhanceTable(table) {
+    const head = table.tHead && table.tHead.rows[0];
+    if (!head) return;
+    const idx = [];
+    Array.prototype.forEach.call(head.cells, (th, i) => {
+      if (isMoneyLabel(th.textContent)) { idx.push(i); th.classList.add('amt-th'); }
+    });
+    if (!idx.length) return;
+    Array.prototype.forEach.call(table.tBodies, tb => {
+      Array.prototype.forEach.call(tb.rows, tr => {
+        idx.forEach(i => {
+          const td = tr.cells[i];
+          if (!td || td.colSpan > 1 || td.dataset.amtDone) return;
+          td.dataset.amtDone = '1';
+          td.classList.add('amt-cell');
+          wrapIn(td, RE_ALL);
+        });
+      });
+    });
+  }
+
+  function enhanceCards(root) {
+    root.querySelectorAll('.rdv-card-row').forEach(row => {
+      if (row.dataset.amtDone) return;
+      const label = row.querySelector('.rdv-card-label');
+      const val = row.querySelector('.rdv-card-value');
+      if (!label || !val) return;
+      row.dataset.amtDone = '1';
+      if (isMoneyLabel(label.textContent)) {
+        row.classList.add('is-money');
+        val.classList.add('amt-cell');
+        wrapIn(val, RE_ALL);
+      }
+    });
+  }
+
+  function enhance(root) {
+    if (!root || root.nodeType !== 1 || !root.isConnected) return;
+    if (root.closest && root.closest('.amt, .amt-cur')) return;
+    // 1) جداول (root نفسه ممكن يبقى جوه جدول: نجيب أقرب table)
+    const tbl = root.closest && root.closest('table');
+    if (tbl) enhanceTable(tbl);
+    if (root.tagName === 'TABLE') enhanceTable(root);
+    root.querySelectorAll && root.querySelectorAll('table').forEach(enhanceTable);
+    // 2) كروت الموبايل
+    if (root.classList && (root.classList.contains('rdv-card') || root.classList.contains('rdv-card-list'))) enhanceCards(root);
+    root.querySelectorAll && enhanceCards(root);
+    // 3) كروت الإحصائيات + عناصر النماذج المالية
+    const stats = [];
+    if (root.matches && root.matches('.stat-value')) stats.push(root);
+    root.querySelectorAll && root.querySelectorAll('.stat-value').forEach(e => stats.push(e));
+    stats.forEach(el => {
+      if (el.dataset.amtDone === el.textContent) return;
+      wrapIn(el, RE_ALL);
+      el.dataset.amtDone = el.textContent;
+      countUp(el);
+    });
+    const ctx = [];
+    if (root.matches && root.matches(AMT_SELECTORS)) ctx.push(root);
+    root.querySelectorAll && root.querySelectorAll(AMT_SELECTORS).forEach(e => ctx.push(e));
+    ctx.forEach(el => { wrapIn(el, RE_ALL); if (el.matches(AMT_XL)) el.classList.add('amt-xl'); });
+    // 4) أي رقم بعده "ج.م" في أي مكان داخل المحتوى/النوافذ
+    if (root.closest && root.closest('.page-content, .modal, .more-page, .toast-container, #notifPanel')) wrapIn(root, RE_CUR);
+    else if (root.querySelector) {
+      // root نفسه ممكن يكون نافذة/صفحة كاملة اتضافت
+      if (root.matches && root.matches('.page-content, .modal-overlay, .more-page, .page, #notifPanel')) wrapIn(root, RE_CUR);
+    }
+  }
+
+  /* ───────────── 2) عدّاد تصاعدي (لوحة التحكم) ───────────── */
+  function parseNum(s) {
+    const w = s.replace(/[٠-٩]/g, d => AR.indexOf(d)).replace(/[٬,]/g, '').replace(/٫/g, '.');
+    return parseFloat(w);
+  }
+  function countUp(container) {
+    if (reduced() || !container.closest('.page.enter-anim')) return;
+    const el = container.querySelector('.amt');
+    if (!el || el.dataset.cu) return;
+    const orig = el.textContent;
+    const target = parseNum(orig);
+    if (!isFinite(target) || Math.abs(target) < 10) return;
+    const dec = ((orig.split(/[.٫]/)[1]) || '').replace(/\D/g, '').length;
+    const grouping = /[٬,]/.test(orig);
+    const fmtr = new Intl.NumberFormat('ar-EG', { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: grouping });
+    el.dataset.cu = '1';
+    const dur = 750, t0 = performance.now();
+    el.textContent = fmtr.format(0);
+    (function frame(t) {
+      const p = Math.min(1, (t - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 4);            // easeOutQuart
+      if (p >= 1 || !el.isConnected) { el.textContent = orig; return; }
+      el.textContent = fmtr.format(target * e);
+      requestAnimationFrame(frame);
+    })(t0);
+  }
+
+  /* ───────────── مراقب التغييرات ───────────── */
+  let observer = null;
+  const OBS_OPTS = { childList: true, subtree: true, characterData: true };
+  function onMutations(muts) {
+    const roots = new Set();
+    for (const m of muts) {
+      if (m.type === 'childList') {
+        const t = m.target;
+        if (t.nodeType === 1 && t.closest && t.closest('.amt, .amt-cur')) continue;
+        m.addedNodes.forEach(n => { if (n.nodeType === 1) roots.add(n); else if (n.nodeType === 3 && t.nodeType === 1) roots.add(t); });
+      } else if (m.type === 'characterData') {
+        const p = m.target.parentElement;
+        if (p && !p.closest('.amt, .amt-cur')) roots.add(p);
+      }
+    }
+    if (!roots.size) return;
+    observer.disconnect();                       // مانلقطش تعديلاتنا إحنا
+    try { roots.forEach(r => safe(() => enhance(r))); }
+    finally { observer.observe(document.body, OBS_OPTS); }
+  }
+
+  /* ───────────── 3) حركة دخول الصفحات ───────────── */
+  function hookNavigate() {
+    if (typeof window.navigate !== 'function' || window.navigate.__ux) return;
+    const orig = window.navigate;
+    const wrapped = function () {
+      const r = orig.apply(this, arguments);
+      safe(() => {
+        const page = document.querySelector('.page.active');
+        if (page && !reduced()) {
+          page.classList.remove('enter-anim');
+          void page.offsetWidth;
+          page.classList.add('enter-anim');
+          clearTimeout(page.__enterT);
+          page.__enterT = setTimeout(() => page.classList.remove('enter-anim'), 1500);
+        }
+        const pc = document.querySelector('.page-content');
+        if (pc) pc.scrollTo && pc.scrollTo({ top: 0 });
+      });
+      return r;
+    };
+    wrapped.__ux = true;
+    window.navigate = wrapped;
+  }
+
+  /* ───────────── ripple لمس ───────────── */
+  function initRipple() {
+    document.addEventListener('pointerdown', (e) => safe(() => {
+      if (reduced() || (e.button && e.button > 0)) return;
+      const host = e.target.closest && e.target.closest('.btn:not(:disabled), .bnav-item, .more-item');
+      if (!host || host.classList.contains('chandelier-handle')) return;
+      const r = host.getBoundingClientRect();
+      const size = Math.max(r.width, r.height) * 1.6;
+      const rip = document.createElement('span');
+      rip.className = 'rip';
+      rip.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - r.left - size / 2}px;top:${e.clientY - r.top - size / 2}px`;
+      const wasStatic = getComputedStyle(host).position === 'static';
+      host.classList.add('rip-host');
+      if (wasStatic) host.style.position = 'relative';
+      host.appendChild(rip);
+      setTimeout(() => { rip.remove(); host.classList.remove('rip-host'); if (wasStatic) host.style.position = ''; }, 620);
+      if (host.classList.contains('bnav-item') && navigator.vibrate) navigator.vibrate(8);
+    }), { passive: true });
+  }
+
+  /* ───────────── سحب الـ bottom sheet للإغلاق (موبايل) ───────────── */
+  function initSheetSwipe() {
+    let sheet = null, overlay = null, startY = 0, lastY = 0, lastT = 0, vY = 0, active = false;
+    const isMobile = () => window.matchMedia('(max-width: 599px)').matches;
+    document.addEventListener('pointerdown', (e) => safe(() => {
+      if (!isMobile() || e.pointerType === 'mouse') return;
+      const ov = e.target.closest && e.target.closest('.modal-overlay.open:not([data-mobile-presentation="fullpage"])');
+      if (!ov) return;
+      const m = ov.querySelector('.modal');
+      if (!m) return;
+      const inHeader = e.target.closest('.modal-header');
+      const r = m.getBoundingClientRect();
+      const inHandle = e.clientY - r.top < 26;               // منطقة المقبض أعلى الـ sheet
+      if (!inHeader && !inHandle) return;
+      if (e.target.closest('.modal-close, button, a, input, select, textarea')) return;
+      sheet = m; overlay = ov; startY = lastY = e.clientY; lastT = performance.now(); vY = 0; active = true;
+    }), { passive: true });
+    document.addEventListener('pointermove', (e) => safe(() => {
+      if (!active || !sheet) return;
+      const dy = Math.max(0, e.clientY - startY);
+      const now = performance.now();
+      vY = (e.clientY - lastY) / Math.max(1, now - lastT); lastY = e.clientY; lastT = now;
+      sheet.style.transition = 'none';
+      sheet.style.transform = `translateY(${dy}px)`;
+      overlay.style.opacity = String(Math.max(0.15, 1 - dy / (sheet.offsetHeight * 1.1)));
+    }), { passive: true });
+    const end = (e) => safe(() => {
+      if (!active || !sheet) return;
+      active = false;
+      const dy = Math.max(0, lastY - startY);
+      const s = sheet, o = overlay; sheet = overlay = null;
+      const dismiss = dy > 110 || (vY > 0.55 && dy > 30);
+      s.style.transition = 'transform .26s cubic-bezier(.22,.8,.24,1)';
+      if (dismiss) {
+        s.style.transform = 'translateY(100%)';
+        o.style.transition = 'opacity .26s ease'; o.style.opacity = '0';
+        if (navigator.vibrate) navigator.vibrate(8);
+        setTimeout(() => {
+          if (o.id && typeof closeModal === 'function') closeModal(o.id);
+          setTimeout(() => { s.style.transition = ''; s.style.transform = ''; o.style.transition = ''; o.style.opacity = ''; }, 80);
+        }, 240);
+      } else {
+        s.style.transform = 'translateY(0)'; o.style.opacity = '';
+        setTimeout(() => { s.style.transition = ''; s.style.transform = ''; }, 280);
+      }
+    });
+    document.addEventListener('pointerup', end, { passive: true });
+    document.addEventListener('pointercancel', end, { passive: true });
+  }
+
+  /* ───────────── ظل الشريط العلوي عند التمرير ───────────── */
+  function initTopbarShadow() {
+    const pc = document.querySelector('.page-content'), tb = document.querySelector('.topbar');
+    if (!pc || !tb) return;
+    pc.addEventListener('scroll', () => tb.classList.toggle('is-scrolled', pc.scrollTop > 6), { passive: true });
+  }
+
+  function init() {
+    safe(hookNavigate);
+    safe(initRipple);
+    safe(initSheetSwipe);
+    safe(initTopbarShadow);
+    observer = new MutationObserver(onMutations);
+    safe(() => enhance(document.body));            // أول تمرير على اللي موجود بالفعل
+    observer.observe(document.body, OBS_OPTS);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  window.RifaiUX = { enhance, isMoneyLabel };
+})();
+
+// خط الأرقام العربية للرسوم البيانية (canvas) — بيتظبط أول ما Chart.js يتحمّل
+(function () {
+  var tries = 0;
+  var t = setInterval(function () {
+    if (window.Chart && Chart.defaults && Chart.defaults.font) {
+      Chart.defaults.font.family = "'RifaiDigits','Tajawal',sans-serif";
+      try { document.fonts.load("500 12px RifaiDigits", "0123456789"); document.fonts.load("700 12px RifaiDigits", "0123456789"); } catch (e) {}
+      clearInterval(t);
+    } else if (++tries > 40) clearInterval(t);
+  }, 250);
 })();
 </script>
 
