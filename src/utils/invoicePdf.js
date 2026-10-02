@@ -240,9 +240,10 @@ function generateInvoicePdf(invoiceData, stream) {
   // ═══ رصيد العميل السابق + الإجمالي المستحق الآن ═══
   // بيظهر بس لو فعلاً عليه رصيد سابق (أو رصيد إجمالي مختلف عن هذه الفاتورة
   // بس) عشان ميضايقش شكل الفاتورة لعميل نضيف مالوش تاريخ سابق.
-  if (previousBalance > 0.01) {
+  if (Math.abs(previousBalance) > 0.01) {
+    const prevLabel = previousBalance > 0 ? 'Previous Balance / مديونية سابقة' : 'Previous Credit / رصيد دائن سابق';
     doc.font('Helvetica').fontSize(8).fillColor(GRAY)
-       .text('Previous Balance / رصيد سابق', totX, ty, { width:totW-80 });
+       .text(prevLabel, totX, ty, { width:totW-80 });
     doc.font('Helvetica').fontSize(8).fillColor(GRAY)
        .text('EGP '+fmtMoney(previousBalance), totX, ty, { width:totW, align:'right' });
     ty += 13;
@@ -347,6 +348,17 @@ function generateThermalPdf(invoiceData, stream) {
      .text('Paid: EGP '+fmtMoney(invoice.paid_amount||0), 8, y)
      .text('Due: EGP '+fmtMoney(Math.max(0,(invoice.total||0)-(invoice.paid_amount||0))), W/2, y, { width:iw/2, align:'right' });
   y += 14;
+
+  if (Math.abs(invoiceData.previousBalance || 0) > 0.01) {
+    doc.font('Helvetica').fontSize(7).fillColor(DARK)
+       .text(invoiceData.previousBalance > 0 ? 'Previous Balance' : 'Previous Credit', 8, y, { width:iw/2 })
+       .text('EGP '+fmtMoney(invoiceData.previousBalance), W/2, y, { width:iw/2, align:'right' });
+    y += 11;
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(NAVY)
+       .text('TOTAL DUE', 8, y, { width:iw/2 })
+       .text('EGP '+fmtMoney(invoiceData.totalDueNow), W/2, y, { width:iw/2, align:'right' });
+    y += 14;
+  }
 
   doc.moveTo(8,y).lineTo(W-8,y).strokeColor(DARK).stroke(); y += 8;
   doc.font('Helvetica').fontSize(7).fillColor(GRAY)

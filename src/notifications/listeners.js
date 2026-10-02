@@ -99,6 +99,11 @@ safeOn('purchase_order.delayed', async (p) => {
   await notifier.sendTextOnce(eventKey, 'purchase_order.delayed', messages.poMessage({ order: p.order, eventType: 'delayed' }));
 });
 
+safeOn('purchase_order.credit_overdue', async (p) => {
+  const eventKey = `po_credit_overdue:${p.order.id}:${new Date().toISOString().split('T')[0]}`;
+  await notifier.sendTextOnce(eventKey, 'purchase_order.credit_overdue', messages.poCreditOverdueMessage({ order: p.order }));
+});
+
 safeOn('installment.reminder', async (p) => {
   const eventKey = `installment_${p.eventType}:${p.entityType}:${p.installment.id}:${new Date().toISOString().split('T')[0]}`;
   await notifier.sendTextOnce(eventKey, `installment.${p.eventType}`, messages.installmentReminderMessage(p));

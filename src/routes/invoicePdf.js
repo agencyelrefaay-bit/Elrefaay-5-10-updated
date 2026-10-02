@@ -4,7 +4,7 @@ const router   = express.Router();
 const { get, all } = require('../db/database');
 const { authenticate } = require('../middleware/auth');
 const { generateInvoicePdf, generateThermalPdf } = require('../utils/invoicePdf');
-const { getCustomerBalance } = require('../utils/customerLedger');
+const { getInvoicePreviousBalance } = require('../utils/customerLedger');
 
 router.use(authenticate);
 
@@ -28,14 +28,13 @@ async function getInvoiceFullData(id) {
   const installs = await all(`SELECT * FROM customer_installments WHERE invoice_id=? ORDER BY installment_number`,[id]);
 
   // ─── رصيد العميل السابق (قبل هذه الفاتورة) ───
-  // getCustomerBalance بترجع الرصيد الكلي الحالي للعميل (شامل هذه الفاتورة
-  // لأنها بالفعل محفوظة). نطرح مساهمة هذه الفاتورة بالذات (المتبقي منها)
-  // عشان نوصل لرصيد العميل *قبل* الفاتورة دي، ونعرض على الفاتورة:
-  //   الرصيد السابق + مستحق هذه الفاتورة = إجمالي المستحق الآن
-  const ledger = await getCustomerBalance(invoice.customer_id);
-  const thisInvoiceDue = (invoice.total || 0) - (invoice.paid_amount || 0);
-  const previousBalance = ledger ? Math.max(0, (ledger.balance || 0) - thisInvoiceDue) : 0;
-  const totalDueNow = ledger ? (ledger.balance || 0) : thisInvoiceDue;
+  // مصدر واحد موحّد مع الطباعة من المتصفح (getInvoicePreviousBalance): لقطة وقت الإصدار،
+  // أو تقدير من الدفتر للفواتير القديمة. موجب = مديونية سابقة، سالب = رصيد دائن للعميل
+  // (النسخة القديمة كانت بتتجاهل الرصيد الدائن تماماً بـ Math.max(0, ...)).
+  const prev = await getInvoicePreviousBalance(invoice);
+  const previousBalance = prev.value;
+  const thisInvoiceDue = Math.round(((invoice.total || 0) - (invoice.paid_amount || 0)) * 100) / 100;
+  const totalDueNow = Math.round((previousBalance + thisInvoiceDue) * 100) / 100;
 
   return { invoice, items, payments, installments: installs, previousBalance, totalDueNow };
 }

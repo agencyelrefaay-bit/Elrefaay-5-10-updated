@@ -1,6 +1,7 @@
 // utils/supplierLedger.js
 // حساب رصيد المورد في الوقت الفعلي من مجموع الأوامر والمدفوعات
 const { get, all } = require('../db/database');
+const { round2 } = require('./money');
 
 async function getSupplierBalance(supplierId) {
   const supplier = await get(`SELECT opening_balance FROM suppliers WHERE id = ?`, [supplierId]);
@@ -42,6 +43,50 @@ async function getSupplierBalance(supplierId) {
   };
 }
 
+
+// ── الرصيد "كما كان" قبل لحظة معينة — للأوامر القديمة اللي ماعندهاش لقطة محفوظة.
+//    موجب = إحنا مدينين للمورد، سالب = المورد مدين لنا (دفعات مقدّمة). ──
+async function getSupplierBalanceAsOf(supplierId, asOf, excludePoId = 0) {
+  const supplier = await get(`SELECT opening_balance FROM suppliers WHERE id = ?`, [supplierId]);
+  if (!supplier) return null;
+  const po = await get(`
+    SELECT COALESCE(SUM(total),0) as t FROM purchase_orders
+    WHERE supplier_id=? AND status NOT IN ('draft','cancelled') AND id<>? AND created_at < ?`,
+    [supplierId, excludePoId || 0, asOf]);
+  const pay = await get(`SELECT COALESCE(SUM(amount),0) as t FROM supplier_payments WHERE supplier_id=? AND created_at < ?`, [supplierId, asOf]);
+  return round2((supplier.opening_balance || 0) + (po.t || 0) - (pay.t || 0));
+}
+
+// ── الرصيد السابق المطبوع على أمر الشراء (نفس مبدأ الفاتورة): لقطة → حي (مسودة) → تقدير ──
+async function getPOPreviousBalance(po) {
+  if (po.previous_balance !== null && po.previous_balance !== undefined)
+    return { value: round2(po.previous_balance), source: 'snapshot' };
+  if (po.status === 'draft') {
+    const b = await getSupplierBalance(po.supplier_id);
+    return { value: round2(b ? b.balance : 0), source: 'live' };
+  }
+  const v = await getSupplierBalanceAsOf(po.supplier_id, po.created_at, po.id);
+  return { value: v === null ? 0 : v, source: 'estimated' };
+}
+
+// ── حد ائتمان المورد (أقصى مبلغ ممكن نكون مدينين به للمورد) — نفس مبدأ checkCreditLimit
+//    للعملاء بالظبط: بيتفحص فقط لأوامر الشراء "الآجلة/التقسيط"، وحد = 0 يعني غير مفعّل. ──
+async function checkSupplierCreditLimit(supplierId, poTotal, purchaseType) {
+  if (purchaseType !== 'credit' && purchaseType !== 'installment') return null;
+  const supplier = await get(`SELECT credit_limit FROM suppliers WHERE id=?`, [supplierId]);
+  const limit = supplier?.credit_limit || 0;
+  if (limit <= 0) return null;
+  const ledger = await getSupplierBalance(supplierId);
+  const current = ledger?.balance || 0;
+  if (current + poTotal > limit) {
+    return {
+      error: `تجاوز حد ائتمان المورد: المستحق للمورد حالياً ${current.toFixed(2)} ج.م، وحد الائتمان ${limit.toFixed(2)} ج.م، والمتاح ${Math.max(0, limit - current).toFixed(2)} ج.م فقط — قيمة هذا الأمر ${poTotal.toFixed(2)} ج.م تتجاوز المتاح. يمكن لمدير النظام فقط تجاوز هذا الحد.`,
+      current_balance: current, credit_limit: limit, available_credit: Math.max(0, limit - current),
+    };
+  }
+  return null;
+}
+
 // تحديث حالة القسط لو تجاوز تاريخ الاستحقاق
 async function syncInstallmentStatuses(db_run) {
   await db_run(`
@@ -53,4 +98,4 @@ async function syncInstallmentStatuses(db_run) {
   `);
 }
 
-module.exports = { getSupplierBalance, syncInstallmentStatuses };
+module.exports = { getSupplierBalance, getSupplierBalanceAsOf, getPOPreviousBalance, checkSupplierCreditLimit, syncInstallmentStatuses };

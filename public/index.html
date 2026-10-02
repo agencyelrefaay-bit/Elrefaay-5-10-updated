@@ -2640,6 +2640,51 @@ html:not([data-going]) .stat-card, html:not([data-going]) .modal, html:not([data
   td.amt-cell .amt { font-size: 1.16em; }
 }
 
+
+/* ── أمر الشراء الآجل: معلومات المورد + شريط الاستحقاق + كارت الحساب ── */
+.po-supplier-info { margin-top: 8px; padding: 9px 12px; border-radius: var(--r-md); background: var(--ink-4); border: 0.5px solid var(--gold-border); font-size: 0.78rem; color: var(--cream-3); line-height: 1.8; }
+.po-info-warn { margin-top: 4px; color: var(--danger); font-weight: 700; }
+.po-due { font-size: 0.7rem; color: var(--cream-4); margin-top: 3px; white-space: nowrap; }
+.po-due.is-overdue { color: var(--danger); font-weight: 700; }
+.po-credit-strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-md); padding: 12px 16px; margin-bottom: var(--s-lg); border-radius: var(--r-lg); background: var(--gold-glow-sm); border: 0.5px solid var(--gold-border); font-size: 0.86rem; }
+.po-credit-strip.is-overdue { background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: var(--danger); }
+.po-credit-strip.is-settled { background: color-mix(in srgb, var(--success) 12%, transparent); border-color: var(--success); }
+.po-credit-msg { font-weight: 700; }
+.po-credit-edit { margin-inline-start: auto; display: flex; gap: 6px; align-items: center; }
+.po-credit-edit .form-control { width: 150px; padding: 5px 8px; }
+.acct-line { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 0.86rem; }
+@media (max-width: 599px) { .po-credit-edit { margin-inline-start: 0; width: 100%; } .po-credit-edit .form-control { flex: 1; width: auto; } }
+
+/* ═══ TableSort — مؤشرات ترتيب الأعمدة + شريط الترتيب للموبايل ═══ */
+th.ts-th { cursor: pointer; user-select: none; -webkit-user-select: none; position: relative; white-space: nowrap; transition: background .2s ease, color .2s ease; }
+th.ts-th:hover { background: var(--gold-glow-sm); color: var(--gold-0); }
+th.ts-th:focus-visible, .ts-chip:focus-visible { outline: 2px solid var(--gold-0); outline-offset: -2px; }
+.ts-ind { display: inline-flex; vertical-align: middle; margin-inline-start: 6px; opacity: 0; transition: opacity .2s ease, transform .25s var(--ease-spring); }
+.ts-ind svg path { fill: currentColor; opacity: .35; transition: opacity .2s ease, fill .2s ease; }
+th.ts-th:hover .ts-ind, .ts-chip .ts-ind { opacity: .75; }
+th.ts-asc .ts-ind, th.ts-desc .ts-ind, .ts-chip.on .ts-ind { opacity: 1; }
+th.ts-asc, th.ts-desc { color: var(--gold-0); }
+.ts-asc > .ts-ind .up, .ts-asc .ts-ind .up, .ts-desc .ts-ind .dn { opacity: 1 !important; fill: var(--gold-0); filter: drop-shadow(0 0 3px var(--gold-glow)); }
+.ts-asc .ts-ind .dn, .ts-desc .ts-ind .up { opacity: .15 !important; }
+th.ts-asc::after, th.ts-desc::after { content: ''; position: absolute; inset-inline: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, transparent, var(--gold-0), transparent); }
+
+/* حركة خفيفة للصفوف بعد الترتيب */
+@keyframes tsRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+tbody.ts-flash > tr:nth-child(-n+24) { animation: tsRow .32s cubic-bezier(.22,.8,.24,1) both; }
+tbody.ts-flash > tr:nth-child(2) { animation-delay: .02s; } tbody.ts-flash > tr:nth-child(3) { animation-delay: .04s; }
+tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:nth-child(n+5) { animation-delay: .08s; }
+.ts-flash .rdv-card:nth-child(-n+12) { animation: tsRow .32s cubic-bezier(.22,.8,.24,1) both; }
+.ts-flash .table-wrap tbody > tr:nth-child(-n+24) { animation: tsRow .32s cubic-bezier(.22,.8,.24,1) both; }
+
+/* شريط "ترتيب حسب" فوق كروت الموبايل */
+.ts-bar { display: flex; align-items: center; gap: var(--s-sm); margin-bottom: var(--s-md); position: sticky; top: 0; z-index: 3; padding: 6px 0; background: var(--ink-1); }
+.ts-bar-label { font-size: .72rem; color: var(--cream-4); white-space: nowrap; font-weight: 700; }
+.ts-bar-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex: 1; }
+.ts-bar-chips::-webkit-scrollbar { display: none; }
+.ts-chip { flex: none; display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; border: 0.5px solid var(--gold-border); background: var(--ink-3); color: var(--cream-3); font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; transition: all .2s ease; }
+.ts-chip:active { transform: scale(.94); }
+.ts-chip.on { background: var(--gold-glow-sm); color: var(--gold-0); border-color: var(--gold-0); box-shadow: 0 0 12px var(--gold-glow-sm); }
+@media (prefers-reduced-motion: reduce) { tbody.ts-flash > tr, .ts-flash .rdv-card, .ts-flash .table-wrap tbody > tr { animation: none !important; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"
   onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';document.head.appendChild(s);"></script>
@@ -3481,6 +3526,13 @@ html:not([data-going]) .stat-card, html:not([data-going]) .modal, html:not([data
           </select>
           <select class="filter-select" id="poSupplierFilter" onchange="loadPurchaseOrders()">
             <option value="">كل الموردين</option>
+          </select>
+          <select class="filter-select" id="poTypeFilter" onchange="loadPurchaseOrders()">
+            <option value="">كل أنواع الشراء</option>
+            <option value="cash">نقدي</option>
+            <option value="credit">آجل</option>
+            <option value="installment">تقسيط</option>
+            <option value="overdue">⏰ آجل متأخر السداد</option>
           </select>
         </div>
 
@@ -4841,9 +4893,10 @@ html:not([data-going]) .stat-card, html:not([data-going]) .modal, html:not([data
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">المورد *</label>
-          <select class="form-control" id="poSupplier">
+          <select class="form-control" id="poSupplier" onchange="onPOSupplierChange()">
             <option value="">اختر المورد...</option>
           </select>
+          <div id="poSupplierInfo" class="po-supplier-info" style="display:none;"></div>
         </div>
         <div class="form-group">
           <label class="form-label">موقع الاستلام الافتراضي</label>
@@ -4856,7 +4909,7 @@ html:not([data-going]) .stat-card, html:not([data-going]) .modal, html:not([data
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">تاريخ الأمر</label>
-          <input type="date" class="form-control" id="poDate"/>
+          <input type="date" class="form-control" id="poDate" oninput="autoFillPODueDate()"/>
         </div>
         <div class="form-group">
           <label class="form-label">التاريخ المتوقع للاستلام</label>
@@ -4899,9 +4952,18 @@ html:not([data-going]) .stat-card, html:not([data-going]) .modal, html:not([data
         <label class="form-label">نوع الشراء</label>
         <select class="form-control" id="poPurchaseType" onchange="togglePOInstallSection()">
           <option value="cash">نقدي (يُسدَّد بدفعة واحدة لاحقاً)</option>
+          <option value="credit">آجل (على حساب المورد — بتاريخ استحقاق)</option>
           <option value="installment">تقسيط (جدول أقساط)</option>
         </select>
-        <span class="field-hint">"نقدي" لا يعني الدفع الآن بالضرورة — يمكنك تسجيل دفعة التسوية من شاشة تفاصيل الأمر بعد إنشائه.</span>
+        <span class="field-hint" id="poTypeHint">"نقدي" لا يعني الدفع الآن بالضرورة — يمكنك تسجيل دفعة التسوية من شاشة تفاصيل الأمر بعد إنشائه.</span>
+      </div>
+      <!-- شراء آجل: من غير جدول أقساط — قيمة الأمر بتتسجل على حساب المورد وتتسدد بدفعات حرة قبل/عند تاريخ الاستحقاق -->
+      <div id="poCreditSection" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">تاريخ استحقاق السداد *</label>
+          <input type="date" class="form-control" id="poDueDate" oninput="_poDueManual=true;updatePOSupplierInfo()"/>
+          <span class="field-hint" id="poDueHint">بيتحسب تلقائياً من "أيام السداد" المسجّلة للمورد، وتقدر تعدّله.</span>
+        </div>
       </div>
       <div id="poInstallSection" style="display:none;">
         <div class="flex gap-sm" style="margin-bottom:var(--s-md);">
@@ -6048,7 +6110,9 @@ function rdvActionsHTML(row, actions) {
 
 // ── جدول (كامل أو مضغوط — نفس الدالة، فرق بس في عدد الأعمدة الممرّرة) ──
 function rdvTableHTML(columns, rows, actions, opts = {}) {
-  const headHTML = columns.map(c => `<th${c.align ? ` style="text-align:${c.align}"` : ''}>${c.label}</th>`).join('') + (actions?.length ? '<th></th>' : '');
+  const sortAttrs = (c) => (window.TableSort && opts._cid) ? TableSort.rdvThAttrs(opts._cid, c) : '';
+  const sortInd = (c) => sortAttrs(c) ? '<span class="ts-ind" aria-hidden="true"><svg viewBox="0 0 10 14" width="9" height="12"><path class="up" d="M5 1 9 6H1z"/><path class="dn" d="M5 13 1 8h8z"/></svg></span>' : '';
+  const headHTML = columns.map(c => `<th${c.align ? ` style="text-align:${c.align}"` : ''}${sortAttrs(c)}>${c.label}${sortInd(c)}</th>`).join('') + (actions?.length ? '<th></th>' : '');
   const bodyHTML = rows.map(row => {
     const click = opts.onRowClick ? ` onclick="${opts.onRowClick(row)}" style="cursor:pointer;"` : '';
     const cells = columns.map(c => `<td${c.align ? ` style="text-align:${c.align}"` : ''}>${c.render ? c.render(row) : (row[c.key] ?? '—')}</td>`).join('');
@@ -6098,8 +6162,14 @@ function rdvCardsHTML(columns, rows, actions, opts = {}) {
 function renderResponsiveDataView(container, opts) {
   const el = typeof container === 'string' ? document.getElementById(container) : container;
   if (!el) return;
-  const rows = opts.rows || [];
-  if (!rows.length) { el.innerHTML = rdvEmptyStateHTML(opts.emptyState); return; }
+  // ترتيب الأعمدة (TableSort): الحالة محفوظة لكل حاوية بالـ id، فبتفضل بعد البحث/الفلترة/إعادة التحميل
+  el.dataset.rdv = '1';
+  el.__rdvOpts = opts;
+  if (!opts.rows || !opts.rows.length) { el.innerHTML = rdvEmptyStateHTML(opts.emptyState); return; }
+  const cid = el.id || '';
+  const sortedRows = (window.TableSort && cid) ? TableSort.sortRowsFor(opts, cid) : opts.rows;
+  opts = { ...opts, rows: sortedRows, _cid: cid };
+  const rows = opts.rows;
 
   const mode = getDataViewMode();
   // بعض الإجراءات ممكن تتخفى في وضع معين (مثلاً أزرار كتير في كارت
@@ -6112,7 +6182,8 @@ function renderResponsiveDataView(container, opts) {
     const compactCols = opts.columns.filter(c => c.priority !== 'secondary');
     el.innerHTML = rdvTableHTML(compactCols, rows, actions, { ...opts, compact: true });
   } else {
-    el.innerHTML = rdvCardsHTML(opts.columns, rows, actions, opts);
+    const bar = (window.TableSort && cid && opts.columns.length > 1) ? TableSort.rdvSortBarHTML(cid, opts.columns) : '';
+    el.innerHTML = bar + rdvCardsHTML(opts.columns, rows, actions, opts);
   }
 }
 
@@ -8793,6 +8864,17 @@ state.currentPOId = null;
 
 // ── Helpers ──
 const poStatusLabel = { draft:'مسودة', sent:'مُرسل', partial:'مستلم جزئي', received:'مستلم بالكامل', cancelled:'ملغي' };
+const poTypeLabel = { cash: 'نقدي', credit: 'آجل', installment: 'تقسيط' };
+const poTypeIcon  = { cash: '💵', credit: '🗓️', installment: '📅' };
+// شارة نوع الشراء + (للآجل) تاريخ الاستحقاق وتنبيه التأخير
+function poTypeCellHtml(o) {
+  const t = o.purchase_type || 'cash';
+  let h = `<span class="badge badge-info">${poTypeIcon[t] || ''} ${poTypeLabel[t] || t}</span>`;
+  if (t === 'credit' && o.due_date) {
+    h += `<div class="po-due ${o.is_overdue ? 'is-overdue' : ''}">استحقاق ${fmtDate(o.due_date)}${o.is_overdue ? ` · متأخر ${fmtN(o.days_overdue)} يوم` : ''}</div>`;
+  }
+  return h;
+}
 const poStatusBadge = { draft:'badge-muted', sent:'badge-info', partial:'badge-warn', received:'badge-success', cancelled:'badge-danger' };
 const installStatusLabel = { pending:'قادم', partial:'جزئي', paid:'مدفوع', overdue:'متأخر' };
 const installStatusBadge = { pending:'badge-info', partial:'badge-warn', paid:'badge-success', overdue:'badge-danger' };
@@ -8847,7 +8929,7 @@ function renderSuppliers() {
       { key: 'name', label: 'اسم المورد', priority: 'primary', isTitle: true, render: s => `<div style="font-weight:600;color:var(--cream-0);">${s.name}</div>${s.name_en ? `<div style="font-size:0.72rem;color:var(--cream-4);">${s.name_en}</div>` : ''}` },
       { key: 'phone', label: 'الهاتف', priority: 'primary', render: s => `<span class="mono">${s.phone || '—'}</span>` },
       { key: 'contact_person', label: 'المسؤول', priority: 'secondary', render: s => s.contact_person || '—' },
-      { key: 'balance', label: 'الرصيد المستحق', priority: 'primary', render: s => `<span style="font-family:var(--font-display);font-size:1rem;color:${balOf(s) > 0 ? 'var(--danger)' : 'var(--success)'};">${fmt(balOf(s))} ج.م</span>` },
+      { key: 'balance', label: 'الرصيد المستحق', priority: 'primary', sortValue: s => balOf(s), render: s => `<span style="font-family:var(--font-display);font-size:1rem;color:${balOf(s) > 0 ? 'var(--danger)' : 'var(--success)'};">${fmt(balOf(s))} ج.م</span>` },
       { key: 'payment_terms', label: 'أيام السداد', priority: 'secondary', render: s => `<span class="badge badge-muted">${s.payment_terms || 30} يوم</span>` },
       { key: 'is_active', label: 'الحالة', priority: 'primary', isStatus: true, render: s => `<span class="badge ${s.is_active ? 'badge-success' : 'badge-muted'}">${s.is_active ? 'نشط' : 'غير نشط'}</span>` },
     ],
@@ -9209,7 +9291,10 @@ async function loadPurchaseOrders() {
   try {
     const status = document.getElementById('poStatusFilter')?.value || '';
     const supplierId = document.getElementById('poSupplierFilter')?.value || '';
+    const typeF = document.getElementById('poTypeFilter')?.value || '';
     let url = '/purchase-orders?';
+    if (typeF === 'overdue') url += 'overdue=1&';
+    else if (typeF) url += `purchase_type=${typeF}&`;
     if (status) url += `status=${status}&`;
     if (supplierId) url += `supplier_id=${supplierId}&`;
     const data = await API.get(url);
@@ -9245,6 +9330,7 @@ function renderPurchaseOrders() {
         <div class="rdv-card-row"><span class="rdv-card-label">الإجمالي</span><span class="rdv-card-value mono">${fmt(o.total)} ج.م</span></div>
         <div class="rdv-card-row"><span class="rdv-card-label">المتبقي</span><span class="rdv-card-value mono" style="color:${(o.balance_due||0)>0?'var(--danger)':'var(--success)'}">${fmt(o.balance_due||0)} ج.م</span></div>
         <div class="rdv-card-row"><span class="rdv-card-label">التاريخ</span><span class="rdv-card-value">${fmtDate(o.order_date)}</span></div>
+        <div class="rdv-card-row"><span class="rdv-card-label">نوع الشراء</span><span class="rdv-card-value">${poTypeCellHtml(o)}</span></div>
       </div>
       <div class="rdv-card-actions">
         <button class="btn btn-sm btn-subtle" onclick="event.stopPropagation();openPaymentModal(${o.supplier_id},${o.id})">دفع</button>
@@ -9262,6 +9348,7 @@ function renderPurchaseOrders() {
       { key: 'paid_amount', label: 'المدفوع', priority: 'secondary', render: o => `<span style="font-family:var(--font-mono);color:var(--success);">${fmt(o.paid_amount)} ج.م</span>` },
       { key: 'balance_due', label: 'المتبقي', priority: 'primary', render: o => `<span style="font-family:var(--font-mono);color:${(o.balance_due || 0) > 0 ? 'var(--danger)' : 'var(--cream-4)'};">${fmt(o.balance_due || 0)} ج.م</span>` },
       { key: 'order_date', label: 'التاريخ', priority: 'secondary', render: o => `<span class="text-xs text-muted">${fmtDate(o.order_date)}</span>` },
+      { key: 'purchase_type', label: 'نوع الشراء', priority: 'secondary', render: o => poTypeCellHtml(o) },
       { key: 'status', label: 'الحالة', priority: 'primary', isStatus: true, render: o => `<span class="badge ${poStatusBadge[o.status]}">${poStatusLabel[o.status]}</span>` },
     ],
     rows: orders,
@@ -9290,6 +9377,11 @@ function openPOModal(presetSupplierId = null) {
   document.getElementById('poInstallPreview').innerHTML = '';
   document.getElementById('poPurchaseType').value = 'cash';
   document.getElementById('poInstallSection').style.display = 'none';
+  document.getElementById('poCreditSection').style.display = 'none';
+  document.getElementById('poDueDate').value = '';
+  _poDueManual = false;
+  updatePOTypeHint();
+  updatePOSupplierInfo();
   _poInstallMode = 'auto';
   _poManualInstallRows = [];
   _poInstallmentSchedule = [];
@@ -9301,9 +9393,70 @@ function openPOModal(presetSupplierId = null) {
 }
 
 function togglePOInstallSection() {
-  const isInstall = document.getElementById('poPurchaseType').value === 'installment';
+  const type = document.getElementById('poPurchaseType').value;
+  const isInstall = type === 'installment';
   document.getElementById('poInstallSection').style.display = isInstall ? '' : 'none';
+  document.getElementById('poCreditSection').style.display = type === 'credit' ? '' : 'none';
   if (isInstall) { _poInstallMode = 'auto'; switchPOInstallMode('auto'); }
+  if (type === 'credit') autoFillPODueDate(true);
+  updatePOTypeHint();
+  updatePOSupplierInfo();
+}
+
+// ── شراء آجل: تاريخ الاستحقاق + ملخص حساب المورد ──
+let _poDueManual = false;
+const PO_TYPE_HINTS = {
+  cash: '"نقدي" لا يعني الدفع الآن بالضرورة — يمكنك تسجيل دفعة التسوية من شاشة تفاصيل الأمر بعد إنشائه.',
+  credit: '"آجل" بيتسجّل على حساب المورد بدون جدول أقساط — تسدّد على دفعة أو أكتر في أي وقت، والنظام يتابع تاريخ الاستحقاق وينبّهك لو اتأخر.',
+  installment: '"تقسيط" بيتطلب جدول أقساط بمواعيد ومبالغ محددة.',
+};
+function updatePOTypeHint() {
+  const el = document.getElementById('poTypeHint');
+  if (el) el.textContent = PO_TYPE_HINTS[document.getElementById('poPurchaseType').value] || '';
+}
+function getPOSupplier() {
+  const id = parseInt(document.getElementById('poSupplier')?.value);
+  return id ? (state.suppliers || []).find(s => s.id === id) : null;
+}
+function addDaysISO(iso, days) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split('T')[0];
+}
+function autoFillPODueDate(force) {
+  if (document.getElementById('poPurchaseType').value !== 'credit') return;
+  if (_poDueManual && !force) return;
+  const base = document.getElementById('poDate').value || new Date().toISOString().split('T')[0];
+  const terms = parseInt(getPOSupplier()?.payment_terms, 10);
+  document.getElementById('poDueDate').value = addDaysISO(base, terms > 0 ? terms : 30);
+  if (force) _poDueManual = false;
+  updatePOSupplierInfo();
+}
+function onPOSupplierChange() {
+  autoFillPODueDate();
+  updatePOSupplierInfo();
+}
+// ملخص حساب المورد تحت اختيار المورد: المستحق الحالي، حد الائتمان، المتاح، وتحذير لو الأمر هيتخطى الحد
+function updatePOSupplierInfo() {
+  const box = document.getElementById('poSupplierInfo');
+  if (!box) return;
+  const sup = getPOSupplier();
+  if (!sup) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const bal = Number(sup.balance?.balance) || 0;
+  const limit = Number(sup.credit_limit) || 0;
+  const type = document.getElementById('poPurchaseType')?.value || 'cash';
+  const total = Number(_poCurrentTotal) || 0;
+  const balTxt = bal > 0.009 ? `مستحق للمورد: <b style="color:var(--danger)">${fmt(bal)} ج.م</b>`
+               : bal < -0.009 ? `رصيد لنا لدى المورد: <b style="color:var(--success)">${fmt(Math.abs(bal))} ج.م</b>`
+               : `الحساب متزن: <b>٠</b>`;
+  let warn = '';
+  if (limit > 0 && type !== 'cash' && bal + total > limit) {
+    warn = `<div class="po-info-warn">⚠ هذا الأمر يتخطى حد ائتمان المورد (${fmt(limit)} ج.م) — المتاح ${fmt(Math.max(0, limit - bal))} ج.م.</div>`;
+  }
+  const after = (type !== 'cash' && total > 0)
+    ? `<div>الرصيد بعد هذا الأمر: <b>${fmt(bal + total)} ج.م</b></div>` : '';
+  box.style.display = '';
+  box.innerHTML = `<div>${balTxt}${limit > 0 ? ` · حد الائتمان: <b>${fmt(limit)} ج.م</b>` : ''} · أيام السداد: <b>${sup.payment_terms || 30}</b></div>${after}${warn}`;
 }
 
 let _poItems = [];
@@ -9378,6 +9531,7 @@ function recalcPO() {
   _poCurrentTotal = total;
   document.getElementById('poSubtotalDisp').textContent = fmt(subtotal) + ' ج.م';
   document.getElementById('poTotalDisp').textContent = fmt(total) + ' ج.م';
+  updatePOSupplierInfo();
   // لو وضع التقسيط شغال وفي وضع تلقائي، نعيد توليد الجدول بالإجمالي الجديد
   // (الوضع اليدوي بيفضل زي ما هو — المستخدم هو اللي بيتحكم فيه بالكامل)
   if (document.getElementById('poPurchaseType')?.value === 'installment' && _poInstallMode === 'auto') {
@@ -9510,10 +9664,19 @@ async function savePO(status) {
     }
   }
 
+  let dueDate = null;
+  if (purchaseType === 'credit') {
+    dueDate = document.getElementById('poDueDate').value;
+    if (!dueDate) { toast('حدد تاريخ استحقاق السداد للأمر الآجل', 'danger'); return; }
+    const od = document.getElementById('poDate').value;
+    if (od && dueDate < od) { toast('تاريخ الاستحقاق لا يمكن أن يسبق تاريخ الأمر', 'danger'); return; }
+  }
+
   const body = {
     supplier_id,
     location_id: parseInt(document.getElementById('poLocation').value) || null,
     status,
+    due_date: dueDate,
     order_date: document.getElementById('poDate').value,
     expected_date: document.getElementById('poExpected').value || null,
     notes: document.getElementById('poNotes').value || null,
@@ -9523,13 +9686,73 @@ async function savePO(status) {
     installments,
   };
 
+  return submitPO(body);
+}
+
+async function submitPO(body) {
   try {
     const data = await API.post('/purchase-orders', body);
     toast('تم إنشاء أمر الشراء بنجاح');
     closeModal('poModal');
     loadPurchaseOrders();
+    if (typeof loadSuppliers === 'function') loadSuppliers();
     if (data.order?.id) viewPO(data.order.id);
-  } catch(err) { toast('خطأ: ' + err.message, 'danger'); }
+  } catch(err) {
+    // مدير النظام فقط يقدر يتجاوز حد ائتمان المورد — تأكيد صريح بدل الرفض الصامت
+    if (err.message.includes('تجاوز حد ائتمان المورد') && state.user?.role === 'admin' && !body.override_credit_limit) {
+      if (confirm(err.message + '\n\nهل تريد تجاوز حد الائتمان وحفظ الأمر كمدير للنظام؟')) {
+        return submitPO({ ...body, override_credit_limit: true });
+      }
+      return;
+    }
+    toast('خطأ: ' + err.message, 'danger');
+  }
+}
+
+// ── شريط الاستحقاق لأمر الشراء الآجل (مع تعديل التاريخ) ──
+function poCreditStripHtml(o) {
+  if (o.purchase_type !== 'credit' || !o.due_date) return '';
+  const left = Math.ceil((Date.parse(o.due_date) - Date.parse(new Date().toISOString().split('T')[0])) / 86400000);
+  const settled = (o.balance_due || 0) <= 0.01;
+  let msg;
+  if (settled) msg = '✓ تم السداد بالكامل';
+  else if (o.is_overdue) msg = `⏰ متأخر ${fmtN(o.days_overdue)} يوم عن موعد السداد`;
+  else if (left === 0) msg = 'يستحق السداد اليوم';
+  else msg = `متبقي ${fmtN(left)} يوم على الاستحقاق`;
+  const canEdit = ['admin', 'manager'].includes(state.user?.role) && o.status !== 'cancelled' && !settled;
+  return `<div class="po-credit-strip ${o.is_overdue ? 'is-overdue' : settled ? 'is-settled' : ''}">
+    <span>🗓️ <b>تاريخ الاستحقاق:</b> ${fmtDate(o.due_date)}</span>
+    <span class="po-credit-msg">${msg}</span>
+    ${canEdit ? `<span class="po-credit-edit"><input type="date" id="podDueInput" value="${o.due_date}" class="form-control"/><button class="btn btn-ghost btn-xs" onclick="savePODueDate(${o.id})">تعديل الموعد</button></span>` : ''}
+  </div>`;
+}
+async function savePODueDate(id) {
+  const v = document.getElementById('podDueInput')?.value;
+  if (!v) { toast('اختر تاريخ الاستحقاق', 'danger'); return; }
+  try {
+    await API.put(`/purchase-orders/${id}`, { due_date: v });
+    toast('تم تحديث تاريخ الاستحقاق');
+    viewPO(id);
+  } catch (e) { toast(e.message, 'danger'); }
+}
+// ── كارت حساب المورد على أمر الشراء: الرصيد السابق + قيمة الأمر = الإجمالي المستحق ──
+function poAccountCardHtml(o) {
+  const prev = Number(o.previous_balance) || 0;
+  if (Math.abs(prev) < 0.009 || o.status === 'cancelled') return '';
+  const total = Number(o.total) || 0, paid = Number(o.paid_amount) || 0;
+  const grand = Math.round((prev + total) * 100) / 100;
+  const remaining = Math.round((grand - paid) * 100) / 100;
+  const line = (l, v, st) => `<div class="acct-line" style="${st || ''}"><span>${l}</span><span class="mono">${v}</span></div>`;
+  return `<div class="section-card mb-md acct-card">
+    <div class="section-card-header"><span class="section-card-title">حساب المورد</span></div>
+    <div class="section-card-body">
+      ${line(prev > 0 ? 'مستحقات سابقة للمورد' : 'رصيد سابق لنا لدى المورد', (prev > 0 ? '' : '− ') + fmt(Math.abs(prev)) + ' ج.م', prev > 0 ? 'color:var(--warn);' : 'color:var(--success);')}
+      ${line('قيمة هذا الأمر', '+ ' + fmt(total) + ' ج.م')}
+      ${line('الإجمالي المستحق', fmt(grand) + ' ج.م', 'font-weight:800;border-top:1px solid var(--gold-border);padding-top:8px;margin-top:4px;color:var(--gold-0);')}
+      ${paid > 0 ? line('المدفوع على الأمر', '− ' + fmt(paid) + ' ج.م', 'color:var(--success);') : ''}
+      ${paid > 0 ? line('المتبقي على الحساب', fmt(remaining) + ' ج.م', 'font-weight:700;color:' + (remaining > 0.009 ? 'var(--danger)' : 'var(--success)') + ';') : ''}
+    </div>
+  </div>`;
 }
 
 async function viewPO(id) {
@@ -9553,7 +9776,8 @@ async function viewPO(id) {
     //    إلغاء أمر عليه دفعات أو بضاعة اتستلمت. ──
     document.getElementById('podActions').innerHTML = `
       <span class="badge ${poStatusBadge[o.status]}" style="padding:7px 14px;font-size:0.78rem;">${poStatusLabel[o.status]}</span>
-      <span class="badge badge-info" style="padding:7px 14px;font-size:0.78rem;">${o.purchase_type === 'installment' ? '📅 تقسيط' : '💵 نقدي'}</span>
+      <span class="badge badge-info" style="padding:7px 14px;font-size:0.78rem;">${poTypeIcon[o.purchase_type] || '💵'} ${poTypeLabel[o.purchase_type] || 'نقدي'}</span>
+      ${o.is_overdue ? `<span class="badge badge-danger" style="padding:7px 14px;font-size:0.78rem;">⏰ متأخر ${fmtN(o.days_overdue)} يوم</span>` : ''}
       ${o.status === 'draft' ? `<button class="btn btn-primary btn-sm" onclick="changePOStatus(${o.id},'sent')">تأكيد وإرسال للمورد</button>` : ''}
       ${o.status !== 'draft' ? `<button class="btn btn-ghost btn-sm" onclick="printSupplierInvoiceA4(${o.id})">🖨️ طباعة فاتورة المورد</button>` : ''}
       ${canReceive ? `<button class="btn btn-ghost btn-sm" onclick="openReceiveModal(${o.id})">استلام بضاعة</button>` : ''}
@@ -9569,6 +9793,7 @@ async function viewPO(id) {
         <div class="stat-card"><div class="stat-label">المتبقي</div><div class="stat-value" style="font-size:1.3rem;color:${o.balance_due>0?'var(--danger)':'var(--success)'};">${fmt(o.balance_due).toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م</div></div>
         <div class="stat-card"><div class="stat-label">موقع الاستلام</div><div style="font-size:0.9rem;margin-top:var(--s-xs);">${o.location_name||'—'}</div></div>
       </div>
+      ${poCreditStripHtml(o)}
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--s-lg);">
         <!-- Items -->
         <div>
@@ -9616,6 +9841,7 @@ async function viewPO(id) {
         </div>
         <!-- Payments & Installments -->
         <div>
+          ${poAccountCardHtml(o)}
           <div class="section-card mb-md">
             <div class="section-card-header"><span class="section-card-title">المدفوعات</span></div>
             <div class="section-card-body" style="padding:0;">
@@ -10482,7 +10708,7 @@ function renderCustomers(list) {
       { key: 'name', label: 'الاسم', priority: 'primary', isTitle: true, render: c => c.name },
       { key: 'type', label: 'النوع', priority: 'secondary', render: c => CUSTOMER_TYPES[c.type] || c.type || '—' },
       { key: 'phone', label: 'الهاتف', priority: 'primary', render: c => c.phone || '—' },
-      { key: 'balance', label: 'الرصيد', priority: 'primary', align: 'center', render: c => `<span style="font-family:var(--font-mono);${netBal(c) > 0 ? 'color:var(--danger)' : netBal(c) < 0 ? 'color:var(--success)' : ''}">${fmt(Math.abs(netBal(c)))} ${netBal(c) > 0 ? '(مدين)' : netBal(c) < 0 ? '(دائن)' : ''}</span>` },
+      { key: 'balance', label: 'الرصيد', priority: 'primary', align: 'center', sortValue: c => netBal(c), render: c => `<span style="font-family:var(--font-mono);${netBal(c) > 0 ? 'color:var(--danger)' : netBal(c) < 0 ? 'color:var(--success)' : ''}">${fmt(Math.abs(netBal(c)))} ${netBal(c) > 0 ? '(مدين)' : netBal(c) < 0 ? '(دائن)' : ''}</span>` },
       { key: 'is_active', label: 'الحالة', priority: 'primary', isStatus: true, align: 'center', render: c => `<span class="badge ${c.is_active ? 'badge-success' : 'badge-muted'}">${c.is_active ? 'نشط' : 'متوقف'}</span>` },
     ],
     rows: list,
@@ -12215,6 +12441,62 @@ const payTypeLabel = { cash: 'نقداً', credit: 'آجل', installment: 'تق�
 const invStatusLabel = { draft: 'مسودة', confirmed: 'مؤكدة', partial: 'جزئي', paid: 'مدفوعة', cancelled: 'ملغاة', refunded: 'مردودة' };
 
 // ─── Build full invoice HTML for printing ───
+// ─── ملخص الحساب في الطباعة (فواتير العملاء + فواتير الموردين) ───
+// الشكل المحاسبي المعتمد: إجمالي المستند + الرصيد السابق (مديونية أو رصيد دائن) = الإجمالي المستحق،
+// بعده المدفوع ثم المتبقي على الحساب. لو مفيش رصيد سابق (صفر) الشكل بيفضل زي ما كان بالظبط.
+//   doc: { total, paid_amount, balance_due, previous_balance }   who: 'customer' | 'supplier'
+//   mode: 'a4' (صفوف .t-row) | 'thermal' (صفوف .total-row)
+function buildAccountTotalsHTML(doc, who, mode) {
+  const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+  const total = r2(doc.total), paid = r2(doc.paid_amount), prev = r2(doc.previous_balance);
+  const hasPrev = Math.abs(prev) > 0.009;
+  const isSup = who === 'supplier';
+  const a4 = mode !== 'thermal';
+  const cur = ' ج.م';
+  const row = (label, value, st, extraCls) => a4
+    ? `<div class="t-row ${extraCls || ''}" style="${st || ''}"><span>${label}</span><span class="v">${value}</span></div>`
+    : `<div class="total-row ${extraCls || ''}" style="${st || ''}"><span>${label}</span><span>${value}</span></div>`;
+  const pad = a4 ? '' : 'padding:3px 0;';
+
+  // ── بدون رصيد سابق: نفس الشكل القديم (الإجمالي / المدفوع / المتبقي) ──
+  if (!hasPrev) {
+    const bal = r2(total - paid);
+    return row('الإجمالي', fmt(total) + cur, '', 'grand')
+      + (paid > 0 ? row('المدفوع', fmt(paid) + cur, a4 ? 'background:#f1f8f1;color:#2e7d32;' : '') : '')
+      + (bal > 0 ? row(isSup ? 'المتبقي للمورد' : 'المتبقي', fmt(bal) + cur, a4 ? 'background:#fff5f5;color:#c00;' : 'font-weight:700;color:#c00;') : '');
+  }
+
+  // ── مع رصيد سابق ──
+  const grand = r2(prev + total);              // الإجمالي المستحق = الرصيد السابق + قيمة المستند
+  const remaining = r2(grand - paid);          // المتبقي على الحساب بعد المدفوع
+  const prevLabel = prev > 0
+    ? (isSup ? 'مستحقات سابقة للمورد' : 'مديونية سابقة')
+    : (isSup ? 'رصيد سابق لنا لدى المورد' : 'رصيد دائن سابق (لصالح العميل)');
+  const prevStyle = a4
+    ? (prev > 0 ? 'background:#fff8e6;color:#8a5a00;font-weight:700;' : 'background:#f1f8f1;color:#2e7d32;font-weight:700;')
+    : 'font-weight:700;';
+  const prevVal = prev > 0 ? '+ ' + fmt(prev) + cur : '− ' + fmt(Math.abs(prev)) + cur;
+
+  let html = row(isSup ? 'إجمالي أمر الشراء' : 'إجمالي الفاتورة', fmt(total) + cur, '', 'grand')
+    + row(prevLabel, prevVal, prevStyle);
+
+  if (grand >= 0) {
+    html += row(isSup ? 'إجمالي المستحق للمورد' : 'الإجمالي المستحق', fmt(grand) + cur,
+      a4 ? 'background:#e8b84a;color:#1a1208;font-size:14px;font-weight:800;border-top:2px solid #1a1208;' : 'font-weight:800;font-size:12px;border-top:1px solid #000;' + pad);
+  } else {
+    html += row(isSup ? 'رصيد لنا لدى المورد بعد الأمر' : 'رصيد دائن للعميل بعد الفاتورة', fmt(Math.abs(grand)) + cur,
+      a4 ? 'background:#e8f5e9;color:#2e7d32;font-size:13px;font-weight:800;' : 'font-weight:800;');
+  }
+  if (paid > 0) {
+    html += row('المدفوع', fmt(paid) + cur, a4 ? 'background:#f1f8f1;color:#2e7d32;' : '');
+    if (remaining > 0.009)
+      html += row('المتبقي على الحساب', fmt(remaining) + cur, a4 ? 'background:#fff5f5;color:#c00;font-weight:700;' : 'font-weight:700;color:#c00;');
+    else if (remaining < -0.009)
+      html += row(isSup ? 'رصيد لنا لدى المورد' : 'رصيد دائن للعميل', fmt(Math.abs(remaining)) + cur, a4 ? 'background:#e8f5e9;color:#2e7d32;font-weight:700;' : 'font-weight:700;');
+  }
+  return html;
+}
+
 function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
   const isA4 = mode === 'a4';
   const pageW = isA4 ? '210mm' : '80mm';
@@ -12481,9 +12763,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
         <div class="t-row"><span>المجموع الفرعي</span><span class="v">${fmt(invoice.subtotal)} ج.م</span></div>
         ${invoice.discount_amount > 0 ? `<div class="t-row" style="color:#c00;"><span>الخصم</span><span class="v">−${fmt(invoice.discount_amount)} ج.م</span></div>` : ''}
         ${invoice.tax_amount > 0 ? `<div class="t-row"><span>الضريبة</span><span class="v">${fmt(invoice.tax_amount)} ج.م</span></div>` : ''}
-        <div class="t-row grand"><span>الإجمالي</span><span class="v">${fmt(invoice.total)} ج.م</span></div>
-        ${invoice.paid_amount > 0 ? `<div class="t-row" style="background:#f1f8f1;color:#2e7d32;"><span>المدفوع</span><span class="v">${fmt(invoice.paid_amount)} ج.م</span></div>` : ''}
-        ${invoice.balance_due > 0 ? `<div class="t-row" style="background:#fff5f5;color:#c00;"><span>المتبقي</span><span class="v">${fmt(invoice.balance_due)} ج.م</span></div>` : ''}
+        ${buildAccountTotalsHTML(invoice, 'customer', 'a4')}
       </div>
     </div>
     <div class="status-bar">
@@ -12530,9 +12810,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
   <div class="divider"></div>
   <div class="total-row"><span>المجموع</span><span>${fmt(invoice.subtotal)} ج.م</span></div>
   ${invoice.discount_amount > 0 ? `<div class="total-row"><span>خصم</span><span>−${fmt(invoice.discount_amount)} ج.م</span></div>` : ''}
-  <div class="total-row grand"><span>الإجمالي</span><span>${fmt(invoice.total)} ج.م</span></div>
-  ${invoice.paid_amount > 0 ? `<div class="total-row"><span>المدفوع</span><span>${fmt(invoice.paid_amount)} ج.م</span></div>` : ''}
-  ${invoice.balance_due > 0 ? `<div class="total-row" style="font-weight:700;color:#c00;"><span>المتبقي</span><span>${fmt(invoice.balance_due)} ج.م</span></div>` : ''}
+  ${buildAccountTotalsHTML(invoice, 'customer', 'thermal')}
   ${installmentSummary ? `
   <div class="divider"></div>
   <div style="font-size:10px;font-weight:700;margin-bottom:3px;">📆 تفاصيل التقسيط:</div>
@@ -12651,7 +12929,7 @@ function buildSupplierInvoiceHTML(order, items) {
     <div class="meta-cell"><div class="lbl">التاريخ</div><div class="val">${fmtDate(order.order_date)}</div></div>
     <div class="meta-cell"><div class="lbl">المورد</div><div class="val">${order.supplier_name || '—'}</div></div>
     <div class="meta-cell"><div class="lbl">موقع الاستلام</div><div class="val">${order.location_name || '—'}</div></div>
-    <div class="meta-cell"><div class="lbl">طريقة السداد</div><div class="val">${order.purchase_type === 'installment' ? 'تقسيط' : 'نقدي'}</div></div>
+    <div class="meta-cell"><div class="lbl">طريقة السداد</div><div class="val">${poTypeLabel[order.purchase_type] || 'نقدي'}${order.purchase_type === 'credit' && order.due_date ? ' — استحقاق ' + fmtDate(order.due_date) : ''}</div></div>
     <div class="meta-cell"><div class="lbl">تاريخ التوريد المتوقع</div><div class="val">${order.expected_date ? fmtDate(order.expected_date) : '—'}</div></div>
   </div>
   <div class="body">
@@ -12671,9 +12949,7 @@ function buildSupplierInvoiceHTML(order, items) {
         <div class="t-row"><span>المجموع الفرعي</span><span class="v">${fmt(order.subtotal)} ج.م</span></div>
         ${order.discount_amount > 0 ? `<div class="t-row" style="color:#c00;"><span>الخصم</span><span class="v">−${fmt(order.discount_amount)} ج.م</span></div>` : ''}
         ${order.tax_amount > 0 ? `<div class="t-row"><span>الضريبة</span><span class="v">${fmt(order.tax_amount)} ج.م</span></div>` : ''}
-        <div class="t-row grand"><span>الإجمالي</span><span class="v">${fmt(order.total)} ج.م</span></div>
-        ${order.paid_amount > 0 ? `<div class="t-row" style="background:#f1f8f1;color:#2e7d32;"><span>المدفوع</span><span class="v">${fmt(order.paid_amount)} ج.م</span></div>` : ''}
-        ${order.balance_due > 0 ? `<div class="t-row" style="background:#fff5f5;color:#c00;"><span>المتبقي</span><span class="v">${fmt(order.balance_due)} ج.م</span></div>` : ''}
+        ${buildAccountTotalsHTML(order, 'supplier', 'a4')}
       </div>
     </div>
     <div class="status-bar">
@@ -12833,9 +13109,21 @@ function buildWhatsAppMessage(invoice, items, installments) {
     msg += `  الخصم: −${fmt(invoice.discount_amount)} ج.م\n`;
   }
   if (invoice.tax_amount > 0) msg += `  ضريبة: ${fmt(invoice.tax_amount)} ج.م\n`;
-  msg += `💰 *الإجمالي: ${fmt(invoice.total)} ج.م*\n`;
-  if (invoice.paid_amount > 0) msg += `✅ *المدفوع: ${fmt(invoice.paid_amount)} ج.م*\n`;
-  if (invoice.balance_due > 0) msg += `⚠️ *المتبقي: ${fmt(invoice.balance_due)} ج.م*\n`;
+  // الرصيد السابق (مديونية أو رصيد دائن) — نفس منطق الطباعة بالظبط
+  const wPrev = Math.round((Number(invoice.previous_balance) || 0) * 100) / 100;
+  if (Math.abs(wPrev) > 0.009) {
+    const wGrand = Math.round((wPrev + Number(invoice.total || 0)) * 100) / 100;
+    const wRem = Math.round((wGrand - Number(invoice.paid_amount || 0)) * 100) / 100;
+    msg += `💰 *إجمالي الفاتورة: ${fmt(invoice.total)} ج.م*\n`;
+    msg += wPrev > 0 ? `📌 *مديونية سابقة: ${fmt(wPrev)} ج.م*\n` : `📌 *رصيد دائن سابق: −${fmt(Math.abs(wPrev))} ج.م*\n`;
+    msg += wGrand >= 0 ? `🧾 *الإجمالي المستحق: ${fmt(wGrand)} ج.م*\n` : `🧾 *رصيد دائن لكم بعد الفاتورة: ${fmt(Math.abs(wGrand))} ج.م*\n`;
+    if (invoice.paid_amount > 0) msg += `✅ *المدفوع: ${fmt(invoice.paid_amount)} ج.م*\n`;
+    if (invoice.paid_amount > 0 && wRem > 0.009) msg += `⚠️ *المتبقي على الحساب: ${fmt(wRem)} ج.م*\n`;
+  } else {
+    msg += `💰 *الإجمالي: ${fmt(invoice.total)} ج.م*\n`;
+    if (invoice.paid_amount > 0) msg += `✅ *المدفوع: ${fmt(invoice.paid_amount)} ج.م*\n`;
+    if (invoice.balance_due > 0) msg += `⚠️ *المتبقي: ${fmt(invoice.balance_due)} ج.م*\n`;
+  }
 
   // تفاصيل الأجل
   if (invoice.payment_type === 'credit' && invoice.due_date) {
@@ -14165,6 +14453,310 @@ async function saveSettings() {
       }
     }
   } catch (e) { /* أي فشل هنا لا يجب أن يوقف تحميل التطبيق أبداً */ }
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   TableSort — ترتيب الجداول بالضغط على عنوان العمود (زي Excel / الأنظمة العالمية)
+   ───────────────────────────────────────────────────────────────────────
+   ضغطة أولى: تصاعدي (أ→ي / ٠→٩ / الأقدم→الأحدث) · تانية: تنازلي · تالتة: رجوع للترتيب الأصلي.
+   • جداول القوائم الرئيسية (renderResponsiveDataView): الترتيب بيحصل على البيانات نفسها
+     ويعيد الرسم، وبيشتغل كمان على الموبايل (شريط "ترتيب" فوق الكروت).
+   • أي جدول HTML تاني (كشوف الحساب، التفاصيل، الأقساط، الحركات...): ترتيب مباشر على صفوف
+     الجدول بعد قراءة القيم (أرقام عربية/إنجليزية، فواصل، عملات، "(مدين)/(دائن)"، تواريخ، نصوص عربي).
+   • الفراغ ("—" أو فاضي) دايمًا في آخر الترتيب في الاتجاهين (زي Excel).
+   • الترتيب مستقر (الصفوف المتساوية بتحافظ على ترتيبها)، وبيتحفظ لما الجدول يتعاد رسمه
+     (بحث/فلتر/تحديث بيانات) طول ما الصفحة مفتوحة.
+   • مفيش أي تعديل في منطق الصفحات: كله بيتركّب فوق الـ DOM الموجود، ويفشل بصمت لو حصل أي استثناء.
+   • بيتخطّى الجداول اللي فيها حقول إدخال (عشان ما نلخبطش تعديل بيانات)، أو صفوف مدموجة (colspan).
+     وأي جدول ممكن يتستثنى بـ data-nosort.
+═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  function safe(fn) { try { return fn(); } catch (e) { if (window.__UX_DEBUG) console.error('[sort]', e); } }
+  const reduced = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ───────────── قراءة القيم ───────────── */
+  const collator = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });
+  const BIDI = /[\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069]/g;
+  const normText = (s) => s.replace(BIDI, '').replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim();
+  const toLatinDigits = (s) => s.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+  const EMPTY = /^[\s—–\-_.؟?]*$/;
+  const UNITS = /(ج\.م|ج\s?م|EGP|جنيه|يوم|أيام|ايام|%|٪|قطعة|وحدة|ر\.س|SAR|د\.إ|AED)/g;
+
+  // يرجّع { t:'n'|'d'|'s'|'e', v } لنص خلية
+  function parseText(raw) {
+    if (raw === null || raw === undefined) return { t: 'e' };
+    let s = String(raw).replace(BIDI, '').replace(/\s+/g, ' ').trim();
+    if (!s || EMPTY.test(s)) return { t: 'e' };
+    const L = toLatinDigits(s);
+
+    // تاريخ: y/m/d أو d/m/y أو ISO (+ وقت اختياري)
+    let m = L.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})(?:[ T,،]+(\d{1,2}):(\d{2}))?/);
+    if (m) return { t: 'd', v: Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)) };
+    m = L.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:[ ,،]+(\d{1,2}):(\d{2}))?/);
+    if (m) return { t: 'd', v: Date.UTC(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)) };
+
+    // رقم: بعد شيل العملات/الوحدات. "(مدين)" موجب و"(دائن)" سالب.
+    let neg = false, t = L;
+    if (/\(?\s*دائن\s*\)?/.test(t)) { neg = true; t = t.replace(/\(?\s*دائن\s*\)?/g, ''); }
+    t = t.replace(/\(?\s*مدين\s*\)?/g, '').replace(UNITS, '').replace(/[٬،,\s]/g, '').replace(/٫/g, '.').replace(/[−–]/g, '-');
+    if (/^[+\-]?\(?\d+(\.\d+)?\)?$/.test(t)) {
+      let paren = /^\(.*\)$/.test(t) || /^[+\-]?\(/.test(t);
+      let n = parseFloat(t.replace(/[()+]/g, ''));
+      if (isFinite(n)) { if (paren && n > 0) n = -n; if (neg) n = -Math.abs(n); return { t: 'n', v: n }; }
+    }
+    return { t: 's', v: normText(s) };
+  }
+
+  // قيمة خلية DOM: data-sort أولاً، وإلا النص الظاهر
+  function cellInfo(td) {
+    if (!td) return { t: 'e' };
+    const ds = td.getAttribute && td.getAttribute('data-sort');
+    if (ds !== null && ds !== undefined && ds !== '') {
+      const n = Number(ds);
+      return isFinite(n) && ds.trim() !== '' ? { t: 'n', v: n } : parseText(ds);
+    }
+    return parseText(td.textContent);
+  }
+
+  // قيمة بيانات (للقوائم الرئيسية)
+  function valueInfo(v) {
+    if (v === null || v === undefined) return { t: 'e' };
+    if (typeof v === 'number') return isFinite(v) ? { t: 'n', v } : { t: 'e' };
+    if (typeof v === 'boolean') return { t: 'n', v: v ? 1 : 0 };
+    if (typeof v === 'object') {
+      if ('balance' in v) return valueInfo(v.balance);
+      return { t: 'e' };
+    }
+    return parseText(v);
+  }
+
+  // نوع العمود = النوع الغالب (≥٦٠٪ من القيم غير الفاضية)، والباقي بيتعامل معاه كنص/فراغ
+  function columnType(infos) {
+    const c = { n: 0, d: 0, s: 0 };
+    infos.forEach(i => { if (i.t !== 'e') c[i.t]++; });
+    const tot = c.n + c.d + c.s;
+    if (!tot) return 'e';
+    if (c.n / tot >= 0.6) return 'n';
+    if (c.d / tot >= 0.6) return 'd';
+    return 's';
+  }
+
+  function compareInfos(a, b, type, dir) {
+    // الفراغ دايمًا في الآخر مهما كان الاتجاه
+    const ae = a.t === 'e' || (type !== 's' && a.t !== type), be = b.t === 'e' || (type !== 's' && b.t !== type);
+    if (ae && be) return 0;
+    if (ae) return 1;
+    if (be) return -1;
+    let r;
+    if (type === 'n' || type === 'd') r = a.v - b.v;
+    else r = collator.compare(String(a.v), String(b.v));
+    return dir === 'desc' ? -r : r;
+  }
+
+  // ترتيب مستقر لمصفوفة عناصر + دالة قراءة
+  function sortItems(items, getInfo, dir) {
+    const infos = items.map(getInfo);
+    const type = columnType(infos);
+    const idx = items.map((_, i) => i);
+    idx.sort((x, y) => compareInfos(infos[x], infos[y], type, dir) || (x - y));
+    return idx.map(i => items[i]);
+  }
+
+  /* ───────────── الحالة (بتتحفظ طول ما الصفحة مفتوحة) ───────────── */
+  const STATE = new Map();   // key → { col, dir }
+  const nextDir = (cur, same) => (!same ? 'asc' : cur === 'asc' ? 'desc' : null);
+
+  /* ═════════ 1) القوائم الرئيسية (data-level) ═════════ */
+  const colSortable = (c) => c && c.sortable !== false && c.label;
+  function colValue(c, row) {
+    if (typeof c.sortValue === 'function') return c.sortValue(row);
+    return row ? row[c.key] : undefined;
+  }
+  function sortRowsFor(opts, id) {
+    const st = STATE.get('rdv:' + id);
+    if (!st) return opts.rows;
+    const c = (opts.columns || []).find(x => x.key === st.col);
+    if (!c) return opts.rows;
+    return sortItems(opts.rows, r => valueInfo(colValue(c, r)), st.dir);
+  }
+  function rdvStateOf(id) { return STATE.get('rdv:' + id) || null; }
+
+  function rdvToggle(id, key) {
+    const el = document.getElementById(id);
+    if (!el || !el.__rdvOpts) return;
+    const cur = STATE.get('rdv:' + id);
+    const dir = nextDir(cur && cur.dir, cur && cur.col === key);
+    if (dir) STATE.set('rdv:' + id, { col: key, dir }); else STATE.delete('rdv:' + id);
+    renderResponsiveDataView(el, el.__rdvOpts);
+    el.classList.remove('ts-flash'); void el.offsetWidth; el.classList.add('ts-flash');
+    setTimeout(() => el.classList.remove('ts-flash'), 700);
+    // نرجّع الفوكس للعنوان بعد إعادة الرسم (كيبورد/قارئ شاشة)
+    const again = el.querySelector(`[data-sort-key="${key}"]`);
+    if (again && again.tagName === 'TH' && document.activeElement === document.body) again.focus({ preventScroll: true });
+  }
+
+  // أسهم المؤشر (SVG ثابت؛ مفيش نص عشان ما نبوّظش قراءة عنوان العمود)
+  const IND = '<span class="ts-ind" aria-hidden="true"><svg viewBox="0 0 10 14" width="9" height="12"><path class="up" d="M5 1 9 6H1z"/><path class="dn" d="M5 13 1 8h8z"/></svg></span>';
+
+  function rdvThAttrs(id, c) {
+    if (!colSortable(c)) return '';
+    const st = rdvStateOf(id);
+    const on = st && st.col === c.key;
+    const aria = on ? (st.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+    return ` class="ts-th${on ? ' ts-' + st.dir : ''}" data-sort-key="${c.key}" aria-sort="${aria}" tabindex="0" role="columnheader" title="اضغط للترتيب"`;
+  }
+  function rdvSortBarHTML(id, columns) {
+    const st = rdvStateOf(id);
+    const chips = columns.filter(colSortable).map(c => {
+      const on = st && st.col === c.key;
+      return `<button type="button" class="ts-chip${on ? ' on ts-' + st.dir : ''}" data-sort-key="${c.key}" aria-pressed="${on ? 'true' : 'false'}">${c.label}${IND}</button>`;
+    }).join('');
+    return `<div class="ts-bar" data-rdv-bar="${id}"><span class="ts-bar-label">ترتيب حسب</span><div class="ts-bar-chips">${chips}</div></div>`;
+  }
+
+  /* ═════════ 2) أي جدول HTML تاني (DOM-level) ═════════ */
+  const NO_SORT_HEAD = /^(إجراءات|الإجراءات|عمليات|خيارات|#|م|)$/;
+  function eligible(table) {
+    if (!table.tHead || table.tHead.rows.length !== 1) return false;
+    if (table.hasAttribute('data-nosort') || table.closest('[data-nosort], [data-rdv]')) return false;
+    if (table.tBodies.length !== 1) return false;
+    const rows = table.tBodies[0].rows;
+    if (rows.length < 2) return false;
+    const n = table.tHead.rows[0].cells.length;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].cells.length !== n) return false;
+      for (let j = 0; j < n; j++) if (rows[i].cells[j].colSpan > 1) return false;
+      if (i < 40 && rows[i].querySelector('input, select, textarea')) return false;   // جدول تعديل بيانات → مانلمسوش
+    }
+    return true;
+  }
+  function tableKey(table) {
+    const host = table.closest('.modal-overlay, .page, .more-page');
+    const hid = host ? (host.id || host.className) : 'body';
+    const sig = Array.prototype.map.call(table.tHead.rows[0].cells, c => c.textContent.trim()).join('|');
+    return 'dom:' + hid + '|' + sig;
+  }
+
+  function decorate(table) {
+    if (!eligible(table)) return;
+    const firstTime = table.__tsKey === undefined;
+    const head = table.tHead.rows[0];
+    const rows = Array.prototype.slice.call(table.tBodies[0].rows);
+    if (!table.__tsOrig) table.__tsOrig = rows.slice();
+    table.__tsKey = tableKey(table);
+    Array.prototype.forEach.call(head.cells, (th, i) => {
+      if (th.classList.contains('ts-th')) return;
+      const label = th.textContent.replace(BIDI, '').trim();
+      if (NO_SORT_HEAD.test(label) || th.querySelector('input, button, select')) return;
+      // العمود لازم يكون فيه قيم فعلية (مش أزرار فاضية)
+      let has = false;
+      for (let r = 0; r < rows.length && !has; r++) has = cellInfo(rows[r].cells[i]).t !== 'e';
+      if (!has) return;
+      th.classList.add('ts-th');
+      th.setAttribute('tabindex', '0');
+      th.setAttribute('role', 'columnheader');
+      th.setAttribute('aria-sort', 'none');
+      th.setAttribute('title', 'اضغط للترتيب');
+      th.insertAdjacentHTML('beforeend', IND);
+    });
+    // إعادة تطبيق الترتيب المحفوظ بعد إعادة الرسم (أو لو اتضافت صفوف جديدة)
+    const st = STATE.get(table.__tsKey);
+    if (st && (firstTime || table.tBodies[0].rows.length !== table.__tsN)) domSort(table, st.col, st.dir, true);
+  }
+
+  function domSort(table, col, dir, silent) {
+    const head = table.tHead.rows[0];
+    const tb = table.tBodies[0];
+    const rows = dir ? Array.prototype.slice.call(tb.rows) : (table.__tsOrig || []).filter(r => r.parentNode === tb);
+    let ordered;
+    if (dir) ordered = sortItems(rows, r => cellInfo(r.cells[col]), dir);
+    else {
+      // رجوع للترتيب الأصلي (الصفوف الجديدة اللي اتضافت بعد كده بتفضل في آخره)
+      const orig = (table.__tsOrig || []).filter(r => r.parentNode === tb);
+      const set = new Set(orig);
+      ordered = orig.concat(Array.prototype.slice.call(tb.rows).filter(r => !set.has(r)));
+    }
+    busy = true;
+    const frag = document.createDocumentFragment();
+    ordered.forEach(r => frag.appendChild(r));
+    tb.appendChild(frag);
+    busy = false;
+    table.__tsN = tb.rows.length;
+    Array.prototype.forEach.call(head.cells, (th, i) => {
+      th.classList.remove('ts-asc', 'ts-desc');
+      if (th.classList.contains('ts-th')) th.setAttribute('aria-sort', 'none');
+      if (dir && i === col) { th.classList.add('ts-' + dir); th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending'); }
+    });
+    if (!silent && !reduced()) {
+      tb.classList.remove('ts-flash'); void tb.offsetWidth; tb.classList.add('ts-flash');
+      setTimeout(() => tb.classList.remove('ts-flash'), 700);
+    }
+  }
+
+  function domToggle(th) {
+    const table = th.closest('table');
+    if (!table || table.__tsKey === undefined) return;
+    const col = th.cellIndex;
+    const cur = STATE.get(table.__tsKey);
+    const dir = nextDir(cur && cur.dir, cur && cur.col === col);
+    if (dir) STATE.set(table.__tsKey, { col, dir }); else STATE.delete(table.__tsKey);
+    domSort(table, col, dir, false);
+  }
+
+  /* ───────────── أحداث (تفويض واحد على الصفحة كلها) ───────────── */
+  function onActivate(target) {
+    const chip = target.closest && target.closest('.ts-chip');
+    if (chip) { const bar = chip.closest('[data-rdv-bar]'); if (bar) rdvToggle(bar.getAttribute('data-rdv-bar'), chip.getAttribute('data-sort-key')); return true; }
+    const th = target.closest && target.closest('th.ts-th');
+    if (!th) return false;
+    if (target.closest('button, a, input, select, label')) return false;
+    const host = th.closest('[data-rdv]');
+    if (host && th.hasAttribute('data-sort-key')) rdvToggle(host.id, th.getAttribute('data-sort-key'));
+    else domToggle(th);
+    return true;
+  }
+  document.addEventListener('click', (e) => safe(() => { if (onActivate(e.target)) e.stopPropagation(); }), true);
+  document.addEventListener('keydown', (e) => safe(() => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const t = e.target;
+    if (t && t.matches && t.matches('th.ts-th')) { e.preventDefault(); onActivate(t); }
+  }));
+
+  /* ───────────── مراقب: أي جدول جديد/متعاد رسمه ───────────── */
+  let busy = false, queued = false;
+  const pending = new Set();
+  function flush() {
+    queued = false;
+    const roots = Array.from(pending); pending.clear();
+    const seen = new Set();
+    roots.forEach(r => safe(() => {
+      if (!r.isConnected) return;
+      const tables = [];
+      if (r.tagName === 'TABLE') tables.push(r);
+      else if (r.closest && r.closest('table')) tables.push(r.closest('table'));
+      if (r.querySelectorAll) r.querySelectorAll('table').forEach(t => tables.push(t));
+      tables.forEach(t => { if (!seen.has(t)) { seen.add(t); decorate(t); } });
+    }));
+  }
+  const obs = new MutationObserver((muts) => {
+    if (busy) return;
+    for (const m of muts) {
+      m.addedNodes.forEach(n => { if (n.nodeType === 1) pending.add(n); });
+      if (m.type === 'childList' && m.target.nodeType === 1 && m.target.closest && m.target.closest('table')) pending.add(m.target);
+    }
+    if (pending.size && !queued) { queued = true; requestAnimationFrame(flush); }
+  });
+  function init() {
+    pending.add(document.body); queued = true; requestAnimationFrame(flush);
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+  window.TableSort = { sortRowsFor, rdvThAttrs, rdvSortBarHTML, rdvStateOf, parseText, sortItems, valueInfo };
 })();
 </script>
 

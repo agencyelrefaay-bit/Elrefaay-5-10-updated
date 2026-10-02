@@ -27,7 +27,15 @@ const ensuredSequences = new Set();
 // ── computeStartAt: دالة async اختيارية بترجع رقم البداية، بتتنفذ *مرة واحدة فقط*
 //    طول عمر السيرفر (أول استخدام)، وقت إنشاء الـ SEQUENCE الفعلي فقط ──
 async function nextDocumentNumber(seqName, prefix, padLength = 5, computeStartAt = null) {
-  if (!ensuredSequences.has(seqName)) {
+  // ── تحصين: الـ SEQUENCE ممكن يتنشأ جوه transaction (لأن run() بتستخدم نفس الاتصال)، ولو الـ
+  //    transaction دي اتعمل لها rollback لأي سبب (خطأ في بند، رفض ائتمان...) بيختفي الـ SEQUENCE
+  //    مع إن الـ Set ده فاكر إنه موجود → كل أوامر/فواتير الرقم ده بعدها كانت هتفشل بـ
+  //    "relation ... does not exist" لحد ما السيرفر يتعاد تشغيله. فمبقاش بنثق في الكاش لوحده:
+  //    بنتأكد من وجوده فعلاً (استعلام فهرسي رخيص) وبننشئه من جديد لو اختفى. ──
+  const exists = ensuredSequences.has(seqName)
+    ? await get(`SELECT 1 AS ok FROM pg_class WHERE relname = ? AND relkind = 'S'`, [seqName.toLowerCase()])
+    : null;
+  if (!exists) {
     const startAt = computeStartAt ? await computeStartAt() : 1;
     await run(`CREATE SEQUENCE IF NOT EXISTS ${seqName} START WITH ${Math.max(1, startAt)}`);
     ensuredSequences.add(seqName);

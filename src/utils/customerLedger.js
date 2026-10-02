@@ -1,6 +1,7 @@
 // utils/customerLedger.js
 // حساب رصيد العميل في الوقت الفعلي
 const { get, run } = require('../db/database');
+const { round2 } = require('./money');
 
 async function getCustomerBalance(customerId) {
   const customer = await get(`SELECT opening_balance FROM customers WHERE id=?`,[customerId]);
@@ -61,8 +62,41 @@ async function checkCreditLimit(customerId, invoiceTotal, paymentType) {
   return null;
 }
 
+
+// ── الرصيد "كما كان" قبل لحظة معينة (asOf) — بيستخدم لتقدير الرصيد السابق للفواتير
+//    القديمة اللي اتأكدت قبل ما نبدأ نخزّن لقطة الرصيد وقت الإصدار. نفس منطق
+//    getCustomerBalance بالظبط (نفس الفلاتر)، بس بنستثني الفاتورة نفسها وكل حركة
+//    حصلت في/بعد لحظة الإصدار. موجب = العميل مدين لنا، سالب = رصيد دائن للعميل. ──
+async function getCustomerBalanceAsOf(customerId, asOf, excludeInvoiceId = 0) {
+  const customer = await get(`SELECT opening_balance FROM customers WHERE id=?`, [customerId]);
+  if (!customer) return null;
+  const inv = await get(`
+    SELECT COALESCE(SUM(total),0) as t FROM invoices
+    WHERE customer_id=? AND status NOT IN ('draft','cancelled') AND id<>? AND created_at < ?`,
+    [customerId, excludeInvoiceId || 0, asOf]);
+  const pay = await get(`SELECT COALESCE(SUM(amount),0) as t FROM customer_payments WHERE customer_id=? AND created_at < ?`, [customerId, asOf]);
+  const ret = await get(`SELECT COALESCE(SUM(total_refund),0) as t FROM sales_returns WHERE customer_id=? AND status='completed' AND created_at < ?`, [customerId, asOf]);
+  return round2((customer.opening_balance || 0) + (inv.t || 0) - (pay.t || 0) - (ret.t || 0));
+}
+
+// ── "المديونية السابقة" المطبوعة على الفاتورة (قبل قيمة الفاتورة نفسها):
+//    1) لقطة محفوظة وقت التأكيد (الأدق — ماتتغيّرش بعد كده)
+//    2) مسودة → الرصيد الحالي الحي (الفاتورة لسه مش محسوبة عليه)
+//    3) فاتورة قديمة من غير لقطة → تقدير من الدفتر وقت إصدارها
+//    بترجّع { value, source: 'snapshot' | 'live' | 'estimated' } ──
+async function getInvoicePreviousBalance(inv) {
+  if (inv.previous_balance !== null && inv.previous_balance !== undefined)
+    return { value: round2(inv.previous_balance), source: 'snapshot' };
+  if (inv.status === 'draft') {
+    const b = await getCustomerBalance(inv.customer_id);
+    return { value: round2(b ? b.balance : 0), source: 'live' };
+  }
+  const v = await getCustomerBalanceAsOf(inv.customer_id, inv.created_at, inv.id);
+  return { value: v === null ? 0 : v, source: 'estimated' };
+}
+
 async function syncCustomerInstallments(run_fn) {
   await require('./installmentEngine').syncOverdueInstallments('customer', run_fn);
 }
 
-module.exports = { getCustomerBalance, checkCreditLimit, syncCustomerInstallments };
+module.exports = { getCustomerBalance, getCustomerBalanceAsOf, getInvoicePreviousBalance, checkCreditLimit, syncCustomerInstallments };

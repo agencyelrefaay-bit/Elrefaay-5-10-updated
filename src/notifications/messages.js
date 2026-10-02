@@ -130,7 +130,7 @@ function poMessage({ order, items, eventType, actorName }) {
   msg += `🏭 <b>المورد:</b> ${order.supplier_name || '—'}\n`;
   msg += `📅 <b>التاريخ:</b> ${fmtDate(order.order_date)}\n`;
   if (actorName) msg += `👨‍💼 <b>بواسطة:</b> ${actorName}\n`;
-  msg += `💳 <b>نوع الشراء:</b> ${order.purchase_type === 'installment' ? 'تقسيط' : 'نقدي'}\n`;
+  msg += `💳 <b>نوع الشراء:</b> ${order.purchase_type === 'installment' ? 'تقسيط' : order.purchase_type === 'credit' ? 'آجل' : 'نقدي'}\n`;
   if (eventType === 'delayed') {
     const days = Math.floor((Date.now() - new Date(order.expected_date).getTime()) / 86400000);
     msg += `${SEP}\n⏰ <b>تاريخ التوريد المتوقع:</b> ${fmtDate(order.expected_date)}\n`;
@@ -244,7 +244,21 @@ function inventoryCountFinalizedMessage({ session_id, location_name, entries_cou
   return msg;
 }
 
+// ═══ أمر شراء آجل متأخر السداد ═══
+function poCreditOverdueMessage({ order }) {
+  const due = Math.round(((order.total || 0) - (order.paid_amount || 0)) * 100) / 100;
+  const days = Math.max(0, Math.floor((Date.now() - new Date(order.due_date).getTime()) / 86400000));
+  let msg = `⏰ <b>أمر شراء آجل متأخر السداد</b>\n${SEP}\n`;
+  msg += `📦 <b>رقم الأمر:</b> <code>${order.po_number}</code>\n`;
+  msg += `🏭 <b>المورد:</b> ${order.supplier_name || '—'}\n`;
+  msg += `📅 <b>تاريخ الاستحقاق:</b> ${fmtDate(order.due_date)}\n`;
+  msg += `🔴 <b>متأخر منذ:</b> ${days} يوم\n`;
+  msg += `💰 <b>المتبقي للمورد:</b> ${due.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م\n`;
+  return msg;
+}
+
 module.exports = {
+  poCreditOverdueMessage,
   invoiceMessage, customerPaymentMessage, supplierPaymentMessage,
   productMessage, lowStockMessage, poMessage, goodsReceiptMessage,
   installmentReminderMessage, settingsChangedMessage,

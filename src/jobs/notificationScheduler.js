@@ -45,6 +45,21 @@ async function checkDelayedPurchaseOrders() {
   delayed.forEach(order => eventBus.emit('purchase_order.delayed', { order: { ...order, supplier_name: order.supplier_name } }));
 }
 
+// أوامر الشراء الآجلة اللي عدّى تاريخ استحقاقها وفيها متبقي للمورد — تنبيه يومي واحد لكل أمر (dedup في طبقة الإرسال)
+async function checkOverdueCreditPurchaseOrders() {
+  const overdue = await all(`
+    SELECT po.*, s.name as supplier_name
+    FROM purchase_orders po
+    JOIN suppliers s ON po.supplier_id = s.id
+    WHERE po.purchase_type = 'credit'
+      AND po.status NOT IN ('draft','cancelled')
+      AND po.due_date IS NOT NULL
+      AND po.due_date < date('now')
+      AND (po.total - po.paid_amount) > 0.01
+  `);
+  overdue.forEach(order => eventBus.emit('purchase_order.credit_overdue', { order }));
+}
+
 async function runAllChecks() {
   const settings = await get(`SELECT notifications_enabled, notify_low_stock FROM settings WHERE id=1`);
   if (settings && !settings.notifications_enabled) return; // الإشعارات متوقفة كلياً من الإعدادات
@@ -53,6 +68,7 @@ async function runAllChecks() {
     checkInstallments('customer'),
     checkInstallments('supplier'),
     checkDelayedPurchaseOrders(),
+    checkOverdueCreditPurchaseOrders(),
   ];
   if (!settings || settings.notify_low_stock) tasks.push(checkLowStock());
 

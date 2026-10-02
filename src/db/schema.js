@@ -607,6 +607,34 @@ async function migrateReturnsSchema() {
 }
 module.exports.migrateReturnsSchema = migrateReturnsSchema;
 
+// ─── ترحيل: الرصيد السابق على المستندات + الشراء الآجل ───
+// - invoices.previous_balance / purchase_orders.previous_balance: "لقطة" (snapshot)
+//   لرصيد الطرف الآخر (عميل/مورد) لحظة خروج المستند من المسودة، قبل احتسابه.
+//   بتتخزّن مرة واحدة وماتتغيّرش بعدها، فإعادة طباعة فاتورة قديمة بعد شهور
+//   بتطلّع نفس "المديونية السابقة" اللي كانت وقت الإصدار بالظبط (مش الرصيد
+//   الحالي). الفواتير/الأوامر القديمة (قبل الترحيل) بتتحسب لها قيمة تقديرية
+//   من الدفتر وقت الطباعة (راجع customerLedger/supplierLedger).
+// - purchase_orders.due_date: تاريخ استحقاق السداد لأوامر الشراء "الآجلة".
+async function migrateAccountingDocsSchema() {
+  const cols = [
+    ['invoices',        'previous_balance', 'DOUBLE PRECISION'],
+    ['purchase_orders', 'previous_balance', 'DOUBLE PRECISION'],
+    ['purchase_orders', 'due_date',         'TEXT'],
+  ];
+  for (const [table, col, type] of cols) {
+    const exists = await get(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = '${table}' AND column_name = '${col}'`
+    );
+    if (!exists) {
+      await run(`ALTER TABLE ${table} ADD COLUMN ${col} ${type};`);
+      console.log(`✓ ترحيل: تمت إضافة عمود ${col} لجدول ${table}`);
+    }
+  }
+  await run(`CREATE INDEX IF NOT EXISTS idx_po_due_date ON purchase_orders(due_date);`);
+}
+module.exports.migrateAccountingDocsSchema = migrateAccountingDocsSchema;
+
+
 async function createSalesSchema() {
   // ─── العملاء ───
   await run(`

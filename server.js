@@ -16,7 +16,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('./src/utils/logger');
 
 const { initDatabase } = require('./src/db/database');
-const { createSchema, seedInitialData, createProcurementSchema, migrateProcurementSchema, migrateInventoryAlertsSchema, migratePurchasingSchema, migrateCollectionSchema, migrateNotificationsSchema, migrateReturnsSchema, createSalesSchema, createPhase4Schema, migratePerformanceIndexes, migrateProductListPerformanceIndexes, migrateSupplierProductLinks, migrateInventoryCountSchema, migrateProductAttributesSchema } = require('./src/db/schema');
+const { createSchema, seedInitialData, createProcurementSchema, migrateProcurementSchema, migrateInventoryAlertsSchema, migratePurchasingSchema, migrateCollectionSchema, migrateNotificationsSchema, migrateReturnsSchema, migrateAccountingDocsSchema, createSalesSchema, createPhase4Schema, migratePerformanceIndexes, migrateProductListPerformanceIndexes, migrateSupplierProductLinks, migrateInventoryCountSchema, migrateProductAttributesSchema } = require('./src/db/schema');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -201,6 +201,7 @@ async function startServer() {
     await migrateCollectionSchema();
     await migrateNotificationsSchema();
     await migrateReturnsSchema();
+    await migrateAccountingDocsSchema();
     await migratePerformanceIndexes();
     await migrateProductListPerformanceIndexes();
     await migrateSupplierProductLinks();

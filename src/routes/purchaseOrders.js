@@ -9,6 +9,17 @@ const { round2 }                             = require('../utils/money');
 const { validateInstallmentSchedule }        = require('../utils/installmentEngine');
 const { buildFileUrl }                       = require('../utils/fileUrl');
 const eventBus = require('../utils/eventBus');
+const { getSupplierBalance, getPOPreviousBalance, checkSupplierCreditLimit } = require('../utils/supplierLedger');
+
+// أنواع الشراء المدعومة: نقدي / آجل (من غير جدول أقساط — بتاريخ استحقاق واحد) / تقسيط (بجدول أقساط)
+const PO_TYPES = ['cash', 'credit', 'installment'];
+const isIsoDate = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+function addDays(isoDate, days) {
+  const d = new Date(isoDate + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split('T')[0];
+}
+const todayISO = () => new Date().toISOString().split('T')[0];
 
 router.use(authenticate);
 
@@ -35,7 +46,7 @@ function calcPOTotals(items) {
 
 // ── GET /api/purchase-orders ──
 router.get('/', async (req, res) => {
-  const { supplier_id, status, from_date, to_date } = req.query;
+  const { supplier_id, status, from_date, to_date, purchase_type: typeFilter, overdue } = req.query;
   let sql = `
     SELECT po.*, s.name as supplier_name, s.code as supplier_code,
            l.name as location_name, u.full_name as created_by
@@ -49,12 +60,27 @@ router.get('/', async (req, res) => {
   if (status)      { sql += ` AND po.status=?`;      params.push(status); }
   if (from_date)   { sql += ` AND po.order_date>=?`; params.push(from_date); }
   if (to_date)     { sql += ` AND po.order_date<=?`; params.push(to_date); }
+  if (typeFilter && PO_TYPES.includes(typeFilter)) { sql += ` AND po.purchase_type=?`; params.push(typeFilter); }
+  // المتأخرة فقط: آجل + تاريخ الاستحقاق عدّى + لسه فيه متبقي + مش مسودة/ملغي
+  if (overdue === '1') {
+    sql += ` AND po.purchase_type='credit' AND po.due_date < ? AND (po.total - po.paid_amount) > 0.01 AND po.status NOT IN ('draft','cancelled')`;
+    params.push(todayISO());
+  }
   sql += ` ORDER BY po.created_at DESC LIMIT 300`;
 
-  const orders = (await all(sql, params)).map(po => ({
-    ...po,
-    balance_due: po.total - po.paid_amount,
-  }));
+  const today = todayISO();
+  const orders = (await all(sql, params)).map(po => {
+    const balanceDue = round2(po.total - po.paid_amount);
+    // متأخر = أمر آجل ليه تاريخ استحقاق عدّى وفيه متبقي ولسه مش ملغي/مسودة
+    const overdue = po.purchase_type === 'credit' && po.due_date && po.due_date < today
+      && balanceDue > 0.01 && !['cancelled', 'draft'].includes(po.status);
+    return {
+      ...po,
+      balance_due: po.total - po.paid_amount,
+      is_overdue: !!overdue,
+      days_overdue: overdue ? Math.floor((Date.parse(today) - Date.parse(po.due_date)) / 86400000) : 0,
+    };
+  });
   res.json({ orders, count: orders.length });
 });
 
@@ -87,21 +113,46 @@ router.get('/:id', async (req, res) => {
     .map(p => ({ ...p, proof_image_path: buildFileUrl(req, p.proof_image_path) }));
   const installs = await all(`SELECT * FROM payment_installments WHERE po_id=? ORDER BY installment_number ASC`, [po.id]);
 
-  res.json({ order: { ...po, balance_due: po.total - po.paid_amount }, items, receipts, payments, installments: installs });
+  // الرصيد السابق للمورد قبل هذا الأمر (موجب = مستحق للمورد علينا، سالب = رصيد لنا عنده)
+  const prev = await getPOPreviousBalance(po);
+  const balanceDue = round2(po.total - po.paid_amount);
+  const today = todayISO();
+  const overdue = po.purchase_type === 'credit' && po.due_date && po.due_date < today
+    && balanceDue > 0.01 && !['cancelled', 'draft'].includes(po.status);
+  res.json({
+    order: {
+      ...po,
+      balance_due: po.total - po.paid_amount,
+      previous_balance: prev.value,
+      previous_balance_source: prev.source,
+      account_balance_after: round2(prev.value + balanceDue),
+      grand_total_with_previous: round2(prev.value + po.total),
+      is_overdue: !!overdue,
+      days_overdue: overdue ? Math.floor((Date.parse(today) - Date.parse(po.due_date)) / 86400000) : 0,
+    },
+    items, receipts, payments, installments: installs,
+  });
 });
 
 // ── POST /api/purchase-orders ──
 router.post('/', authorize('admin','manager'), async (req, res) => {
   const { supplier_id, location_id, order_date, expected_date,
-          discount_amount, tax_amount, notes, items, installments, purchase_type } = req.body;
+          discount_amount, tax_amount, notes, items, installments, purchase_type, due_date,
+          override_credit_limit, status: requestedStatus } = req.body;
 
   if (!supplier_id) return res.status(400).json({ error: 'المورد مطلوب' });
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: 'يجب إضافة منتج واحد على الأقل' });
-  if (!await get(`SELECT id FROM suppliers WHERE id=? AND is_active=1`,[supplier_id]))
+  const supplierRow = await get(`SELECT id, payment_terms FROM suppliers WHERE id=? AND is_active=1`,[supplier_id]);
+  if (!supplierRow)
     return res.status(404).json({ error: 'المورد غير موجود أو غير نشط' });
 
-  const poType = purchase_type === 'installment' ? 'installment' : 'cash';
+  if (purchase_type !== undefined && purchase_type !== null && purchase_type !== '' && !PO_TYPES.includes(purchase_type))
+    return res.status(400).json({ error: 'نوع الشراء غير صحيح — المسموح: نقدي، آجل، تقسيط' });
+  const poType = PO_TYPES.includes(purchase_type) ? purchase_type : 'cash';
+  const orderDateResolved = order_date || todayISO();
+  if (order_date && !isIsoDate(order_date))
+    return res.status(400).json({ error: 'تاريخ الأمر غير صالح' });
 
   // كل بند لازم يكون له مخزن استلام محدد — إما مخزن خاص بيه أو مخزن الأمر
   // الافتراضي (location_id بالهيدر). ده بيسمح إن كل منتج في نفس أمر الشراء
@@ -115,6 +166,28 @@ router.post('/', authorize('admin','manager'), async (req, res) => {
   const discAmt = round2(parseFloat(discount_amount)||0);
   const taxAmt  = round2(parseFloat(tax_amount)||0);
   const total   = round2(subtotal - discAmt + taxAmt);
+  if (total < 0) return res.status(400).json({ error: 'إجمالي أمر الشراء لا يمكن أن يكون بالسالب — راجع الخصم' });
+
+  // ── تاريخ الاستحقاق (للأمر الآجل فقط): لو ما اتحددش بنحسبه تلقائياً من "أيام السداد"
+  //    المسجّلة للمورد (payment_terms) — نفس فكرة due_date في فاتورة العميل الآجلة. ──
+  let dueDate = null;
+  if (poType === 'credit') {
+    if (due_date) {
+      if (!isIsoDate(due_date)) return res.status(400).json({ error: 'تاريخ الاستحقاق غير صالح' });
+      if (due_date < orderDateResolved)
+        return res.status(400).json({ error: 'تاريخ الاستحقاق لا يمكن أن يسبق تاريخ أمر الشراء' });
+      dueDate = due_date;
+    } else {
+      const terms = parseInt(supplierRow.payment_terms, 10);
+      dueDate = addDays(orderDateResolved, terms > 0 ? terms : 30);
+    }
+  }
+
+  // ── حد ائتمان المورد (آجل/تقسيط) — المدير فقط يقدر يتجاوزه صراحةً (نفس قاعدة العملاء) ──
+  const creditError = await checkSupplierCreditLimit(supplier_id, total, poType);
+  if (creditError && !(req.user.role === 'admin' && override_credit_limit)) {
+    return res.status(400).json(creditError);
+  }
 
   // ── فحص جدول أقساط المورد — نفس الفحص المطبّق على أقساط العميل بالظبط.
   //    لو نوع الشراء "تقسيط"، الجدول بقى *إلزامي* (كان اختيارياً تماماً قبل
@@ -125,16 +198,26 @@ router.post('/', authorize('admin','manager'), async (req, res) => {
     if (installError) return res.status(400).json(installError);
   }
 
+  // الحالة الابتدائية: زرار "إرسال للمورد" بالواجهة كان بيبعت status='sent' بس السيرفر كان بيتجاهله
+  // دايماً ويحفظ الأمر "مسودة" (فالمستخدم يضطر يضغط تأكيد تاني). دلوقتي بنحترم الطلب: 'sent' أو 'draft' فقط.
+  const initialStatus = requestedStatus === 'sent' ? 'sent' : 'draft';
+
   const poId = await transaction(async () => {
     const poNumber = await genPONumber();
+    // لو الأمر هيتحفظ مُرسَل مباشرة، بنثبّت لقطة الرصيد السابق للمورد قبل إدخاله في دفتره
+    let prevSnapshot = null;
+    if (initialStatus === 'sent') {
+      const b = await getSupplierBalance(supplier_id);
+      prevSnapshot = round2(b ? b.balance : 0);
+    }
     const id = await insert(`
       INSERT INTO purchase_orders
-      (po_number,supplier_id,location_id,order_date,expected_date,purchase_type,
+      (po_number,supplier_id,location_id,order_date,expected_date,purchase_type,due_date,status,previous_balance,
        subtotal,discount_amount,tax_amount,total,paid_amount,notes,user_id)
-      VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?)`,
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?)`,
       [poNumber, supplier_id, location_id||null,
-       order_date || new Date().toISOString().split('T')[0],
-       expected_date||null, poType, subtotal, discAmt, taxAmt, total, notes||null, req.user.id]);
+       orderDateResolved,
+       expected_date||null, poType, dueDate, initialStatus, prevSnapshot, subtotal, discAmt, taxAmt, total, notes||null, req.user.id]);
 
     for (const item of enriched) {
       await insert(`INSERT INTO purchase_order_items
@@ -199,7 +282,15 @@ router.put('/:id/status', authorize('admin','manager'), async (req, res) => {
       });
   }
 
-  await run(`UPDATE purchase_orders SET status=?, updated_at=datetime('now') WHERE id=?`, [status, req.params.id]);
+  // لقطة الرصيد السابق للمورد لحظة خروج الأمر من "مسودة" (قبل ما يتحسب في دفتره).
+  // بتتخزّن مرة واحدة ومابتتغيّرش — فإعادة طباعة الأمر بعد شهور بتطلّع نفس الرصيد السابق وقت الإصدار.
+  let snapshot = null;
+  if (po.status === 'draft' && status !== 'draft' && status !== 'cancelled' && po.previous_balance == null) {
+    const b = await getSupplierBalance(po.supplier_id);
+    snapshot = round2(b ? b.balance : 0);
+  }
+  await run(`UPDATE purchase_orders SET status=?, previous_balance=COALESCE(previous_balance, ?), updated_at=datetime('now') WHERE id=?`,
+    [status, snapshot, req.params.id]);
   await logAction(req.user.id, 'status_change', 'purchase_order', req.params.id, { from: po.status, to: status });
   res.json({ message: 'تم تحديث الحالة', status });
 });
@@ -221,13 +312,32 @@ router.put('/:id', authorize('admin','manager'), async (req, res) => {
   const { id } = req.params;
   const po = await get(`SELECT * FROM purchase_orders WHERE id=?`,[id]);
   if (!po) return res.status(404).json({ error: 'أمر الشراء غير موجود' });
+  // تعديل تاريخ الاستحقاق لوحده (أمر آجل) مسموح حتى بعد اكتمال الاستلام — لأنه مواعيد سداد مش بنود.
+  if (req.body && Object.keys(req.body).length === 1 && req.body.due_date !== undefined) {
+    if (po.status === 'cancelled') return res.status(400).json({ error: 'لا يمكن تعديل أمر شراء ملغى' });
+    if (po.purchase_type !== 'credit') return res.status(400).json({ error: 'تاريخ الاستحقاق متاح فقط لأوامر الشراء الآجلة' });
+    if (!isIsoDate(req.body.due_date)) return res.status(400).json({ error: 'تاريخ الاستحقاق غير صالح' });
+    if (req.body.due_date < po.order_date) return res.status(400).json({ error: 'تاريخ الاستحقاق لا يمكن أن يسبق تاريخ أمر الشراء' });
+    await run(`UPDATE purchase_orders SET due_date=?, updated_at=datetime('now') WHERE id=?`, [req.body.due_date, id]);
+    await logAction(req.user.id, 'update', 'purchase_order', id, { due_date: req.body.due_date });
+    return res.json({ order: await get(`SELECT * FROM purchase_orders WHERE id=?`,[id]) });
+  }
   if (po.status === 'received')
     return res.status(400).json({ error: 'لا يمكن تعديل أمر شراء مكتمل الاستلام' });
   if (po.status === 'cancelled')
     return res.status(400).json({ error: 'لا يمكن تعديل أمر شراء ملغى' });
 
   const { supplier_id, location_id, order_date, expected_date,
-          discount_amount, tax_amount, notes, items } = req.body;
+          discount_amount, tax_amount, notes, items, due_date } = req.body;
+
+  if (due_date !== undefined && due_date !== null && due_date !== '') {
+    if (po.purchase_type !== 'credit')
+      return res.status(400).json({ error: 'تاريخ الاستحقاق متاح فقط لأوامر الشراء الآجلة' });
+    if (!isIsoDate(due_date)) return res.status(400).json({ error: 'تاريخ الاستحقاق غير صالح' });
+    if (due_date < (order_date || po.order_date))
+      return res.status(400).json({ error: 'تاريخ الاستحقاق لا يمكن أن يسبق تاريخ أمر الشراء' });
+    await run(`UPDATE purchase_orders SET due_date=?, updated_at=datetime('now') WHERE id=?`, [due_date, id]);
+  }
 
   if (items && items.length > 0) {
     const receiptCount = await get(`SELECT COUNT(*) as c FROM purchase_receipts WHERE po_id=?`,[id]);

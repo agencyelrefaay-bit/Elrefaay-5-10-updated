@@ -20,7 +20,7 @@ async function genInvoiceNumber() {
   });
 }
 
-const { getCustomerBalance, checkCreditLimit } = require('../utils/customerLedger');
+const { getCustomerBalance, getInvoicePreviousBalance, checkCreditLimit } = require('../utils/customerLedger');
 const { validateInstallmentSchedule } = require('../utils/installmentEngine');
 const { round2 } = require('../utils/money');
 
@@ -192,8 +192,21 @@ async function buildInvoiceDetail(inv) {
   const payments = await all(`SELECT * FROM customer_payments WHERE invoice_id=? ORDER BY payment_date ASC`,[inv.id]);
   const installs = await all(`SELECT * FROM customer_installments WHERE invoice_id=? ORDER BY installment_number ASC`,[inv.id]);
   const returns_ = await all(`SELECT * FROM sales_returns WHERE invoice_id=?`,[inv.id]);
+  // الرصيد السابق للعميل (قبل هذه الفاتورة) + الإجمالي المستحق على الحساب بعدها —
+  // بيستخدمه الطباعة (A4/حراري/PDF). موجب = مديونية على العميل، سالب = رصيد دائن له.
+  const prev = await getInvoicePreviousBalance(inv);
+  const balanceDue = Math.round((inv.total - inv.paid_amount) * 100) / 100;
   return {
-    invoice: { ...inv, balance_due: inv.total - inv.paid_amount },
+    invoice: {
+      ...inv,
+      balance_due: inv.total - inv.paid_amount,
+      previous_balance: prev.value,
+      previous_balance_source: prev.source,
+      // إجمالي المستحق على حساب العميل بعد هذه الفاتورة وبعد ما دفعه عليها
+      account_balance_after: Math.round((prev.value + balanceDue) * 100) / 100,
+      // الفاتورة + الرصيد السابق (قبل خصم المدفوع) — السطر "الإجمالي المستحق" في الطباعة
+      grand_total_with_previous: Math.round((prev.value + inv.total) * 100) / 100,
+    },
     items, payments, installments: installs, returns: returns_,
   };
 }
@@ -389,7 +402,11 @@ router.post('/:id/confirm', authorize('admin','manager','sales'), async (req, re
         VALUES (?,?,'out',?,?,?,'invoice',?,?,?)`,
         [item.product_id, item.location_id, -item.quantity, before, after, inv.id, `فاتورة مبيعات — ${inv.invoice_number}`, req.user.id]);
     }
-    await run(`UPDATE invoices SET status=CASE WHEN payment_type='cash' THEN 'confirmed' ELSE 'confirmed' END, updated_at=datetime('now') WHERE id=?`,[inv.id]);
+    // لقطة الرصيد السابق: لسه الفاتورة "مسودة" فمش محسوبة في دفتر العميل، يعني getCustomerBalance
+    // هنا = رصيد العميل قبل الفاتورة بالظبط. بتتخزّن مرة واحدة وماتتغيّرش بعد كده.
+    const prevLedger = await getCustomerBalance(inv.customer_id);
+    const prevBalance = Math.round(((prevLedger && prevLedger.balance) || 0) * 100) / 100;
+    await run(`UPDATE invoices SET status='confirmed', previous_balance=COALESCE(previous_balance, ?), updated_at=datetime('now') WHERE id=?`,[prevBalance, inv.id]);
   });
 
   await logAction(req.user.id,'confirm','invoice',inv.id,null);
