@@ -9,7 +9,7 @@
 // الأيقونات، manifest.json — يعني الواجهة تقدر تفتح أوفلاين، لكن أي
 // بيانات حقيقية جوه الواجهة لازم تيجي من السيرفر دايماً.
 
-const CACHE_VERSION = 'v3'; // ← زوّد الرقم ده مع كل نشرة فيها تغيير في الفرونت اند
+const CACHE_VERSION = 'v5'; // ← زوّد الرقم ده مع كل نشرة فيها تغيير في الفرونت اند
 const SHELL_CACHE = `erp-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `erp-runtime-${CACHE_VERSION}`;
 
@@ -18,6 +18,7 @@ const SHELL_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/offline.html',
+  '/receivables.js?v=3',
   '/icons/icon-72.png',
   '/icons/icon-96.png',
   '/icons/icon-128.png',

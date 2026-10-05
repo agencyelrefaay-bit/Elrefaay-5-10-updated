@@ -1092,6 +1092,26 @@ async function migrateInventoryCountSchema() {
 
 module.exports.migrateInventoryCountSchema = migrateInventoryCountSchema;
 
+// مجموعات مستقلة للعملاء والموردين. كل سجل شريك يحمل مرجعاً واحداً فقط،
+// لذلك يظل الانتماء صفراً أو واحداً وتُضمن العلاقة من قاعدة البيانات نفسها.
+async function migratePartyGroupsSchema() {
+  await run(`CREATE TABLE IF NOT EXISTS customer_groups (
+    id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  await run(`CREATE TABLE IF NOT EXISTS supplier_groups (
+    id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  const c = await get(`SELECT column_name FROM information_schema.columns WHERE table_name='customers' AND column_name='customer_group_id'`);
+  if (!c) await run(`ALTER TABLE customers ADD COLUMN customer_group_id INTEGER REFERENCES customer_groups(id) ON DELETE SET NULL`);
+  const s = await get(`SELECT column_name FROM information_schema.columns WHERE table_name='suppliers' AND column_name='supplier_group_id'`);
+  if (!s) await run(`ALTER TABLE suppliers ADD COLUMN supplier_group_id INTEGER REFERENCES supplier_groups(id) ON DELETE SET NULL`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_customers_group ON customers(customer_group_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_suppliers_group ON suppliers(supplier_group_id)`);
+}
+module.exports.migratePartyGroupsSchema = migratePartyGroupsSchema;
+
 // ─── سمات إضافية للمنتج: اللون + وحدة قياس بمقاس (سم/متر) ───
 // إضافات فقط (ADD COLUMN)، متوافقة تماماً مع المنتجات الحالية. عمود
 // unit التاريخي بيفضل يقبل كل القيم القديمة (piece/meter/liter/kg/set)

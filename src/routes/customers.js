@@ -25,18 +25,18 @@ async function genCustomerCode() {
 // GET /api/customers
 router.get('/', async (req, res) => {
   const { search, type, is_active, governorate, area } = req.query;
-  let sql = `SELECT * FROM customers WHERE 1=1`;
+  let sql = `SELECT c.*, cg.name AS customer_group_name FROM customers c LEFT JOIN customer_groups cg ON cg.id=c.customer_group_id WHERE 1=1`;
   const params = [];
   if (search) {
-    sql += ` AND (name LIKE ? OR code LIKE ? OR phone LIKE ?)`;
+    sql += ` AND (c.name LIKE ? OR c.code LIKE ? OR c.phone LIKE ?)`;
     const t = `%${search}%`; params.push(t,t,t);
   }
-  if (type)        { sql += ` AND type=?`;        params.push(type); }
-  if (governorate) { sql += ` AND governorate=?`; params.push(governorate); }
-  if (area)        { sql += ` AND area=?`;        params.push(area); }
+  if (type)        { sql += ` AND c.type=?`;        params.push(type); }
+  if (governorate) { sql += ` AND c.governorate=?`; params.push(governorate); }
+  if (area)        { sql += ` AND c.area=?`;        params.push(area); }
   if (is_active !== undefined)
-    sql += ` AND is_active=${is_active==='true'||is_active==='1'?1:0}`;
-  sql += ` ORDER BY name ASC`;
+    sql += ` AND c.is_active=${is_active==='true'||is_active==='1'?1:0}`;
+  sql += ` ORDER BY c.name ASC`;
 
   const customerRows = await all(sql, params);
   const customers = await Promise.all(customerRows.map(async c => ({

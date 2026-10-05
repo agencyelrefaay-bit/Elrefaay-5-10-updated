@@ -16,7 +16,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('./src/utils/logger');
 
 const { initDatabase } = require('./src/db/database');
-const { createSchema, seedInitialData, createProcurementSchema, migrateProcurementSchema, migrateInventoryAlertsSchema, migratePurchasingSchema, migrateCollectionSchema, migrateNotificationsSchema, migrateReturnsSchema, migrateAccountingDocsSchema, createSalesSchema, createPhase4Schema, migratePerformanceIndexes, migrateProductListPerformanceIndexes, migrateSupplierProductLinks, migrateInventoryCountSchema, migrateProductAttributesSchema } = require('./src/db/schema');
+const { createSchema, seedInitialData, createProcurementSchema, migrateProcurementSchema, migrateInventoryAlertsSchema, migratePurchasingSchema, migrateCollectionSchema, migrateNotificationsSchema, migrateReturnsSchema, migrateAccountingDocsSchema, createSalesSchema, createPhase4Schema, migratePerformanceIndexes, migrateProductListPerformanceIndexes, migrateSupplierProductLinks, migrateInventoryCountSchema, migrateProductAttributesSchema, migratePartyGroupsSchema } = require('./src/db/schema');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -113,6 +113,7 @@ app.use('/api/inventory-counts', require('./src/routes/inventoryCounts'));
 app.use('/api/transfers', require('./src/routes/transfers'));
 app.use('/api/import', require('./src/routes/import'));
 app.use('/api/suppliers', require('./src/routes/suppliers'));
+app.use('/api/party-groups', require('./src/routes/partyGroups'));
 app.use('/api/purchase-orders', require('./src/routes/purchaseOrders'));
 app.use('/api/purchase-receipts', require('./src/routes/purchaseReceipts'));
 app.use('/api/supplier-payments', require('./src/routes/supplierPayments'));
@@ -207,6 +208,7 @@ async function startServer() {
     await migrateSupplierProductLinks();
     await migrateInventoryCountSchema();
     await migrateProductAttributesSchema();
+    await migratePartyGroupsSchema();
     await seedInitialData();
 
     // مصالحة تاريخية لأقساط اتأثرت بباج قديم (دفعات عامة ماتوزّعتش على

@@ -748,6 +748,7 @@ html[data-going="light"]::view-transition-new(root) { z-index: 2147483646; }
   margin-bottom: var(--s-xl);
 }
 
+.stat-grid--3 { grid-template-columns: repeat(3, 1fr); }
 .stat-card {
   background: var(--ink-3);
   border: 0.5px solid var(--overlay-06);
@@ -2685,6 +2686,72 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
 .ts-chip:active { transform: scale(.94); }
 .ts-chip.on { background: var(--gold-glow-sm); color: var(--gold-0); border-color: var(--gold-0); box-shadow: 0 0 12px var(--gold-glow-sm); }
 @media (prefers-reduced-motion: reduce) { tbody.ts-flash > tr, .ts-flash .rdv-card, .ts-flash .table-wrap tbody > tr { animation: none !important; } }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE ERP LAYER — طبقة تجربة الموبايل (≤599px فقط)
+   ───────────────────────────────────────────────────────────────────
+   كل القواعد هنا جوه media query الموبايل، يعني الديسكتوب والتابلت
+   (≥600px) ما بيتأثروش بأي سطر. المبدأ: الهيدر أقصر، المحتوى أعلى،
+   كروت الإحصائيات مدمجة في عمودين، الفلاتر شبكة مرتبة، وكل عنصر لمس ≥44px.
+═══════════════════════════════════════════════════════════════════ */
+.mob-search-btn { display: none; }
+
+@media (max-width: 599px) {
+  :root { --touch-min: 44px; }
+
+  /* ── الهيدر: صف واحد (نجفة · عنوان · بحث · إشعارات)، والبحث بيتفتح عند الطلب ── */
+  .topbar { min-height: 56px; padding-block: 4px; row-gap: 0; }
+  .topbar .search-bar { display: none; margin-top: 0; padding: 4px 12px; }
+  .topbar.search-open { padding-bottom: 8px; row-gap: 6px; }
+  .topbar.search-open .search-bar { display: flex; animation: uxRise .22s cubic-bezier(.22,.8,.24,1) both; }
+  .mob-search-btn { display: inline-flex; width: var(--touch-min); height: var(--touch-min); }
+  .topbar.search-open .mob-search-btn { color: var(--gold-0); border-color: var(--gold-border); }
+  .topbar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
+
+  /* ── عنوان الصفحة المكرر (نفس عنوان الهيدر) بيتخفي؛ الأزرار فقط بتفضل ── */
+  .page-header { margin-bottom: var(--s-md); }
+  .page-header > .is-dup-title { display: none; }
+  .page-header > .btn:only-child, .page-header > .page-actions { width: 100%; }
+
+  /* ── كروت الإحصائيات: عمودين مدمجين بدل عمود واحد طويل ── */
+  .stat-grid, .stat-grid.stat-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-sm); margin-bottom: var(--s-lg); }
+  .stat-grid > .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .stat-card { padding: var(--s-md); border-radius: var(--r-lg); min-width: 0; }
+  .stat-card::before { width: 56px; height: 56px; }
+  .stat-label { font-size: 0.72rem; letter-spacing: 0.02em; text-transform: none; margin-bottom: 6px; line-height: 1.35; }
+  .stat-value { font-size: clamp(1.15rem, 5.6vw, 1.7rem); line-height: 1.15; overflow-wrap: anywhere; }
+  .stat-value .amt-cur { display: block; margin: 2px 0 0; font-size: 0.5em; }
+  .stat-meta { font-size: 0.72rem; flex-wrap: wrap; line-height: 1.4; }
+  .stat-icon-wrap { width: 30px; height: 30px; bottom: auto; top: var(--s-md); left: var(--s-md); border-radius: var(--r-sm); }
+  .stat-icon-wrap svg { width: 16px; height: 16px; }
+
+  /* ── الفلاتر: شبكة عمودين، البحث بعرض كامل، كل select بعرض خليته ── */
+  .filters-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-sm); align-items: stretch; }
+  .filters-bar > * { min-width: 0; max-width: 100%; width: 100%; margin: 0; }
+  .filters-bar > .filter-search, .filters-bar > .search-box, .filters-bar > .btn:only-child { grid-column: 1 / -1; }
+  .filters-bar > select:last-child:nth-child(even) { grid-column: 1 / -1; }
+  .filter-select { min-height: var(--touch-min); font-size: 1rem; text-overflow: ellipsis; padding-inline: 12px; }
+  .filter-search { min-height: var(--touch-min); }
+  input[type="date"].filter-select, .filters-bar input[type="date"] { min-height: var(--touch-min); }
+
+  /* ── أهداف اللمس ── */
+  .tab { min-height: var(--touch-min); display: inline-flex; align-items: center; }
+  .ts-chip { min-height: 40px; }
+  .btn-xs { min-height: 40px; min-width: 40px; justify-content: center; }
+  .rdv-actions { gap: var(--s-sm); flex-wrap: wrap; }
+  .tabs { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  /* ── بطاقات المنتجات: عمودين ── */
+  .product-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-sm); }
+  .product-card-body { padding: 10px 10px 12px; }
+  .product-card-name { font-size: 0.82rem; }
+  .product-card-price { font-size: 1rem; }
+  .product-card-badges { top: 6px; right: 6px; }
+
+  /* ── المحتوى يبدأ أقرب للهيدر ── */
+  .page-content { padding: var(--s-sm) var(--s-md) var(--s-xl); }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"
   onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';document.head.appendChild(s);"></script>
@@ -3012,6 +3079,11 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
       </div>
 
       <div id="topbarUser" style="font-size:0.78rem; color:var(--cream-4);"></div>
+
+      <!-- زرار بحث للموبايل فقط (CSS بيخفيه ≥600px) — بيفتح/يقفل شريط البحث العام -->
+      <button type="button" class="btn btn-icon btn-subtle mob-search-btn" id="mobSearchBtn" aria-label="بحث في النظام" aria-expanded="false" aria-controls="globalSearch">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
 
       <!-- Theme toggle (Dark/Light) -->
       <button class="btn btn-icon btn-subtle" id="themeToggleBtn" onclick="toggleTheme(event)" title="تبديل الثيم (داكن/فاتح)" aria-label="تبديل الثيم (داكن/فاتح)">
@@ -3477,6 +3549,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               استيراد Excel
             </button>
+            <button class="btn btn-ghost btn-sm" data-group-management="suppliers" onclick="openPartyGroups('suppliers')">مجموعات الموردين</button>
             <button class="btn btn-primary btn-sm" onclick="openSupplierModal()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               مورد جديد
@@ -3537,7 +3610,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
         </div>
 
         <!-- PO Summary cards -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-md);margin-bottom:var(--s-lg);" id="poStatCards">
+        <div class="stat-grid" style="margin-bottom:var(--s-lg);" id="poStatCards">
         </div>
 
         <div id="poDataView" class="rdv-container">
@@ -3559,7 +3632,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
         </div>
 
         <!-- Installment summary cards -->
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-md);margin-bottom:var(--s-xl);" id="installStatCards"></div>
+        <div class="stat-grid stat-grid--3" id="installStatCards"></div>
 
         <div class="tabs" id="installTabs">
           <div class="tab active" onclick="switchInstallTab('overdue')">متأخرة <span id="overdueCount" class="badge badge-danger" style="margin-right:4px;"></span></div>
@@ -3701,6 +3774,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             استيراد
           </button>
+          <button class="btn btn-ghost btn-sm" data-group-management="customers" onclick="openPartyGroups('customers')">مجموعات العملاء</button>
           <button class="btn btn-primary btn-sm" onclick="openCustomerModal()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             عميل جديد
@@ -3724,6 +3798,39 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
 
       <div id="customersDataView" class="rdv-container">
         <div class="empty-state"><div class="spinner" style="margin:auto"></div></div>
+      </div>
+    </div>
+
+    <!-- كشف أرصدة العملاء والموردين -->
+    <div class="page" id="page-outstanding-balances">
+      <div class="page-header">
+        <div><div class="page-title">الأرصدة المستحقة</div><div class="page-subtitle">اختر العملاء أو الموردين لإعداد كشف منظم قابل للطباعة</div></div>
+      </div>
+      <div id="obChooser" class="ob-choice-grid">
+        <button type="button" class="ob-choice card" onclick="chooseOutstandingType('customers')"><span class="ob-choice-icon">↗</span><strong>أرصدة العملاء</strong><span>مبالغ مستحقة للتحصيل من العملاء</span></button>
+        <button type="button" class="ob-choice card" onclick="chooseOutstandingType('suppliers')"><span class="ob-choice-icon">↙</span><strong>أرصدة الموردين</strong><span>مبالغ مستحقة السداد للموردين</span></button>
+      </div>
+      <div id="obWorkspace" class="ob-workspace" hidden>
+        <div class="ob-toolbar">
+          <button class="btn btn-ghost btn-sm" onclick="backToOutstandingTypes()">← تغيير النوع</button>
+          <div class="ob-toolbar-title" id="obTypeTitle"></div>
+          <button class="btn btn-ghost btn-sm" id="obManageGroupsBtn" data-group-management="both" onclick="openPartyGroups()">إدارة المجموعات</button>
+        </div>
+        <div class="ob-columns">
+          <section class="card ob-selector" aria-label="اختيار العملاء أو الموردين">
+            <div class="ob-summary"><div><strong id="obSelectedCount">0</strong><span> محدد</span></div><button type="button" class="btn btn-ghost btn-xs" onclick="clearOutstandingSelection()">مسح التحديد</button></div>
+            <div class="ob-filters">
+              <input class="form-control" id="obSearch" type="search" placeholder="ابحث بالاسم أو الكود أو الهاتف" oninput="renderOutstandingPeople()" aria-label="بحث">
+              <select class="form-control" id="obGroupFilter" onchange="renderOutstandingPeople()" aria-label="تصفية حسب المجموعة"><option value="">كل المجموعات</option></select>
+              <button type="button" class="btn btn-subtle btn-sm" onclick="selectVisibleOutstanding()">تحديد الظاهر</button>
+            </div>
+            <div id="obPeopleList" class="ob-people-list"><div class="empty-state"><div class="spinner" style="margin:auto"></div></div></div>
+          </section>
+          <section class="card ob-preview-shell" aria-label="معاينة كشف الأرصدة">
+            <div class="ob-preview-actions"><div><div class="ob-preview-title">معاينة الكشف</div><div class="text-muted" id="obPreviewMeta">اختر سجلات لبدء المعاينة</div></div><button type="button" class="btn btn-primary" onclick="printOutstandingReport()">طباعة الكشف</button></div>
+            <div id="obPreview" class="ob-preview"><div class="empty-state"><div class="empty-title">لم يتم اختيار سجلات</div><div class="empty-desc">حدد العملاء أو الموردين لتظهر المعاينة هنا</div></div></div>
+          </section>
+        </div>
       </div>
     </div>
 
@@ -5783,6 +5890,7 @@ function initApp() {
     // (sidebar الديسكتوب، bottom nav، drawer، الشريط القابل للطي، صفحة "المزيد")
     // بدل ما كل سطح كان محتاج تكرار نفس منطق hide/show لوحده.
     applyNavPermissions(u.role);
+    if (window.syncPartyGroupPermissions) window.syncPartyGroupPermissions(u.role);
   }
 
   // Load company settings (تُستخدم في رأس الفواتير المطبوعة ورسائل واتساب)
@@ -5850,6 +5958,7 @@ const NAV_CONFIG = [
     { page: 'installments', label: 'الأقساط والمدفوعات', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`, badge: 'navInstallBadge', visibleFor: 'all' },
   ]},
   { section: 'المالية', sectionVisibleFor: 'all', items: [
+    { page: 'outstanding-balances', label: 'الأرصدة المستحقة', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h18M3 10h18M3 15h10M3 20h7"/><circle cx="18" cy="17" r="4"/></svg>`, badge: null, visibleFor: 'all' },
     { page: 'expenses', label: 'المصروفات', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>`, badge: null, visibleFor: ["admin","manager"] },
     { page: 'commissions', label: 'العمولات', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4.5a1.5 1.5 0 010 3H10a1.5 1.5 0 000 3h5"/></svg>`, badge: null, visibleFor: 'all' },
     { page: 'reports', label: 'التقارير', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>`, badge: null, visibleFor: ["admin","manager"] },
@@ -6264,6 +6373,7 @@ function navigate(page, entity = null) {
     'sales-returns': ['المرتجعات', 'متابعة مردودات البيع والمرتجعات'],
     'cust-installments': ['أقساط العملاء', 'متابعة أقساط فواتير البيع الآجل'],
     'collections': ['تحصيل الأقساط', 'قوائم تحصيل قابلة للطباعة مجمّعة بالمحافظة والمنطقة'],
+    'outstanding-balances': ['الأرصدة المستحقة', 'اختيار العملاء أو الموردين وإعداد كشف قابل للطباعة'],
     'invoice-detail': ['تفاصيل الفاتورة', ''],
     'customer-detail': ['تفاصيل العميل', ''],
     expenses: ['المصروفات', 'إدارة المصروفات التشغيلية وتصنيفاتها'],
@@ -6299,6 +6409,7 @@ function navigate(page, entity = null) {
   if (page === 'sales-returns') loadSalesReturns();
   if (page === 'cust-installments') loadCustInstallments();
   if (page === 'collections') loadCollectionsPage();
+  if (page === 'outstanding-balances') loadOutstandingBalances();
   if (page === 'import') setupImportPage(entity || 'products');
   if (page === 'expenses') loadExpenses();
   if (page === 'commissions') loadCommissions();
@@ -8929,6 +9040,7 @@ function renderSuppliers() {
       { key: 'name', label: 'اسم المورد', priority: 'primary', isTitle: true, render: s => `<div style="font-weight:600;color:var(--cream-0);">${s.name}</div>${s.name_en ? `<div style="font-size:0.72rem;color:var(--cream-4);">${s.name_en}</div>` : ''}` },
       { key: 'phone', label: 'الهاتف', priority: 'primary', render: s => `<span class="mono">${s.phone || '—'}</span>` },
       { key: 'contact_person', label: 'المسؤول', priority: 'secondary', render: s => s.contact_person || '—' },
+      { key: 'supplier_group_name', label: 'المجموعة', priority: 'secondary', render: s => s.supplier_group_name ? `<span class="badge badge-muted">${escHtml(s.supplier_group_name)}</span>` : '—' },
       { key: 'balance', label: 'الرصيد المستحق', priority: 'primary', sortValue: s => balOf(s), render: s => `<span style="font-family:var(--font-display);font-size:1rem;color:${balOf(s) > 0 ? 'var(--danger)' : 'var(--success)'};">${fmt(balOf(s))} ج.م</span>` },
       { key: 'payment_terms', label: 'أيام السداد', priority: 'secondary', render: s => `<span class="badge badge-muted">${s.payment_terms || 30} يوم</span>` },
       { key: 'is_active', label: 'الحالة', priority: 'primary', isStatus: true, render: s => `<span class="badge ${s.is_active ? 'badge-success' : 'badge-muted'}">${s.is_active ? 'نشط' : 'غير نشط'}</span>` },
@@ -10707,6 +10819,7 @@ function renderCustomers(list) {
       { key: 'code', label: 'الكود', priority: 'secondary', render: c => `<span class="mono badge badge-muted">${c.code || '—'}</span>` },
       { key: 'name', label: 'الاسم', priority: 'primary', isTitle: true, render: c => c.name },
       { key: 'type', label: 'النوع', priority: 'secondary', render: c => CUSTOMER_TYPES[c.type] || c.type || '—' },
+      { key: 'customer_group_name', label: 'المجموعة', priority: 'secondary', render: c => c.customer_group_name ? `<span class="badge badge-muted">${escHtml(c.customer_group_name)}</span>` : '—' },
       { key: 'phone', label: 'الهاتف', priority: 'primary', render: c => c.phone || '—' },
       { key: 'balance', label: 'الرصيد', priority: 'primary', align: 'center', sortValue: c => netBal(c), render: c => `<span style="font-family:var(--font-mono);${netBal(c) > 0 ? 'color:var(--danger)' : netBal(c) < 0 ? 'color:var(--success)' : ''}">${fmt(Math.abs(netBal(c)))} ${netBal(c) > 0 ? '(مدين)' : netBal(c) < 0 ? '(دائن)' : ''}</span>` },
       { key: 'is_active', label: 'الحالة', priority: 'primary', isStatus: true, align: 'center', render: c => `<span class="badge ${c.is_active ? 'badge-success' : 'badge-muted'}">${c.is_active ? 'نشط' : 'متوقف'}</span>` },
@@ -11017,27 +11130,35 @@ let _invLocationsList = [];
 // المخزن المختار لكل بند في الفاتورة الحالية: { lineId: location_id|null }
 let _invoiceLineLocation = {};
 
+function showInvoiceFormLoading() {
+  document.getElementById('invoiceFormLoading')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'invoiceFormLoading';
+  overlay.className = 'modal-overlay open';
+  overlay.setAttribute('role', 'status');
+  overlay.setAttribute('aria-live', 'polite');
+  overlay.innerHTML = `<div class="modal" style="max-width:360px;padding:var(--s-xl);text-align:center"><div class="spinner" style="margin:0 auto 14px"></div><div style="font-weight:600">جاري تجهيز الفاتورة</div><div class="text-muted" style="margin-top:6px;font-size:.84rem">تحميل المنتجات والعملاء المتاحين</div></div>`;
+  document.body.appendChild(overlay);
+}
+
 async function openInvoiceModal(presetCustomerId = null, editInvoiceId = null) {
-  // جلب العملاء والمنتجات والمواقع ومستوى المخزون الحالي في كل مخزن
+  // تحميل نموذج الفاتورة من نقطة مجمّعة واحدة لتفادي N+1 في أرصدة العملاء
+  // والحقول الزائدة في قوائم المنتجات/المخزون. نُظهر الواجهة فور الضغط.
+  showInvoiceFormLoading();
   let customers = [], products = [], locations = [], inventory = [];
   let editInvoice = null, editItems = [], editInstallments = [];
   try {
-    const tasks = [
-      API.get('/customers?is_active=true'),
-      API.get('/products'),
-      API.get('/locations'),
-      API.get('/inventory/overview'),
-    ];
+    const tasks = [API.get('/invoices/form-data')];
     if (editInvoiceId) tasks.push(API.get(`/invoices/${editInvoiceId}`));
     const results = await Promise.all(tasks);
-    ({ customers } = results[0]); ({ products } = results[1]);
-    ({ locations } = results[2]); ({ inventory } = results[3]);
+    ({ customers, products, locations, inventory } = results[0]);
     if (editInvoiceId) {
-      const editData = results[4];
-      if (editData.invoice.status !== 'draft') { toast('لا يمكن تعديل فاتورة بعد تأكيدها','danger'); return; }
+      const editData = results[1];
+      if (editData.invoice.status !== 'draft') { document.getElementById('invoiceFormLoading')?.remove(); toast('لا يمكن تعديل فاتورة بعد تأكيدها','danger'); return; }
       editInvoice = editData.invoice; editItems = editData.items || []; editInstallments = editData.installments || [];
     }
-  } catch(e) { toast(e.message,'danger'); return; }
+  } catch(e) { document.getElementById('invoiceFormLoading')?.remove(); toast(e.message,'danger'); return; }
+  document.getElementById('invoiceFormLoading')?.remove();
 
   _invoiceEditId = editInvoiceId || null;
   _stockMap = {};
@@ -11050,13 +11171,13 @@ async function openInvoiceModal(presetCustomerId = null, editInvoiceId = null) {
   _invoiceLineLocation = {};
 
   const presetCust = editInvoice ? editInvoice.customer_id : presetCustomerId;
-  const custOpts = customers.map(c => `<option value="${c.id}" data-discount="${c.discount_pct||0}" data-store-credit="${c.store_credit_balance||0}" ${c.id==presetCust?'selected':''}>${c.name}</option>`).join('');
+  const custOpts = customers.map(c => `<option value="${c.id}" data-discount="${c.discount_pct||0}" data-store-credit="${c.store_credit_balance||0}" ${c.id==presetCust?'selected':''}>${escHtml(c.name)}</option>`).join('');
   // ملحوظة هندسية: قائمة المنتجات بتُخزَّن في متغيّر عام (_invoiceProdOptsHtml) مش تتمرّر كنص
   // جوه onclick — تمرير HTML طويل فيه علامات تنصيص داخل خاصية onclick بيكسر الـ attribute
   // عند أول علامة تنصيص ويسرّب الباقي كنص خام على الصفحة (وهو السبب في ظهور شريط أسماء
   // المنتجات اللي شفته فوق "البنود"، وهو نفس السبب اللي كان كاسر زرار "إضافة منتج" تمامًا).
   _invoiceProdOptsHtml = `<option value="">اختر المنتج...</option>` +
-    products.map(p => `<option value="${p.id}" data-price="${p.sale_price}" data-name="${p.name.replace(/"/g,'&quot;')}">${p.name}</option>`).join('');
+    products.map(p => `<option value="${p.id}" data-price="${p.sale_price}" data-name="${escHtml(p.name)}">${escHtml(p.name)}</option>`).join('');
 
   const isEdit = !!_invoiceEditId;
   const payType = editInvoice?.payment_type || 'cash';
@@ -14960,7 +15081,7 @@ async function saveSettings() {
     }
     if (!roots.size) return;
     observer.disconnect();                       // مانلقطش تعديلاتنا إحنا
-    try { roots.forEach(r => safe(() => enhance(r))); }
+    try { roots.forEach(r => safe(() => enhance(r))); safe(markDuplicateTitles); }
     finally { observer.observe(document.body, OBS_OPTS); }
   }
 
@@ -14981,11 +15102,42 @@ async function saveSettings() {
         }
         const pc = document.querySelector('.page-content');
         if (pc) pc.scrollTo && pc.scrollTo({ top: 0 });
+        markDuplicateTitles();
+        if (window.__closeMobSearch) window.__closeMobSearch();
       });
       return r;
     };
     wrapped.__ux = true;
     window.navigate = wrapped;
+  }
+
+
+  /* ───────────── موبايل: بحث قابل للفتح + إخفاء العنوان المكرر ───────────── */
+  function markDuplicateTitles() {
+    const top = (document.getElementById('topbarTitle') || {}).textContent;
+    if (!top) return;
+    document.querySelectorAll('.page.active .page-header .page-title').forEach(t => {
+      const wrap = t.parentElement;
+      if (!wrap || wrap.parentElement == null) return;
+      const same = t.textContent.replace(/\s+/g, ' ').trim() === top.replace(/\s+/g, ' ').trim();
+      // الحاوية بس لو فيها العنوان + (اختياريًا) الوصف — مفيش أزرار جواها
+      const hasControls = wrap.querySelector('button, a, input, select');
+      wrap.classList.toggle('is-dup-title', same && !hasControls && wrap.parentElement.classList.contains('page-header'));
+    });
+  }
+  function initMobileSearch() {
+    const btn = document.getElementById('mobSearchBtn'), bar = document.querySelector('.topbar'), inp = document.getElementById('globalSearch');
+    if (!btn || !bar || !inp) return;
+    const set = (open) => {
+      bar.classList.toggle('search-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) setTimeout(() => inp.focus({ preventScroll: true }), 40);
+    };
+    btn.addEventListener('click', () => set(!bar.classList.contains('search-open')));
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Escape') { inp.blur(); set(false); } });
+    // بنقفله لما نغيّر الصفحة (مع مسح النص)، أو لما الحقل يفقد التركيز وهو فاضي
+    inp.addEventListener('blur', () => setTimeout(() => { if (!inp.value.trim() && document.activeElement !== inp) set(false); }, 180));
+    window.__closeMobSearch = () => { if (bar.classList.contains('search-open')) set(false); };
   }
 
   /* ───────────── ripple لمس ───────────── */
@@ -15070,6 +15222,7 @@ async function saveSettings() {
     safe(initRipple);
     safe(initSheetSwipe);
     safe(initTopbarShadow);
+    safe(initMobileSearch);
     observer = new MutationObserver(onMutations);
     safe(() => enhance(document.body));            // أول تمرير على اللي موجود بالفعل
     observer.observe(document.body, OBS_OPTS);
@@ -15092,6 +15245,7 @@ async function saveSettings() {
   }, 250);
 })();
 </script>
+<script src="/receivables.js?v=3" defer></script>
 
 </body>
 </html>

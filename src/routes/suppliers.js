@@ -26,16 +26,16 @@ async function genSupplierCode() {
 // ── GET /api/suppliers ──
 router.get('/', async (req, res) => {
   const { search, is_active } = req.query;
-  let sql = `SELECT * FROM suppliers WHERE 1=1`;
+  let sql = `SELECT s.*, sg.name AS supplier_group_name FROM suppliers s LEFT JOIN supplier_groups sg ON sg.id=s.supplier_group_id WHERE 1=1`;
   const params = [];
   if (search) {
-    sql += ` AND (name LIKE ? OR code LIKE ? OR phone LIKE ? OR contact_person LIKE ?)`;
+    sql += ` AND (s.name LIKE ? OR s.code LIKE ? OR s.phone LIKE ? OR s.contact_person LIKE ?)`;
     const t = `%${search}%`;
     params.push(t,t,t,t);
   }
   if (is_active !== undefined)
-    sql += ` AND is_active = ${is_active === 'true' || is_active === '1' ? 1 : 0}`;
-  sql += ` ORDER BY name ASC`;
+    sql += ` AND s.is_active = ${is_active === 'true' || is_active === '1' ? 1 : 0}`;
+  sql += ` ORDER BY s.name ASC`;
 
   const supplierRows = await all(sql, params);
   const suppliers = await Promise.all(supplierRows.map(async s => ({

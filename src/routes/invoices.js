@@ -10,6 +10,29 @@ const { generateCommissionForInvoice }       = require('../utils/commissionEngin
 
 router.use(authenticate);
 
+// بيانات نموذج الفاتورة في طلب واحد. مسار /customers المعتاد يحسب دفتر كل
+// عميل باستعلامات منفصلة (ثلاثة لكل عميل)، كما أن /inventory/overview يعيد
+// حقولاً كثيرة غير لازمة للنموذج. هذا الاستعلام المجمّع يقلل عدد الرحلات
+// ويمنع N+1 على دفتر العملاء مع الحفاظ على نفس معادلة الرصيد.
+router.get('/form-data', async (req, res) => {
+  const allowedIds = await getAllowedLocationIds(req.user);
+  const locFilter = allowedIds ? ` AND l.id IN (${allowedIds.length ? allowedIds.join(',') : '-1'})` : '';
+  const [customers, products, locations, inventory] = await Promise.all([
+    all(`
+      SELECT c.id, c.code, c.name, c.discount_pct, c.store_credit_balance,
+        COALESCE(c.opening_balance,0) + COALESCE(inv.total,0) - COALESCE(pay.total,0) - COALESCE(ret.total,0) AS balance
+      FROM customers c
+      LEFT JOIN (SELECT customer_id, SUM(total) AS total FROM invoices WHERE status NOT IN ('draft','cancelled') GROUP BY customer_id) inv ON inv.customer_id=c.id
+      LEFT JOIN (SELECT customer_id, SUM(amount) AS total FROM customer_payments GROUP BY customer_id) pay ON pay.customer_id=c.id
+      LEFT JOIN (SELECT customer_id, SUM(total_refund) AS total FROM sales_returns WHERE status='completed' GROUP BY customer_id) ret ON ret.customer_id=c.id
+      WHERE c.is_active=1 ORDER BY c.name ASC`),
+    all(`SELECT id, sku, name, sale_price, unit, allow_fractional_qty FROM products WHERE is_active=1 ORDER BY name ASC`),
+    all(`SELECT l.id, l.name, l.type, l.is_active FROM locations l WHERE l.is_active=1${locFilter} ORDER BY l.name ASC`),
+    all(`SELECT i.product_id, i.location_id, i.quantity FROM inventory i JOIN products p ON p.id=i.product_id JOIN locations l ON l.id=i.location_id WHERE p.is_active=1 AND l.is_active=1${locFilter}`),
+  ]);
+  res.json({ customers, products, locations, inventory });
+});
+
 const { nextDocumentNumber } = require('../utils/sequenceGenerator');
 // ملحوظة: كان هذا المولّد بيعتمد على COUNT(*) وده مش آمن تحت التزامن (راجع
 // تعليق src/utils/sequenceGenerator.js لتفاصيل المشكلة) — تم استبداله بـ SEQUENCE ذرّي
