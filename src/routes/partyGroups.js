@@ -3,6 +3,9 @@ const router = express.Router();
 const { all, get, insert, run, transaction } = require('../db/database');
 const { authenticate } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
+const multer = require('multer');
+const { createOutstandingPdf } = require('../utils/outstandingPdf');
+const { sendDocument, isTelegramConfigured } = require('../notifications/telegramNotifier');
 
 router.use(authenticate);
 
@@ -11,6 +14,46 @@ const TYPES = {
   suppliers: { table: 'suppliers', group: 'supplier_groups', fk: 'supplier_group_id', label: 'مورد', manageRoles: ['admin','manager'], balanceSql: `COALESCE(p.opening_balance,0)+COALESCE(billed.total,0)-COALESCE(paid.total,0)`, joins: `LEFT JOIN (SELECT supplier_id,SUM(total) total FROM purchase_orders WHERE status NOT IN ('draft','cancelled') GROUP BY supplier_id) billed ON billed.supplier_id=p.id LEFT JOIN (SELECT supplier_id,SUM(amount) total FROM supplier_payments GROUP BY supplier_id) paid ON paid.supplier_id=p.id` },
 };
 function config(type) { return TYPES[type] || null; }
+
+const reportUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { files: 40, fileSize: 1024 * 1024, fields: 1, fieldSize: 2048 },
+  fileFilter: (_req, file, callback) => file.mimetype === 'image/jpeg'
+    ? callback(null, true)
+    : callback(new Error('صيغة الصورة غير مدعومة')),
+}).array('pages', 40);
+
+function parseReportUpload(req, res, next) {
+  reportUpload(req, res, error => {
+    if (error) return res.status(400).json({ error: 'تعذر استقبال صفحات التقرير. أرسل حتى 40 صفحة بصيغة JPEG.' });
+    next();
+  });
+}
+
+router.post('/:type/report/telegram', parseReportUpload, async (req, res) => {
+  const c = config(req.params.type);
+  if (!c) return res.status(400).json({ error: 'نوع كشف الأرصدة غير صحيح' });
+  if (!isTelegramConfigured()) return res.status(503).json({ error: 'إعدادات تيليجرام غير مكتملة. أضف TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID.' });
+
+  const pages = Array.isArray(req.files) ? req.files : [];
+  if (!pages.length) return res.status(400).json({ error: 'لا توجد صفحات لإرسالها' });
+  if (pages.some(file => file.mimetype !== 'image/jpeg' || file.size < 3 || file.buffer[0] !== 0xff || file.buffer[1] !== 0xd8 || file.buffer[2] !== 0xff)) {
+    return res.status(400).json({ error: 'صيغة إحدى صفحات التقرير غير صحيحة' });
+  }
+
+  try {
+    const pdf = await createOutstandingPdf(pages.map(file => file.buffer));
+    const typeLabel = req.params.type === 'customers' ? 'العملاء' : 'الموردين';
+    const date = new Date().toISOString().slice(0, 10);
+    const caption = String(req.body.caption || `كشف أرصدة ${typeLabel}`).trim().slice(0, 1024);
+    const sent = await sendDocument(pdf, `outstanding-${req.params.type}-${date}.pdf`, caption);
+    if (!sent) return res.status(502).json({ error: 'تعذر إرسال التقرير إلى تيليجرام. تحقق من اتصال البوت وإعدادات الإشعارات.' });
+    return res.json({ message: 'تم إرسال التقرير إلى تيليجرام كملف PDF' });
+  } catch (error) {
+    console.error('[Outstanding report] PDF/Telegram error:', error);
+    return res.status(500).json({ error: 'حدث خطأ أثناء تجهيز أو إرسال ملف التقرير' });
+  }
+});
 
 router.get('/report/:type', async (req, res) => {
   const c = config(req.params.type);

@@ -18,7 +18,7 @@ const SHELL_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/offline.html',
-  '/receivables.js?v=3',
+  '/receivables.js?v=10',
   '/icons/icon-72.png',
   '/icons/icon-96.png',
   '/icons/icon-128.png',

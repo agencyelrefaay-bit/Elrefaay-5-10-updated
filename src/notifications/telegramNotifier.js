@@ -64,6 +64,19 @@ async function postToTelegram(botToken, chatId, message) {
   return res.json();
 }
 
+async function postDocumentToTelegram(botToken, chatId, document, filename, caption) {
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  form.append('caption', String(caption || '').slice(0, 1024));
+  form.append('document', new Blob([document], { type: 'application/pdf' }), filename);
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, { method: 'POST', body: form });
+  return res.json();
+}
+
+function isTelegramConfigured() {
+  return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
+}
+
 // ── الإرسال الفعلي الخام — أبداً ما يرمي استثناء، عشان فشل الإشعار محدش
 //    يوقف أو يفشّل أي عملية تجارية حقيقية (فاتورة، دفعة، الخ).
 //    بيرجّع true لو الرسالة وصلت فعلاً، و false غير كده. ──
@@ -109,6 +122,45 @@ async function sendText(message) {
   return task;
 }
 
+// إرسال مستندات التقارير عبر نفس الطابور لتفادي تجاوز حدود تيليجرام.
+async function sendDocument(document, filename, caption) {
+  const task = queueTail.then(async () => {
+    try {
+      if (!(await isNotificationsEnabled())) return false;
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+      if (!botToken || !chatId) {
+        console.warn('[Telegram] TELEGRAM_BOT_TOKEN أو TELEGRAM_CHAT_ID غير موجودين — تم تجاهل المستند');
+        return false;
+      }
+
+      const since = Date.now() - lastSentAt;
+      if (since < SEND_GAP_MS) await sleep(SEND_GAP_MS - since);
+
+      let data = await postDocumentToTelegram(botToken, chatId, document, filename, caption);
+      lastSentAt = Date.now();
+      if (!data.ok && data.error_code === 429) {
+        const waitSec = (data.parameters && data.parameters.retry_after) || 5;
+        await sleep((waitSec + 1) * 1000);
+        data = await postDocumentToTelegram(botToken, chatId, document, filename, caption);
+        lastSentAt = Date.now();
+      }
+
+      if (!data.ok) {
+        console.warn('[Telegram] فشل إرسال التقرير:', data.description);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('[Telegram] خطأ في إرسال التقرير:', err.message);
+      return false;
+    }
+  });
+  queueTail = task.then(() => {}, () => {});
+  return task;
+}
+
 // ── إرسال بحماية من التكرار — يُستخدم للتنبيهات الدورية (الجدولة) فقط.
 //    الأحداث الفورية (فاتورة اتعملت، دفعة اتحصّلت...) مش محتاجة dedup
 //    لأنها بطبيعتها بتحصل مرة واحدة بالظبط وقت الحدث نفسه. ──
@@ -122,4 +174,4 @@ async function sendTextOnce(eventKey, eventType, message) {
   return true;
 }
 
-module.exports = { sendText, sendTextOnce, wasAlreadyNotified, markAsNotified, fmt, fmtDate };
+module.exports = { sendText, sendTextOnce, sendDocument, isTelegramConfigured, wasAlreadyNotified, markAsNotified, fmt, fmtDate };
