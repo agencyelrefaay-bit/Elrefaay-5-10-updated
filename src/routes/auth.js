@@ -129,8 +129,12 @@ router.post('/login', asyncHandler(async (req, res) => {
       to = getOwnerEmail();
       await sendOwnerLoginCode(to, code);
     } catch (error) {
-      await logAction(user.id, 'login_email_otp_send_failed', 'user', user.id, null);
-      return res.status(503).json({ error: error.code === 'OWNER_EMAIL_NOT_CONFIGURED' ? 'إعداد بريد الإرسال غير مكتمل على الخادم' : 'تعذر إرسال رمز التحقق. راجع إعداد Gmail SMTP على الخادم.' });
+      console.error('Owner email OTP delivery failed', { code: error.code || null, responseCode: error.responseCode || null, command: error.command || null });
+      await logAction(user.id, 'login_email_otp_send_failed', 'user', user.id, { code: error.code || null, response_code: error.responseCode || null });
+      if (error.code === 'OWNER_EMAIL_NOT_CONFIGURED') return res.status(503).json({ error: 'إعداد بريد الإرسال غير مكتمل على الخادم' });
+      if (error.code === 'EAUTH' || [534, 535].includes(Number(error.responseCode))) return res.status(503).json({ error: 'Gmail رفض بيانات الدخول. تأكد من GMAIL_USER وأن GMAIL_APP_PASSWORD هي كلمة مرور تطبيق صالحة.' });
+      if (['ETIMEDOUT', 'ESOCKET', 'ECONNECTION', 'ECONNREFUSED', 'ENETUNREACH'].includes(error.code)) return res.status(503).json({ error: 'الخادم لم يستطع الاتصال بخادم Gmail SMTP. راجع اتصال الشبكة والسجلات.' });
+      return res.status(503).json({ error: 'تعذر إرسال الرمز. كود التشخيص: ' + String(error.code || error.responseCode || 'UNKNOWN') });
     }
     const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
     await run('UPDATE users SET owner_email_otp_hash=?, owner_email_otp_expires_at=?, owner_email_otp_sent_at=?, owner_email_otp_attempts=0 WHERE id=?', [hashOwnerEmailCode(code), expiresAt, new Date().toISOString(), user.id]);
@@ -167,7 +171,7 @@ async function sendOwnerLoginCode(to, code) {
   const sender = String(process.env.GMAIL_USER || to).trim();
   const appPassword = String(process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
   if (!appPassword) throw Object.assign(new Error('Gmail App Password is missing'), { code: 'OWNER_EMAIL_NOT_CONFIGURED' });
-  const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: sender, pass: appPassword } });
+  const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: sender, pass: appPassword }, connectionTimeout: 12000, greetingTimeout: 10000, socketTimeout: 15000 });
   try { await transporter.sendMail({
     from: { name: 'الرفاعي ERP', address: sender }, to,
     subject: 'رمز التحقق لحساب المالك',
