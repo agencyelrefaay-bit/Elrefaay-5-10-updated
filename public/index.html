@@ -1759,6 +1759,7 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
   background: var(--ink-0);
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 }
 
 /* Chandelier ambient light */
@@ -1772,6 +1773,100 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
   height: 600px;
   background: radial-gradient(ellipse at center, rgba(232,184,74,0.12) 0%, rgba(232,184,74,0.04) 40%, transparent 70%);
   pointer-events: none;
+}
+
+/* مشهد إضاءة هادئ لشاشة الدخول: وحدات معلّقة على الأطراف وهالة تتبع المؤشر. */
+.login-light-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(620px ellipse at 50% 0, rgba(232,184,74,.09), transparent 72%);
+}
+.login-cursor-light {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: .58;
+  background: radial-gradient(circle, rgba(255,224,153,.18) 0%, rgba(232,184,74,.09) 34%, transparent 72%);
+  transform: translate3d(50vw,30vh,0) translate(-50%,-50%);
+  will-change: transform;
+  transition: opacity .45s ease, width .45s ease, height .45s ease;
+}
+.login-page.is-light-pulled .login-cursor-light {
+  width: 470px;
+  height: 470px;
+  opacity: .88;
+}
+.login-pendant {
+  position: absolute;
+  top: -2px;
+  width: 150px;
+  height: 238px;
+  color: var(--gold-1);
+  opacity: .55;
+  transform-origin: 50% 0;
+  animation: loginLampSway 9s ease-in-out infinite;
+  filter: drop-shadow(0 8px 24px rgba(232,184,74,.12));
+}
+.login-pendant svg { width: 100%; height: 100%; overflow: visible; }
+.login-pendant--left { left: max(6%, calc(50% - 510px)); animation-delay: -2.3s; }
+.login-pendant--right { right: max(6%, calc(50% - 510px)); width: 118px; height: 196px; opacity: .4; animation-delay: -5s; }
+.login-pendant .lamp-glow { opacity: .25; transition: opacity .6s ease; }
+.login-page.is-light-pulled .lamp-glow { opacity: .8; }
+.login-pendant--right .lamp-glow { opacity: .18; }
+.login-sconce {
+  position: absolute;
+  top: 52%;
+  width: 92px;
+  height: 128px;
+  color: var(--gold-2);
+  opacity: .38;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 0 24px rgba(232,184,74,.14));
+}
+.login-sconce--left { left: max(2%, calc(50% - 650px)); }
+.login-sconce--right { right: max(2%, calc(50% - 650px)); transform: translateY(-50%) scaleX(-1); }
+.login-table-lamp { position: absolute; right: max(6%, calc(50% - 570px)); bottom: -8px; width: 102px; height: 162px; color: var(--gold-2); opacity: .38; filter: drop-shadow(0 -4px 24px rgba(232,184,74,.1)); }
+.login-light-pull {
+  position: absolute;
+  z-index: 4;
+  top: 252px;
+  left: calc(50% - 290px);
+  width: 36px;
+  height: 112px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  opacity: .68;
+  transition: opacity .2s ease, filter .2s ease;
+}
+.login-light-pull:hover, .login-light-pull:focus-visible { opacity: 1; filter: drop-shadow(0 0 8px rgba(232,184,74,.6)); }
+.login-light-pull:focus-visible { outline: 2px solid var(--gold-1); outline-offset: 3px; border-radius: 20px; }
+.login-light-pull.is-dragging { cursor: grabbing; }
+.login-light-pull .pull-cord { display: block; width: 1px; height: 78px; margin: 0 auto; background: linear-gradient(var(--gold-2), rgba(232,184,74,.25)); }
+.login-light-pull .pull-crystal { display: block; width: 13px; height: 20px; margin: 0 auto; border: 1px solid rgba(255,244,210,.82); border-radius: 55% 55% 58% 58%; background: radial-gradient(circle at 35% 25%, #fff9e7, #e8b84a 65%, #a87819); box-shadow: 0 2px 12px rgba(232,184,74,.38); }
+.login-card { z-index: 3; }
+@keyframes loginLampSway { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .login-pendant, .login-light-scene { animation: none !important; transition: none !important; }
+  .login-cursor-light { transition: none !important; will-change: auto; }
+  .login-logo .crystal-icon { animation: none !important; }
+}
+@media (max-width: 700px) {
+  .login-pendant--left { left: -34px; opacity: .32; }
+  .login-pendant--right { right: -38px; opacity: .27; }
+  .login-sconce { opacity: .2; }
+  .login-table-lamp { right: -24px; opacity: .24; transform: scale(.78); transform-origin: bottom right; }
+  .login-light-pull { left: auto; right: 20px; top: 14px; }
+  .login-cursor-light { width: 260px; height: 260px; opacity: .45; }
 }
 
 /* Drip lines - chandelier crystal motif */
@@ -2835,6 +2930,15 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
 
 <!-- Login Page -->
 <div class="login-page" id="loginPage">
+  <div class="login-light-scene" id="loginLightScene" aria-hidden="true">
+    <div class="login-cursor-light" id="loginCursorLight"></div>
+    <div class="login-pendant login-pendant--left"><svg viewBox="0 0 120 230" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="loginGlowA"><stop stop-color="#f7cf75" stop-opacity=".42"/><stop offset="1" stop-color="#f7cf75" stop-opacity="0"/></radialGradient><linearGradient id="loginGoldA" x1="20" y1="90" x2="100" y2="150"><stop stop-color="#f0c97a"/><stop offset=".55" stop-color="#e8b84a"/><stop offset="1" stop-color="#a87920"/></linearGradient></defs><ellipse class="lamp-glow" cx="60" cy="160" rx="55" ry="62" fill="url(#loginGlowA)"/><path d="M60 0v101" stroke="url(#loginGoldA)" stroke-width="1.3"/><path d="M54 0h12v5H54z" fill="url(#loginGoldA)"/><path d="M32 101h56l-8 18H40l-8-18Z" fill="url(#loginGoldA)" fill-opacity=".8" stroke="url(#loginGoldA)" stroke-width="1.4"/><path d="M40 119q20 8 40 0M47 120v14m13-14v19m13-19v14" stroke="url(#loginGoldA)" stroke-width="1.3"/><path d="m47 134 3 7-3 6-3-6 3-7Zm13 5 3 8-3 7-3-7 3-8Zm13-5 3 7-3 6-3-6 3-7Z" fill="#f0c97a" fill-opacity=".8"/></svg></div>
+    <div class="login-pendant login-pendant--right"><svg viewBox="0 0 120 230" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="loginGlowB"><stop stop-color="#f7cf75" stop-opacity=".38"/><stop offset="1" stop-color="#f7cf75" stop-opacity="0"/></radialGradient><linearGradient id="loginGoldB" x1="20" y1="90" x2="100" y2="150"><stop stop-color="#f0c97a"/><stop offset=".55" stop-color="#e8b84a"/><stop offset="1" stop-color="#a87920"/></linearGradient></defs><ellipse class="lamp-glow" cx="60" cy="150" rx="48" ry="54" fill="url(#loginGlowB)"/><path d="M60 0v98" stroke="url(#loginGoldB)" stroke-width="1.3"/><path d="M54 0h12v5H54z" fill="url(#loginGoldB)"/><path d="M35 98h50l-7 16H42l-7-16Z" fill="url(#loginGoldB)" fill-opacity=".78" stroke="url(#loginGoldB)" stroke-width="1.4"/><path d="M43 115v12m17-12v18m17-18v12" stroke="url(#loginGoldB)"/><path d="m43 127 3 7-3 5-3-5 3-7Zm17 6 3 8-3 6-3-6 3-8Zm17-6 3 7-3 5-3-5 3-7Z" fill="#f0c97a" fill-opacity=".72"/></svg></div>
+    <svg class="login-sconce login-sconce--left" viewBox="0 0 80 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M39 112V64m0 0c0-15-12-25-22-25m22 25c0-15 12-25 22-25" stroke="currentColor" stroke-width="2"/><path d="M8 39h18l-3 21H11L8 39Zm33 0h18l-3 21H44l-3-21Z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="1.5"/><path d="M12 60h13m23 0h13" stroke="currentColor" stroke-width="1.5"/><circle cx="39" cy="111" r="3" fill="currentColor"/><ellipse cx="17" cy="52" rx="10" ry="16" fill="currentColor" fill-opacity=".08"/><ellipse cx="50" cy="52" rx="10" ry="16" fill="currentColor" fill-opacity=".08"/></svg>
+    <svg class="login-sconce login-sconce--right" viewBox="0 0 80 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M39 112V64m0 0c0-15-12-25-22-25m22 25c0-15 12-25 22-25" stroke="currentColor" stroke-width="2"/><path d="M8 39h18l-3 21H11L8 39Zm33 0h18l-3 21H44l-3-21Z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="1.5"/><path d="M12 60h13m23 0h13" stroke="currentColor" stroke-width="1.5"/><circle cx="39" cy="111" r="3" fill="currentColor"/><ellipse cx="17" cy="52" rx="10" ry="16" fill="currentColor" fill-opacity=".08"/><ellipse cx="50" cy="52" rx="10" ry="16" fill="currentColor" fill-opacity=".08"/></svg>
+    <svg class="login-table-lamp" viewBox="0 0 100 160" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="loginTableGlow"><stop stop-color="#f0c97a" stop-opacity=".35"/><stop offset="1" stop-color="#f0c97a" stop-opacity="0"/></radialGradient></defs><ellipse cx="50" cy="67" rx="45" ry="54" fill="url(#loginTableGlow)"/><path d="M27 42h46L64 79H36L27 42Z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.5"/><path d="M50 79v49m-17 4h34q-2 7-17 7t-17-7Zm-13 4h60" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><ellipse cx="50" cy="100" rx="11" ry="2.5" fill="currentColor" fill-opacity=".2"/></svg>
+  </div>
+  <button type="button" class="login-light-pull" id="loginLightPull" aria-label="اسحب سلسلة الإضاءة لتقوية توهج المصابيح" aria-pressed="false" title="اسحب السلسلة لتقوية الإضاءة"><span class="pull-cord" aria-hidden="true"></span><span class="pull-crystal" aria-hidden="true"></span></button>
   <!-- Chandelier drip decoration -->
   <div class="chandelier-drips">
     <div class="drip" style="height:120px"></div>
@@ -16048,6 +16152,75 @@ async function saveSettings() {
       clearInterval(t);
     } else if (++tries > 40) clearInterval(t);
   }, 250);
+})();
+</script>
+<script>
+/* تفاعل مشهد الإضاءة في شاشة الدخول فقط؛ تحديث واحد لكل إطار وتوقف عند تقليل الحركة. */
+(function () {
+  const page = document.getElementById('loginPage');
+  const scene = document.getElementById('loginLightScene');
+  const cursorLight = document.getElementById('loginCursorLight');
+  const pull = document.getElementById('loginLightPull');
+  if (!page || !scene || !cursorLight || !pull) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let frame = 0;
+  page.addEventListener('pointermove', (event) => {
+    if (reduceMotion.matches || event.pointerType === 'touch' || !page.getClientRects().length || frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const rect = scene.getBoundingClientRect();
+      const x = Math.round(event.clientX - rect.left);
+      const y = Math.round(event.clientY - rect.top);
+      cursorLight.style.transform = `translate3d(${x}px,${y}px,0) translate(-50%,-50%)`;
+    });
+  }, { passive: true });
+  page.addEventListener('pointerleave', () => {
+    cursorLight.style.transform = 'translate3d(50vw,30vh,0) translate(-50%,-50%)';
+  }, { passive: true });
+
+  let startY = 0;
+  let pullDistance = 0;
+  let activePointer = null;
+  let suppressClick = false;
+  function setLight(boosted) {
+    page.classList.toggle('is-light-pulled', boosted);
+    pull.setAttribute('aria-pressed', String(boosted));
+    pull.setAttribute('aria-label', boosted ? 'اسحب السلسلة لإعادة الإضاءة الهادئة' : 'اسحب سلسلة الإضاءة لتقوية توهج المصابيح');
+    pull.title = boosted ? 'اسحب السلسلة لإعادة الإضاءة الهادئة' : 'اسحب السلسلة لتقوية الإضاءة';
+  }
+  pull.addEventListener('pointerdown', (event) => {
+    if (event.button !== undefined && event.button !== 0) return;
+    activePointer = event.pointerId;
+    startY = event.clientY;
+    pullDistance = 0;
+    pull.classList.add('is-dragging');
+    try { pull.setPointerCapture(event.pointerId); } catch (_) {}
+  });
+  pull.addEventListener('pointermove', (event) => {
+    if (activePointer !== event.pointerId) return;
+    pullDistance = Math.max(0, Math.min(58, event.clientY - startY));
+    pull.style.transform = `translateY(${pullDistance}px)`;
+  });
+  function finishPull(event) {
+    if (activePointer !== event.pointerId) return;
+    const wasPulled = pullDistance > 14;
+    activePointer = null;
+    pull.classList.remove('is-dragging');
+    pull.style.transform = '';
+    if (wasPulled) {
+      setLight(!page.classList.contains('is-light-pulled'));
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 0);
+    }
+  }
+  pull.addEventListener('pointerup', finishPull);
+  pull.addEventListener('pointercancel', finishPull);
+  pull.addEventListener('lostpointercapture', finishPull);
+  pull.addEventListener('click', (event) => {
+    if (suppressClick) { event.preventDefault(); suppressClick = false; return; }
+    setLight(!page.classList.contains('is-light-pulled'));
+  });
 })();
 </script>
 <script src="/receivables.js?v=13" defer></script>
