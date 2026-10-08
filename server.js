@@ -16,7 +16,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('./src/utils/logger');
 
 const { initDatabase } = require('./src/db/database');
-const { createSchema, seedInitialData, createProcurementSchema, migrateProcurementSchema, migrateInventoryAlertsSchema, migratePurchasingSchema, migrateCollectionSchema, migrateNotificationsSchema, migrateReturnsSchema, migrateAccountingDocsSchema, createSalesSchema, createPhase4Schema, migratePerformanceIndexes, migrateProductListPerformanceIndexes, migrateSupplierProductLinks, migrateInventoryCountSchema, migrateProductAttributesSchema, migratePartyGroupsSchema, migrateUserAvatarSchema } = require('./src/db/schema');
+const { createSchema, seedInitialData, createProcurementSchema, migrateProcurementSchema, migrateInventoryAlertsSchema, migratePurchasingSchema, migrateCollectionSchema, migrateNotificationsSchema, migrateReturnsSchema, migrateAccountingDocsSchema, createSalesSchema, createPhase4Schema, migratePerformanceIndexes, migrateProductListPerformanceIndexes, migrateSupplierProductLinks, migrateInventoryCountSchema, migrateProductAttributesSchema, migratePartyGroupsSchema, migrateUserAvatarSchema, migrateOwnerAccountSchema } = require('./src/db/schema');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -104,6 +104,7 @@ app.get('/api/health', async (req, res) => {
 
 // تسجيل المسارات (routes)
 app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/owner-workspace', require('./src/routes/ownerWorkspace'));
 app.use('/api/users', require('./src/routes/users'));
 app.use('/api/products', require('./src/routes/products'));
 app.use('/api/categories', require('./src/routes/categories'));
@@ -213,6 +214,7 @@ async function startServer() {
     await migratePartyGroupsSchema();
     await migrateUserAvatarSchema();
     await seedInitialData();
+    await migrateOwnerAccountSchema();
 
     // مصالحة تاريخية لأقساط اتأثرت بباج قديم (دفعات عامة ماتوزّعتش على
     // الأقساط الفردية) — آمنة تتكرر كل مرة السيرفر يشتغل، مش بس أول مرة

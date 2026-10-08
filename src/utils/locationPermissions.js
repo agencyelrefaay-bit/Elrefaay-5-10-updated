@@ -6,7 +6,7 @@
 const { all } = require('../db/database');
 
 async function getAllowedLocationIds(user) {
-  if (user.role === 'admin') return null; // null = بدون فلتر (كل المواقع)
+  if (user.role === 'admin' || user.role === 'owner') return null; // null = بدون فلتر (كل المواقع)
 
   const rows = await all(
     `SELECT location_id FROM user_location_permissions WHERE user_id = ?`,

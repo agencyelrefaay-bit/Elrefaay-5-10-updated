@@ -3,6 +3,9 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+const execFileAsync = promisify(execFile);
 const { pathToFileURL } = require('url');
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { createWorker, OEM } = require('tesseract.js');
@@ -181,12 +184,13 @@ function parseAmount(value) {
 }
 
 const COLUMN_HINTS = {
-  name: ['اسم الصنف', 'الصنف', 'المنتج', 'بيان الصنف', 'الوصف', 'product', 'description', 'item'],
-  code: ['كود الصنف', 'كود المنتج', 'باركود', 'sku', 'barcode', 'item code'],
+  name: ['اسم الصنف', 'الصنف', 'المنتج', 'بيان الصنف', 'الوصف', 'product name', 'description'],
+  code: ['كود الصنف', 'كود المنتج', 'باركود', 'sku', 'barcode', 'item code', 'item no', 'item number'],
   qty: ['الكمية', 'كمية', 'عدد', 'qty', 'quantity'],
-  unit_cost: ['سعر الوحدة', 'سعر القطعة', 'تكلفة الوحدة', 'سعر التكلفة', 'unit price', 'unit cost', 'price'],
+  unit_cost: ['سعر الوحدة', 'سعر القطعة', 'تكلفة الوحدة', 'سعر التكلفة', 'u.price', 'u price', 'unit price', 'unit cost', 'price'],
   discount_pct: ['نسبة الخصم', 'خصم %', 'discount'],
   line_total: ['الإجمالي', 'الاجمالي', 'إجمالي الصنف', 'المبلغ', 'amount', 'total'],
+  index: ['no.', 'serial no', 's/n', 'row no', 'sl no'],
 };
 
 function detectHeader(lines) {
@@ -202,13 +206,13 @@ function detectHeader(lines) {
       const matchedNorm = normalizeLabel(matched);
       const words = line.words.filter((word) => {
         const norm = normalizeLabel(word.text);
-        return norm && (matchedNorm.includes(norm) || norm.includes(matchedNorm));
+        return norm && (norm === matchedNorm || (norm.length >= 4 && matchedNorm.includes(norm)) || (matchedNorm.length >= 4 && norm.includes(matchedNorm)) || (matchedNorm.length >= 3 && norm.startsWith(matchedNorm)));
       });
       if (!words.length) continue;
       centers[field] = words.reduce((sum, word) => sum + word.left + word.width / 2, 0) / words.length;
       score += field === 'name' || field === 'qty' || field === 'unit_cost' ? 2 : 1;
     }
-    if (centers.name !== undefined && score >= 4 && (!best || score > best.score)) best = { index, centers, score };
+    if ((centers.name !== undefined || centers.code !== undefined) && score >= 4 && (!best || score > best.score)) best = { index, centers, score };
   }
   return best;
 }
@@ -310,12 +314,13 @@ function makeRow(line, assigned, confidence, sequence) {
   };
 }
 
-function parseTsv(tsv, pageNumber, sequenceStart = 0) {
+function parseTsv(tsv, pageNumber, sequenceStart = 0, inheritedHeader = null) {
   const lines = groupTsvLines(tsv, pageNumber);
-  const header = detectHeader(lines);
+  const detectedHeader = detectHeader(lines);
+  const header = detectedHeader || inheritedHeader;
   const items = [];
   let lastItem = null;
-  for (let index = header ? header.index + 1 : 0; index < lines.length; index += 1) {
+  for (let index = detectedHeader ? detectedHeader.index + 1 : 0; index < lines.length; index += 1) {
     const line = lines[index];
     const lineNorm = normalizeLabel(line.words.map((word) => word.text).join(' '));
     if (['الاجمالي', 'اجمالي', 'subtotal', 'grandtotal', 'total'].some((word) => lineNorm.includes(normalizeLabel(word)))) continue;
@@ -338,7 +343,156 @@ function parseTsv(tsv, pageNumber, sequenceStart = 0) {
       lastItem.needs_review = true;
     }
   }
-  return { items, headerDetected: Boolean(header) };
+  return { items, headerDetected: Boolean(detectedHeader), header: detectedHeader || inheritedHeader };
+}
+
+function pdfTextToTsv(items, pageNumber) {
+  const spans = (items || []).filter(item => String(item.str || '').trim() && Array.isArray(item.transform));
+  if (!spans.length) return '';
+  const positioned = spans.map((item, index) => ({ text: String(item.str).replace(/[\t\r\n]+/g, ' ').trim(), x: Number(item.transform[4]) || 0, y: Number(item.transform[5]) || 0, width: Math.max(1, Math.abs(Number(item.width) || 1)), height: Math.max(1, Math.abs(Number(item.height) || 1)), index })).filter(item => item.text);
+  positioned.sort((a, b) => b.y - a.y || a.x - b.x || a.index - b.index);
+  const lines = [];
+  for (const span of positioned) {
+    const line = lines.find(candidate => Math.abs(candidate.y - span.y) <= Math.max(1.5, Math.min(candidate.height, span.height) * 0.3));
+    if (line) { line.spans.push(span); line.height = Math.max(line.height, span.height); }
+    else lines.push({ y: span.y, height: span.height, spans: [span] });
+  }
+  lines.sort((a, b) => b.y - a.y);
+  const rows = ['level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext'];
+  lines.forEach((line, lineIndex) => {
+    line.spans.sort((a, b) => a.x - b.x || a.index - b.index);
+    line.spans.forEach((span, wordIndex) => rows.push(`5\t${pageNumber}\t1\t1\t${lineIndex + 1}\t${wordIndex + 1}\t${Math.round(span.x * 10)}\t${Math.round(-line.y * 10)}\t${Math.round(span.width * 10)}\t${Math.round(span.height * 10)}\t100\t${span.text}`));
+  });
+  return rows.join('\n');
+}
+
+function extractSourceTotal(items) {
+  const spans = (items || []).filter(item => String(item.str || '').trim() && Array.isArray(item.transform));
+  const totals = [];
+  for (const label of spans) {
+    if (!normalizeLabel(label.str).includes('total')) continue;
+    const lineValues = spans.filter(item => Math.abs((Number(item.transform?.[5]) || 0) - (Number(label.transform?.[5]) || 0)) <= 2).map(item => parseAmount(item.str)).filter(value => value !== null && value >= 0);
+    if (lineValues.length) totals.push(Math.max(...lineValues));
+  }
+  return totals.length ? totals[totals.length - 1] : null;
+}
+
+function extractSourceTotalFromTsv(tsv) {
+  const totals = [];
+  for (const line of groupTsvLines(tsv, 1)) {
+    const text = line.words.map(word => word.text).join(' ');
+    if (!normalizeLabel(text).includes('total') && !normalizeLabel(text).includes('الاجمالي') && !normalizeLabel(text).includes('الإجمالي')) continue;
+    const values = line.words.map(word => parseAmount(word.text)).filter(value => value !== null && value >= 0);
+    if (values.length) totals.push(Math.max(...values));
+  }
+  return totals.length ? totals[totals.length - 1] : null;
+}
+
+function buildResult(allItems, pageResults, headerDetected, sourceTotal = null) {
+  if (!allItems.length) throw new Error('لم يتم العثور على بنود قابلة للقراءة. جرّب صورة أوضح أو ملف Excel/CSV.');
+  const calculatedTotal = Math.round((allItems.reduce((sum, item) => sum + (Number(item.line_total) || 0), 0) + Number.EPSILON) * 100) / 100;
+  const totalMismatch = sourceTotal !== null && Math.abs(calculatedTotal - sourceTotal) > 0.01;
+  return {
+    items: allItems, page_count: pageResults.length, page_results: pageResults,
+    header_detected: headerDetected, source_total: sourceTotal, calculated_total: calculatedTotal,
+    review_warnings: [
+      ...(!headerDetected ? ['لم يتم التعرف على عناوين الأعمدة بدقة؛ راجع الكمية وسعر الوحدة لكل بند.'] : []),
+      ...(allItems.some(item => item.needs_review || item.confidence < 70) ? ['هناك بنود منخفضة الثقة أو ناقصة وتحتاج مراجعة قبل الاعتماد.'] : []),
+      ...(totalMismatch ? [`إجمالي البنود المحسوب (${calculatedTotal.toFixed(2)}) لا يطابق إجمالي الفاتورة (${sourceTotal.toFixed(2)}). راجع البنود قبل إنشاء أمر الشراء.`] : []),
+    ],
+  };
+}
+
+function createPdfPageCanvas(page) {
+  const base = page.getViewport({ scale: 1 });
+  const dimensions = targetDimensions(base.width, base.height);
+  const viewport = page.getViewport({ scale: dimensions.width / base.width });
+  const width = Math.max(1, Math.floor(viewport.width));
+  const height = Math.max(1, Math.floor(viewport.height));
+  if (width * height > MAX_PAGE_PIXELS) throw new Error('إحدى صفحات PDF أكبر من الحد الآمن للمعالجة.');
+  const canvas = createCanvas(width, height);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.fillStyle = '#fff'; context.fillRect(0, 0, width, height);
+  return { canvas, context, viewport };
+}
+
+async function renderPdfPageWithPoppler(buffer, pageNumber) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'alrifai-ocr-pdf-'));
+  const inputPath = path.join(tempDir, 'invoice.pdf');
+  const outputPrefix = path.join(tempDir, 'page');
+  try {
+    fs.writeFileSync(inputPath, buffer);
+    await execFileAsync(process.env.PDFTOPPM_PATH || 'pdftoppm', [
+      '-f', String(pageNumber), '-l', String(pageNumber), '-r', '300', '-png', '-singlefile', inputPath, outputPrefix,
+    ], { timeout: 60_000, maxBuffer: 1024 * 1024 });
+    return imageBufferToPng(fs.readFileSync(`${outputPrefix}.png`));
+  } catch (error) {
+    if (error.code === 'ENOENT') throw new Error('تعذر تحويل صفحة PDF الممسوحة؛ أداة التحويل الاحتياطية غير متاحة على الخادم.');
+    throw new Error(`تعذر تحويل صفحة PDF رقم ${pageNumber} للقراءة. جرّب حفظ الفاتورة كصورة أو Excel.`);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+async function processPdf(buffer) {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjsEntry = path.dirname(require.resolve('pdfjs-dist/legacy/build/pdf.mjs'));
+  const standardFontDataUrl = pathToFileURL(`${path.resolve(pdfjsEntry, '../../standard_fonts')}${path.sep}`).href;
+  let document;
+  try {
+    document = await pdfjs.getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false, disableFontFace: false, standardFontDataUrl }).promise;
+  } catch (_) { throw new Error('تعذرت قراءة ملف PDF. تأكد أن الملف سليم وغير محمي بكلمة مرور.'); }
+  if (!document.numPages || document.numPages > MAX_PDF_PAGES) {
+    await document.destroy();
+    throw new Error(`الحد الأقصى ${MAX_PDF_PAGES} صفحات لكل فاتورة.`);
+  }
+  let worker = null;
+  const allItems = []; const pageResults = [];
+  let header = null; let headerDetected = false; let sourceTotal = null;
+  try {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const textContent = await page.getTextContent();
+      const pageSourceTotal = extractSourceTotal(textContent.items);
+      if (pageSourceTotal !== null) sourceTotal = pageSourceTotal;
+      const textParsed = parseTsv(pdfTextToTsv(textContent.items, pageNumber), pageNumber, allItems.length, header);
+      const usableTextRows = textParsed.items.filter(item => item.qty_ordered !== null && item.unit_cost !== null);
+      let parsed = textParsed; let confidence = 100; let method = 'text';
+      if (!usableTextRows.length) {
+        if (!textContent.items.some(item => String(item.str || '').trim())) {
+          const operators = await page.getOperatorList();
+          const imageOps = new Set([pdfjs.OPS.paintImageXObject, pdfjs.OPS.paintInlineImageXObject, pdfjs.OPS.paintImageMaskXObject, pdfjs.OPS.paintSolidColorImageMask]);
+          const hasImages = operators.fnArray.some(operator => imageOps.has(operator));
+          if (!hasImages && operators.fnArray.length < 20) {
+            pageResults.push({ page: pageNumber, confidence: 100, item_count: 0, method: 'blank' });
+            page.cleanup();
+            continue;
+          }
+        }
+        method = 'ocr';
+        let normalized;
+        try {
+          const { canvas, context, viewport } = createPdfPageCanvas(page);
+          await page.render({ canvas, canvasContext: context, viewport, background: '#ffffff' }).promise;
+          normalized = normalizeCanvas(canvas);
+        } catch (_) {
+          normalized = await renderPdfPageWithPoppler(buffer, pageNumber);
+        }
+        worker ||= await getWorker();
+        const { data } = await worker.recognize(normalized, {}, { tsv: true });
+        const ocrTotal = extractSourceTotalFromTsv(data.tsv);
+        if (sourceTotal === null && ocrTotal !== null) sourceTotal = ocrTotal;
+        parsed = parseTsv(data.tsv, pageNumber, allItems.length, header);
+        confidence = Math.round(data.confidence || 0);
+      } else parsed.items = usableTextRows;
+      if (parsed.header) header = parsed.header;
+      headerDetected ||= parsed.headerDetected;
+      allItems.push(...parsed.items);
+      pageResults.push({ page: pageNumber, confidence, item_count: parsed.items.length, method });
+      page.cleanup();
+    }
+  } finally { await document.destroy(); }
+  return buildResult(allItems, pageResults, headerDetected, sourceTotal);
 }
 
 async function processPages(pages) {
@@ -346,32 +500,25 @@ async function processPages(pages) {
   const allItems = [];
   const pageResults = [];
   let headerDetected = false;
+  let header = null;
+  let sourceTotal = null;
   for (let index = 0; index < pages.length; index += 1) {
     const { data } = await worker.recognize(pages[index], {}, { tsv: true });
-    const parsed = parseTsv(data.tsv, index + 1, allItems.length);
+    const pageTotal = extractSourceTotalFromTsv(data.tsv);
+    if (pageTotal !== null) sourceTotal = pageTotal;
+    const parsed = parseTsv(data.tsv, index + 1, allItems.length, header);
+    if (parsed.header) header = parsed.header;
     allItems.push(...parsed.items);
     headerDetected ||= parsed.headerDetected;
-    pageResults.push({ page: index + 1, confidence: Math.round(data.confidence || 0), item_count: parsed.items.length });
+    pageResults.push({ page: index + 1, confidence: Math.round(data.confidence || 0), item_count: parsed.items.length, method: 'ocr' });
   }
-  if (!allItems.length) throw new Error('لم يتم العثور على بنود قابلة للقراءة. جرّب صورة أوضح أو ملف Excel/CSV.');
-  return {
-    items: allItems,
-    page_count: pages.length,
-    page_results: pageResults,
-    header_detected: headerDetected,
-    review_warnings: [
-      ...(!headerDetected ? ['لم يتم التعرف على عناوين الأعمدة بدقة؛ راجع الكمية وسعر الوحدة لكل بند.'] : []),
-      ...(allItems.some((item) => item.needs_review || item.confidence < 70) ? ['هناك بنود منخفضة الثقة أو ناقصة وتحتاج مراجعة قبل اعتمادها.'] : []),
-    ],
-  };
+  return buildResult(allItems, pageResults, headerDetected, sourceTotal);
 }
 
 async function recognizeSupplierInvoice({ buffer, extension }) {
   const job = queuedJob.then(async () => {
-    const pages = extension === 'pdf'
-      ? await pdfBufferToPngPages(buffer)
-      : [await imageBufferToPng(buffer)];
-    return processPages(pages);
+    if (extension === 'pdf') return processPdf(buffer);
+    return processPages([await imageBufferToPng(buffer)]);
   });
   queuedJob = job.catch(() => {});
   return job;

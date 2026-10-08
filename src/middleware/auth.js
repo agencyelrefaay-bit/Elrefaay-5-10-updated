@@ -21,6 +21,7 @@ function authenticate(req, res, next) {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.purpose) return res.status(401).json({ error: 'يجب إكمال التحقق بخطوتين أولاً' });
     req.user = decoded;
     next();
   } catch (err) {
@@ -34,7 +35,7 @@ function authorize(...allowedRoles) {
     if (!req.user) {
       return res.status(401).json({ error: 'يجب تسجيل الدخول' });
     }
-    if (!allowedRoles.includes(req.user.role)) {
+    if (req.user.role !== 'owner' && !allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ error: 'ليس لديك صلاحية للقيام بهذا الإجراء' });
     }
     next();

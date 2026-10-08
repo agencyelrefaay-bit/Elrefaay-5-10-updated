@@ -8,7 +8,7 @@ async function createSchema() {
       full_name TEXT NOT NULL,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('admin', 'manager', 'sales', 'warehouse')),
+      role TEXT NOT NULL CHECK(role IN ('owner', 'admin', 'manager', 'sales', 'warehouse')),
       is_active INTEGER NOT NULL DEFAULT 1,
       can_view_cost_price INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -1017,6 +1017,18 @@ async function migrateUserAvatarSchema() {
   console.log('✓ تم التأكد من حقل صورة المستخدم (avatar_url)');
 }
 module.exports.migrateUserAvatarSchema = migrateUserAvatarSchema;
+
+async function migrateOwnerAccountSchema() {
+  await run(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;`);
+  await run(`ALTER TABLE users ADD CONSTRAINT users_role_check CHECK(role IN ('owner', 'admin', 'manager', 'sales', 'warehouse'));`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT;`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled INTEGER NOT NULL DEFAULT 0;`);
+  await run(`CREATE TABLE IF NOT EXISTS owner_notes (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT 'rose', is_pinned INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_owner_notes_user_updated ON owner_notes(user_id, updated_at DESC);`);
+  await run(`UPDATE users SET role = 'owner', updated_at = datetime('now') WHERE lower(username) = 'shrouk';`);
+  console.log('✓ تم التأكد من مخطط حساب المالك ومساحته الخاصة');
+}
+module.exports.migrateOwnerAccountSchema = migrateOwnerAccountSchema;
 
 module.exports.createPhase4Schema = createPhase4Schema;
 module.exports.migratePerformanceIndexes = migratePerformanceIndexes;

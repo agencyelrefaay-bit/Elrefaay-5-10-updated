@@ -146,13 +146,13 @@ function validateInstallments(installments, total, paymentType) {
 function resolveInvoiceDateTime(user, body) {
   const now = new Date();
   const today = now.toISOString().split('T')[0];
-  if (user.role === 'admin' && body.invoice_datetime) {
+  if (['admin','owner'].includes(user.role) && body.invoice_datetime) {
     const d = new Date(body.invoice_datetime);
     if (!isNaN(d.getTime())) {
       return { invoice_date: d.toISOString().split('T')[0], created_at: d.toISOString().slice(0,19).replace('T',' ') };
     }
   }
-  if (user.role === 'admin' && body.invoice_date) {
+  if (['admin','owner'].includes(user.role) && body.invoice_date) {
     return { invoice_date: body.invoice_date, created_at: null };
   }
   return { invoice_date: today, created_at: null };
@@ -302,7 +302,7 @@ router.post('/', authorize('admin','manager','sales'), async (req, res) => {
   if (installError) return res.status(400).json(installError);
 
   const creditError = await checkCreditLimit(customer_id, total, payment_type||'cash');
-  if (creditError && !(req.user.role === 'admin' && req.body.override_credit_limit)) {
+  if (creditError && !(['admin','owner'].includes(req.user.role) && req.body.override_credit_limit)) {
     return res.status(400).json(creditError);
   }
 
@@ -492,7 +492,7 @@ router.put('/:id', authorize('admin','manager','sales'), async (req, res) => {
   if (installError) return res.status(400).json(installError);
 
   const creditError = await checkCreditLimit(customer_id, total, payment_type||'cash');
-  if (creditError && !(req.user.role === 'admin' && req.body.override_credit_limit)) {
+  if (creditError && !(['admin','owner'].includes(req.user.role) && req.body.override_credit_limit)) {
     return res.status(400).json(creditError);
   }
 

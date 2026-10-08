@@ -116,14 +116,22 @@ router.post('/ocr-invoice', invoiceOCRLimiter, authorize('admin', 'manager'), ha
   }
   const byName = new Map(products.map(product => [String(product.name || '').trim().toLocaleLowerCase(), product]));
   const items = result.items.map(item => {
-    const product = (item.code && byCode.get(normalizeCode(item.code))) || byName.get(item.name.toLocaleLowerCase()) || null;
+    const product = (item.code && byCode.get(normalizeCode(item.code))) || (item.name && byName.get(item.name.toLocaleLowerCase())) || null;
+    const codeOnly = Boolean(item.code && normalizeCode(item.name) === normalizeCode(item.code));
+    const codeOnlyMatch = Boolean(product && codeOnly && item.qty_ordered !== null && item.unit_cost !== null);
     return {
       ...item,
+      name: codeOnly ? (product?.name || item.name) : (String(item.name || '').trim() ? item.name : (product?.name || '')),
+      needs_review: codeOnly ? !product : (codeOnlyMatch ? false : item.needs_review),
       product_id: product?.id || null,
       matched_product: product ? { id: product.id, name: product.name, sku: product.sku, unit: product.unit } : null,
     };
   });
-  return res.json({ ...result, file_name: file.originalname, items });
+  const reviewWarnings = (result.review_warnings || []).filter(warning => !warning.startsWith('هناك بنود منخفضة الثقة أو ناقصة'));
+  if (items.some(item => item.needs_review || item.confidence < 70)) {
+    reviewWarnings.push('هناك بنود منخفضة الثقة أو ناقصة وتحتاج مراجعة قبل اعتمادها.');
+  }
+  return res.json({ ...result, review_warnings: reviewWarnings, file_name: file.originalname, items });
 });
 
 router.post('/import-invoice', authorize('admin', 'manager'), invoiceFileUpload.single('invoice'), async (req, res) => {
@@ -379,7 +387,7 @@ router.post('/', authorize('admin','manager'), async (req, res) => {
 
   // ── حد ائتمان المورد (آجل/تقسيط) — المدير فقط يقدر يتجاوزه صراحةً (نفس قاعدة العملاء) ──
   const creditError = await checkSupplierCreditLimit(supplier_id, total, poType);
-  if (creditError && !(req.user.role === 'admin' && override_credit_limit)) {
+  if (creditError && !(['admin','owner'].includes(req.user.role) && override_credit_limit)) {
     return res.status(400).json(creditError);
   }
 

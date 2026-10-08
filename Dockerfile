@@ -7,7 +7,7 @@ FROM node:20-alpine
 
 # dumb-init: بيتعامل صح مع إشارات SIGTERM/SIGINT جوه الكونتينر (Docker/K8s
 # graceful shutdown) — من غيره Node ممكن ميستقبلش إشارة الإيقاف صح كـ PID 1
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init poppler-utils
 
 WORKDIR /app
 

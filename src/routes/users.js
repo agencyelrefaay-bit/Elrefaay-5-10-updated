@@ -31,7 +31,7 @@ async function getUserLocationIds(userId) {
 // GET /api/users
 router.get('/', authorize('admin'), async (req, res) => {
   const users = await all(
-    `SELECT id, full_name, username, role, is_active, can_view_cost_price, avatar_url, created_at FROM users ORDER BY id ASC`
+    `SELECT id, full_name, username, role, is_active, can_view_cost_price, avatar_url, created_at FROM users ${req.user.role === 'owner' ? '' : "WHERE role <> 'owner'"} ORDER BY id ASC`
   );
   // أضف المواقع المحددة لكل مستخدم
   const withPerms = await Promise.all(users.map(async u => ({
@@ -87,9 +87,12 @@ router.put('/:id', authorize('admin'), async (req, res) => {
   if (avatarProvided && avatar_url === undefined) return res.status(400).json({ error: 'رابط الصورة يجب أن يكون رابط HTTPS صالحاً' });
 
   const user = await get(`SELECT * FROM users WHERE id = ?`, [id]);
-  if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' });
+  if (!user || (user.role === 'owner' && req.user.role !== 'owner')) return res.status(404).json({ error: 'المستخدم غير موجود' });
+  const disabling = is_active === 0 || is_active === false;
+  if (user.role === 'owner' && ((role && role !== 'owner') || disabling)) return res.status(400).json({ error: 'لا يمكن تغيير دور حساب المالك أو تعطيله من هذه الشاشة' });
+  if (user.role === 'admin' && req.user.role !== 'owner' && ((role && role !== 'admin') || disabling || Boolean(password))) return res.status(403).json({ error: 'إدارة صلاحيات وتعطيل حسابات الإدارة متاحة للمالك فقط' });
 
-  if (Number(id) === req.user.id && (is_active === 0 || role !== 'admin'))
+  if (Number(id) === req.user.id && (disabling || (role && role !== 'owner' && role !== 'admin')))
     return res.status(400).json({ error: 'لا يمكنك تعديل صلاحياتك الخاصة بهذا الشكل' });
 
   await run(
@@ -129,8 +132,10 @@ router.put('/:id/locations', authorize('admin'), async (req, res) => {
   const { id } = req.params;
   const { location_ids } = req.body; // مصفوفة IDs المواقع المسموح بها
 
-  if (!await get(`SELECT id FROM users WHERE id = ?`, [id]))
+  const target = await get(`SELECT id, role FROM users WHERE id = ?`, [id]);
+  if (!target || (target.role === 'owner' && req.user.role !== 'owner'))
     return res.status(404).json({ error: 'المستخدم غير موجود' });
+  if (target.role === 'owner') return res.status(400).json({ error: 'حساب المالك لا يحتاج إلى تقييد بالمواقع' });
 
   await run(`DELETE FROM user_location_permissions WHERE user_id = ?`, [id]);
   if (Array.isArray(location_ids)) {
@@ -149,8 +154,10 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
   const { id } = req.params;
   if (Number(id) === req.user.id)
     return res.status(400).json({ error: 'لا يمكنك تعطيل حسابك الخاص' });
-  if (!await get(`SELECT id FROM users WHERE id = ?`, [id]))
-    return res.status(404).json({ error: 'المستخدم غير موجود' });
+  const target = await get(`SELECT id, role FROM users WHERE id = ?`, [id]);
+  if (!target || (target.role === 'owner' && req.user.role !== 'owner')) return res.status(404).json({ error: 'المستخدم غير موجود' });
+  if (target.role === 'owner') return res.status(400).json({ error: 'لا يمكن تعطيل حساب المالك' });
+  if (target.role === 'admin' && req.user.role !== 'owner') return res.status(403).json({ error: 'تعطيل حسابات الإدارة متاح للمالك فقط' });
 
   await run(`UPDATE users SET is_active = 0 WHERE id = ?`, [id]);
   await logAction(req.user.id, 'deactivate', 'user', id, null);

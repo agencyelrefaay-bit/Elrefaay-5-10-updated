@@ -2912,6 +2912,13 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
       </div>
     </div>
 
+
+    <div id="ownerTwoFactorPanel" style="display:none; margin:12px 0; padding:14px; border:1px solid var(--gold-2); border-radius:12px; background:var(--overlay-06);">
+      <div id="ownerTwoFactorHint" style="font-size:.88rem; line-height:1.7; margin-bottom:8px;"></div>
+      <code id="ownerTwoFactorSecret" dir="ltr" style="display:none; word-break:break-all; color:var(--gold-0);"></code>
+      <input id="ownerTwoFactorCode" class="form-control login-credential-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="رمز التحقق المكوّن من 6 أرقام" style="margin-top:10px; text-align:center; letter-spacing:.25em;" />
+    </div>
+
     <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()" style="justify-content:center; margin-top: 8px;">
       <span>دخول إلى النظام</span>
     </button>
@@ -5956,35 +5963,35 @@ document.querySelectorAll('.modal-overlay').forEach(ov => {
 });
 
 // ── Auth ──
+let ownerLoginPending = false;
+let ownerSetupPending = false;
 async function doLogin() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const errEl = document.getElementById('loginError');
-  const btn = document.getElementById('loginBtn');
-
-  if (!username || !password) {
-    errEl.style.display = 'flex';
-    document.getElementById('loginErrorMsg').textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> جارٍ التحقق...';
-  errEl.style.display = 'none';
-
+  const username=document.getElementById('loginUsername').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  const errEl=document.getElementById('loginError'); const btn=document.getElementById('loginBtn');
+  const fail=msg=>{errEl.style.display='flex';document.getElementById('loginErrorMsg').textContent=msg||'تعذر تسجيل الدخول';};
+  btn.disabled=true; errEl.style.display='none';
   try {
-    const data = await API.post('/auth/login', { username, password });
-    state.token = data.token;
-    state.user = data.user;
-    localStorage.setItem('arToken', data.token);
-    localStorage.setItem('arUser', JSON.stringify(data.user));
-    initApp();
-  } catch (err) {
-    errEl.style.display = 'flex';
-    document.getElementById('loginErrorMsg').textContent = err.message || 'بيانات الدخول غير صحيحة';
-    btn.disabled = false;
-    btn.innerHTML = '<span>دخول إلى النظام</span>';
-  }
+    if(ownerLoginPending) {
+      const code=document.getElementById('ownerTwoFactorCode').value.trim();
+      const data=await API.post('/auth/owner-2fa/'+(ownerSetupPending?'confirm':'verify'),{code});
+      state.token=data.token;state.user=data.user;localStorage.setItem('arToken',data.token);localStorage.setItem('arUser',JSON.stringify(data.user));
+      ownerLoginPending=false;ownerSetupPending=false;initApp();return;
+    }
+    if(!username||!password) throw new Error('يرجى إدخال اسم المستخدم وكلمة المرور');
+    const data=await API.post('/auth/login',{username,password});
+    if(data.requires_2fa) {
+      state.token=data.challenge_token; ownerLoginPending=true; ownerSetupPending=!!data.setup_required;
+      document.getElementById('ownerTwoFactorPanel').style.display='block';
+      document.getElementById('loginPassword').closest('.form-group').style.display='none';
+      document.getElementById('loginUsername').closest('.form-group').style.display='none';
+      if(ownerSetupPending) { const setup=await API.post('/auth/owner-2fa/setup',{}); document.getElementById('ownerTwoFactorHint').textContent='إعداد المصادقة الثنائية: أضف هذا المفتاح إلى تطبيق مصادقة مجاني، ثم أدخل الرمز الحالي.'; const secret=document.getElementById('ownerTwoFactorSecret');secret.textContent=setup.secret;secret.style.display='block'; }
+      else document.getElementById('ownerTwoFactorHint').textContent='أدخل الرمز الحالي من تطبيق المصادقة لإكمال تسجيل الدخول.';
+      document.getElementById('loginBtn').innerHTML='<span>تحقق وتابع</span>';document.getElementById('ownerTwoFactorCode').focus();return;
+    }
+    state.token=data.token;state.user=data.user;localStorage.setItem('arToken',data.token);localStorage.setItem('arUser',JSON.stringify(data.user));initApp();
+  } catch(err) { fail(err.message); }
+  finally { btn.disabled=false;if(ownerLoginPending)btn.innerHTML='<span>تحقق وتابع</span>';else btn.innerHTML='<span>دخول إلى النظام</span>'; }
 }
 
 function toggleLoginPasswordVisibility() {
@@ -6126,7 +6133,7 @@ async function saveAccountSettings() {
 
 function initCurrentUserDisplay() {
   const user = state.user; if (!user) return;
-  const roles = { admin:'مسؤول النظام', manager:'مدير', sales:'موظف مبيعات', warehouse:'أمين مخزن' };
+  const roles = { owner:'مالك المشروع', admin:'مسؤول النظام', manager:'مدير', sales:'موظف مبيعات', warehouse:'أمين مخزن' };
   renderUserAvatar(document.getElementById('sidebarAvatar'), user); renderUserAvatar(document.getElementById('drawerAvatar'), user);
   document.getElementById('sidebarUserName').textContent = user.full_name; document.getElementById('drawerUserName').textContent = user.full_name;
   document.getElementById('sidebarUserRole').textContent = roles[user.role] || user.role; document.getElementById('drawerUserRole').textContent = roles[user.role] || user.role;
@@ -6157,6 +6164,7 @@ function previewUserAvatar() {
 }
 
 function initApp() {
+  setTimeout(() => window.mountOwnerStudio?.(), 0);
   if (!state.token) {
     document.getElementById('loginPage').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
@@ -6175,7 +6183,7 @@ function initApp() {
   if (u) {
     renderUserAvatar(document.getElementById('sidebarAvatar'), u);
     document.getElementById('sidebarUserName').textContent = u.full_name;
-    const roleNames = { admin: 'مسؤول النظام', manager: 'مدير', sales: 'مبيعات', warehouse: 'مخزن' };
+    const roleNames = { owner: 'مالك المشروع', admin: 'مسؤول النظام', manager: 'مدير', sales: 'مبيعات', warehouse: 'مخزن' };
     document.getElementById('sidebarUserRole').textContent = roleNames[u.role] || u.role;
     document.getElementById('topbarUser').textContent = `${u.full_name} · ${roleNames[u.role] || u.role}`;
     // نفس بيانات المستخدم في الـ drawer (تابلت portrait)
@@ -6420,6 +6428,7 @@ function renderMorePage() {
 
 // ── الصلاحيات: مصدر واحد يُطبَّق على كل الأسطح دفعة واحدة ──
 function applyNavPermissions(role) {
+  if (role === 'owner') role = 'admin';
   document.querySelectorAll('[data-visible-for]').forEach(el => {
     const rule = el.dataset.visibleFor;
     const visible = rule === 'all' || JSON.parse(rule.replace(/&quot;/g, '"')).includes(role);
@@ -11224,6 +11233,7 @@ function buildNotifList(lowStockItems) {
     return;
   }
   dot.style.display = 'block';
+  if (state.user?.role === 'owner') window.playOwnerNotificationSound?.(lowStockItems);
   list.innerHTML = lowStockItems.map(p => `
     <div style="display:flex;align-items:center;gap:var(--s-sm);padding:var(--s-md) var(--s-lg);border-bottom:0.5px solid var(--overlay-05);cursor:pointer;" onclick="navigate('inventory');toggleNotifPanel();">
       <div style="width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0;box-shadow:0 0 6px var(--danger-bg);"></div>
@@ -16044,5 +16054,6 @@ async function saveSettings() {
 </script>
 <script src="/receivables.js?v=13" defer></script>
 
+<script src="/owner-space.js" defer></script>
 </body>
 </html>

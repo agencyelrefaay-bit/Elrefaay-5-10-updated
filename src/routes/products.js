@@ -223,7 +223,7 @@ router.get('/', async (req, res) => {
   }
 
   // إخفاء سعر التكلفة عن المستخدمين غير المصرح لهم
-  if (!req.user.can_view_cost_price && req.user.role !== 'admin') {
+  if (!req.user.can_view_cost_price && !['admin','owner'].includes(req.user.role)) {
     products = products.map((p) => {
       const { cost_price, ...rest } = p;
       return rest;
@@ -244,7 +244,7 @@ router.get('/:id', async (req, res) => {
   const [withStock] = await attachStockSummary([product], req);
   const [withSuppliers] = await attachSupplierTags([withStock]);
 
-  if (!req.user.can_view_cost_price && req.user.role !== 'admin') {
+  if (!req.user.can_view_cost_price && !['admin','owner'].includes(req.user.role)) {
     delete withSuppliers.cost_price;
   }
 
@@ -260,7 +260,7 @@ router.get('/barcode/:barcode', async (req, res) => {
   if (!product) return res.status(404).json({ error: 'لا يوجد منتج بهذا الباركود' });
 
   const [withStock] = await attachStockSummary([product], req);
-  if (!req.user.can_view_cost_price && req.user.role !== 'admin') {
+  if (!req.user.can_view_cost_price && !['admin','owner'].includes(req.user.role)) {
     delete withStock.cost_price;
   }
   res.json({ product: withStock });
