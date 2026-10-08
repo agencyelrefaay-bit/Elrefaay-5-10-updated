@@ -1,0 +1,380 @@
+'use strict';
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { pathToFileURL } = require('url');
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const { createWorker, OEM } = require('tesseract.js');
+
+const MAX_PDF_PAGES = 8;
+const MAX_PAGE_PIXELS = 18_000_000;
+const OCR_TARGET_WIDTH = 2_200;
+const OCR_CACHE_DIR = path.join(os.tmpdir(), 'alrifai-erp-ocr');
+
+let workerPromise = null;
+let queuedJob = Promise.resolve();
+
+function ensureLanguageData() {
+  const target = path.join(OCR_CACHE_DIR, 'lang');
+  fs.mkdirSync(target, { recursive: true });
+  for (const code of ['ara', 'eng']) {
+    const packageData = require(`@tesseract.js-data/${code}`);
+    const source = path.join(packageData.langPath, `${code}.traineddata.gz`);
+    const destination = path.join(target, `${code}.traineddata.gz`);
+    if (!fs.existsSync(destination)) fs.copyFileSync(source, destination);
+  }
+  return target;
+}
+
+function getWorker() {
+  if (!workerPromise) {
+    workerPromise = (async () => {
+      const langPath = ensureLanguageData();
+      const worker = await createWorker(['ara', 'eng'], OEM.LSTM_ONLY, {
+        langPath,
+        cachePath: path.join(OCR_CACHE_DIR, 'cache'),
+        gzip: true,
+        logger: () => {},
+      });
+      await worker.setParameters({
+        preserve_interword_spaces: '1',
+        user_defined_dpi: '300',
+      });
+      return worker;
+    })().catch((error) => {
+      workerPromise = null;
+      throw error;
+    });
+  }
+  return workerPromise;
+}
+
+function targetDimensions(width, height) {
+  const scale = Math.min(
+    Math.max(1, OCR_TARGET_WIDTH / width),
+    3,
+    Math.sqrt(MAX_PAGE_PIXELS / Math.max(1, width * height)),
+    6_000 / Math.max(1, height),
+  );
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function normalizeCanvas(canvas) {
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  const image = context.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = image.data;
+  for (let index = 0; index < pixels.length; index += 4) {
+    const gray = Math.round(
+      (pixels[index] * 0.299 + pixels[index + 1] * 0.587 + pixels[index + 2] * 0.114 - 128) * 1.15 + 128,
+    );
+    const value = Math.max(0, Math.min(255, gray));
+    pixels[index] = value;
+    pixels[index + 1] = value;
+    pixels[index + 2] = value;
+  }
+  context.putImageData(image, 0, 0);
+  return canvas.toBuffer('image/png');
+}
+
+async function imageBufferToPng(buffer) {
+  let image;
+  try {
+    image = await loadImage(buffer);
+  } catch (_) {
+    throw new Error('تعذرت قراءة الصورة. استخدم PNG أو JPG أو WEBP واضحة.');
+  }
+  if (!image.width || !image.height || image.width * image.height > 80_000_000) {
+    throw new Error('أبعاد الصورة أكبر من الحد الآمن للمعالجة.');
+  }
+  const { width, height } = targetDimensions(image.width, image.height);
+  const canvas = createCanvas(width, height);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.fillStyle = '#fff';
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+  return normalizeCanvas(canvas);
+}
+
+async function pdfBufferToPngPages(buffer) {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  let document;
+  try {
+    const pdfjsEntry = path.dirname(require.resolve('pdfjs-dist/legacy/build/pdf.mjs'));
+    const standardFontDataUrl = pathToFileURL(`${path.resolve(pdfjsEntry, '../../standard_fonts')}${path.sep}`).href;
+    document = await pdfjs.getDocument({
+      data: new Uint8Array(buffer),
+      useSystemFonts: true,
+      isEvalSupported: false,
+      // Keep PDF.js text on the native canvas text path. Its custom Path2D
+      // glyph fallback is incompatible with @napi-rs/canvas.
+      disableFontFace: false,
+      standardFontDataUrl,
+    }).promise;
+  } catch (_) {
+    throw new Error('تعذرت قراءة ملف PDF. تأكد أن الملف سليم وغير محمي بكلمة مرور.');
+  }
+  if (!document.numPages || document.numPages > MAX_PDF_PAGES) {
+    await document.destroy();
+    throw new Error(`الحد الأقصى ${MAX_PDF_PAGES} صفحات لكل فاتورة.`);
+  }
+
+  const pages = [];
+  try {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const base = page.getViewport({ scale: 1 });
+      const dimensions = targetDimensions(base.width, base.height);
+      const scale = dimensions.width / base.width;
+      const viewport = page.getViewport({ scale });
+      const width = Math.max(1, Math.floor(viewport.width));
+      const height = Math.max(1, Math.floor(viewport.height));
+      if (width * height > MAX_PAGE_PIXELS) {
+        page.cleanup();
+        throw new Error('إحدى صفحات PDF أكبر من الحد الآمن للمعالجة.');
+      }
+      const canvas = createCanvas(width, height);
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, width, height);
+      await page.render({ canvas, canvasContext: context, viewport, background: '#ffffff' }).promise;
+      pages.push(normalizeCanvas(canvas));
+      page.cleanup();
+    }
+  } finally {
+    await document.destroy();
+  }
+  return pages;
+}
+
+function normalizeLabel(value) {
+  return String(value || '')
+    .replace(/[٠-٩۰-۹]/g, (digit) => String(digit >= '۰' && digit <= '۹' ? '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit) : '٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .normalize('NFKD')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9\u0600-\u06ff]+/g, '');
+}
+
+function parseAmount(value) {
+  let text = String(value || '')
+    .replace(/[٠-٩۰-۹]/g, (digit) => String(digit >= '۰' && digit <= '۹' ? '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit) : '٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[٬\s]/g, '')
+    .replace(/[٫]/g, '.')
+    .replace(/[ججمكريالدولار$€£٪%]/g, '');
+  if (!/^[+-]?\d[\d.,]*$/.test(text)) return null;
+  if (text.includes(',') && text.includes('.')) {
+    const decimal = text.lastIndexOf(',') > text.lastIndexOf('.') ? ',' : '.';
+    text = decimal === ',' ? text.replace(/\./g, '').replace(',', '.') : text.replace(/,/g, '');
+  } else if (text.includes(',')) {
+    const decimals = text.length - text.lastIndexOf(',') - 1;
+    text = decimals > 0 && decimals <= 2 ? text.replace(',', '.') : text.replace(/,/g, '');
+  }
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
+}
+
+const COLUMN_HINTS = {
+  name: ['اسم الصنف', 'الصنف', 'المنتج', 'بيان الصنف', 'الوصف', 'product', 'description', 'item'],
+  code: ['كود الصنف', 'كود المنتج', 'باركود', 'sku', 'barcode', 'item code'],
+  qty: ['الكمية', 'كمية', 'عدد', 'qty', 'quantity'],
+  unit_cost: ['سعر الوحدة', 'سعر القطعة', 'تكلفة الوحدة', 'سعر التكلفة', 'unit price', 'unit cost', 'price'],
+  discount_pct: ['نسبة الخصم', 'خصم %', 'discount'],
+  line_total: ['الإجمالي', 'الاجمالي', 'إجمالي الصنف', 'المبلغ', 'amount', 'total'],
+};
+
+function detectHeader(lines) {
+  let best = null;
+  for (let index = 0; index < Math.min(lines.length, 35); index += 1) {
+    const line = lines[index];
+    const normalizedLine = normalizeLabel(line.words.map((word) => word.text).join(' '));
+    const centers = {};
+    let score = 0;
+    for (const [field, hints] of Object.entries(COLUMN_HINTS)) {
+      const matched = hints.find((hint) => normalizedLine.includes(normalizeLabel(hint)));
+      if (!matched) continue;
+      const matchedNorm = normalizeLabel(matched);
+      const words = line.words.filter((word) => {
+        const norm = normalizeLabel(word.text);
+        return norm && (matchedNorm.includes(norm) || norm.includes(matchedNorm));
+      });
+      if (!words.length) continue;
+      centers[field] = words.reduce((sum, word) => sum + word.left + word.width / 2, 0) / words.length;
+      score += field === 'name' || field === 'qty' || field === 'unit_cost' ? 2 : 1;
+    }
+    if (centers.name !== undefined && score >= 4 && (!best || score > best.score)) best = { index, centers, score };
+  }
+  return best;
+}
+
+function groupTsvLines(tsv, pageNumber) {
+  const rows = new Map();
+  const allLines = String(tsv || '').split(/\r?\n/);
+  for (let index = 1; index < allLines.length; index += 1) {
+    const parts = allLines[index].split('\t');
+    if (parts.length < 12 || Number(parts[0]) !== 5) continue;
+    const text = parts.slice(11).join('\t').trim();
+    const confidence = Number(parts[10]);
+    if (!text || !Number.isFinite(confidence) || confidence < 0) continue;
+    const key = `${parts[1]}-${parts[2]}-${parts[3]}-${parts[4]}`;
+    if (!rows.has(key)) rows.set(key, { page: pageNumber, top: Number(parts[7]) || 0, words: [] });
+    rows.get(key).words.push({
+      text,
+      confidence,
+      left: Number(parts[6]) || 0,
+      top: Number(parts[7]) || 0,
+      width: Number(parts[8]) || 0,
+      height: Number(parts[9]) || 0,
+      wordNum: Number(parts[5]) || 0,
+    });
+  }
+  return [...rows.values()].sort((a, b) => a.top - b.top);
+}
+
+function closestField(word, centers) {
+  let selected = null;
+  let distance = Infinity;
+  for (const [field, center] of Object.entries(centers)) {
+    const current = Math.abs(word.left + word.width / 2 - center);
+    if (current < distance) { selected = field; distance = current; }
+  }
+  return selected;
+}
+
+function makeRow(line, assigned, confidence, sequence) {
+  const cellText = Object.fromEntries(Object.entries(assigned).map(([field, words]) => [
+    field,
+    words.sort((a, b) => a.wordNum - b.wordNum).map((word) => word.text).join(' ').trim(),
+  ]));
+  const rawText = line.words.sort((a, b) => a.wordNum - b.wordNum).map((word) => word.text).join(' ').trim();
+  const numericCandidates = line.words
+    .map((word) => ({ value: parseAmount(word.text), word }))
+    .filter((entry) => entry.value !== null && entry.value > 0);
+  const hasHeaderMapping = Boolean(assigned.qty?.length || assigned.unit_cost?.length);
+  let qty = parseAmount(cellText.qty);
+  let unitCost = parseAmount(cellText.unit_cost);
+  let lineTotal = parseAmount(cellText.line_total);
+  let confidencePct = Math.max(0, Math.min(100, Math.round(confidence)));
+  let inferredQuantity = false;
+
+  if (!hasHeaderMapping && numericCandidates.length >= 2) {
+    const ordered = [...numericCandidates].sort((a, b) => a.value - b.value);
+    qty = qty || ordered[0].value;
+    unitCost = unitCost || ordered[1].value;
+    lineTotal = lineTotal || (ordered.length > 2 ? ordered[ordered.length - 1].value : null);
+    confidencePct = Math.min(confidencePct, 44);
+  }
+
+  // When a quantity digit is merged into a neighboring code column, recover it
+  // only when invoice arithmetic provides an exact, independently readable ratio.
+  if (qty === null && lineTotal !== null && unitCost > 0) {
+    const quantityFromTotals = lineTotal / (unitCost * (1 - (parseAmount(cellText.discount_pct) || 0) / 100));
+    const roundedQuantity = Math.round(quantityFromTotals * 10_000) / 10_000;
+    if (Number.isFinite(roundedQuantity) && roundedQuantity > 0 && roundedQuantity <= 1_000_000) {
+      qty = roundedQuantity;
+      inferredQuantity = true;
+      confidencePct = Math.min(confidencePct, 64);
+    }
+  }
+
+  const inferredWords = line.words
+    .filter((word) => parseAmount(word.text) === null)
+    .sort((a, b) => a.wordNum - b.wordNum)
+    .map((word) => word.text);
+  const name = cellText.name || inferredWords.join(' ').trim();
+  const code = cellText.code || '';
+  const discount = parseAmount(cellText.discount_pct);
+  if (!name && !code) return null;
+  const calculated = qty !== null && unitCost !== null
+    ? Math.round((qty * unitCost * (1 - (discount || 0) / 100) + Number.EPSILON) * 100) / 100
+    : null;
+  return {
+    source_row: sequence,
+    page: line.page,
+    name,
+    code,
+    qty_ordered: qty,
+    unit_cost: unitCost,
+    discount_pct: discount || 0,
+    line_total: calculated ?? lineTotal,
+    ocr_line_total: lineTotal,
+    confidence: confidencePct,
+    raw_text: rawText,
+    needs_review: !hasHeaderMapping || inferredQuantity || !name || qty === null || unitCost === null,
+  };
+}
+
+function parseTsv(tsv, pageNumber, sequenceStart = 0) {
+  const lines = groupTsvLines(tsv, pageNumber);
+  const header = detectHeader(lines);
+  const items = [];
+  let lastItem = null;
+  for (let index = header ? header.index + 1 : 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const lineNorm = normalizeLabel(line.words.map((word) => word.text).join(' '));
+    if (['الاجمالي', 'اجمالي', 'subtotal', 'grandtotal', 'total'].some((word) => lineNorm.includes(normalizeLabel(word)))) continue;
+    const assigned = {};
+    if (header) {
+      for (const word of line.words) {
+        const field = closestField(word, header.centers);
+        if (!field) continue;
+        (assigned[field] ||= []).push(word);
+      }
+    }
+    const averageConfidence = line.words.reduce((sum, word) => sum + word.confidence, 0) / Math.max(1, line.words.length);
+    const row = makeRow(line, assigned, averageConfidence, sequenceStart + items.length + 1);
+    if (row && (row.qty_ordered !== null || row.unit_cost !== null)) {
+      items.push(row);
+      lastItem = row;
+    } else if (row && lastItem && row.raw_text) {
+      lastItem.name = `${lastItem.name} ${row.name || row.raw_text}`.trim();
+      lastItem.raw_text = `${lastItem.raw_text} | ${row.raw_text}`;
+      lastItem.needs_review = true;
+    }
+  }
+  return { items, headerDetected: Boolean(header) };
+}
+
+async function processPages(pages) {
+  const worker = await getWorker();
+  const allItems = [];
+  const pageResults = [];
+  let headerDetected = false;
+  for (let index = 0; index < pages.length; index += 1) {
+    const { data } = await worker.recognize(pages[index], {}, { tsv: true });
+    const parsed = parseTsv(data.tsv, index + 1, allItems.length);
+    allItems.push(...parsed.items);
+    headerDetected ||= parsed.headerDetected;
+    pageResults.push({ page: index + 1, confidence: Math.round(data.confidence || 0), item_count: parsed.items.length });
+  }
+  if (!allItems.length) throw new Error('لم يتم العثور على بنود قابلة للقراءة. جرّب صورة أوضح أو ملف Excel/CSV.');
+  return {
+    items: allItems,
+    page_count: pages.length,
+    page_results: pageResults,
+    header_detected: headerDetected,
+    review_warnings: [
+      ...(!headerDetected ? ['لم يتم التعرف على عناوين الأعمدة بدقة؛ راجع الكمية وسعر الوحدة لكل بند.'] : []),
+      ...(allItems.some((item) => item.needs_review || item.confidence < 70) ? ['هناك بنود منخفضة الثقة أو ناقصة وتحتاج مراجعة قبل اعتمادها.'] : []),
+    ],
+  };
+}
+
+async function recognizeSupplierInvoice({ buffer, extension }) {
+  const job = queuedJob.then(async () => {
+    const pages = extension === 'pdf'
+      ? await pdfBufferToPngPages(buffer)
+      : [await imageBufferToPng(buffer)];
+    return processPages(pages);
+  });
+  queuedJob = job.catch(() => {});
+  return job;
+}
+
+module.exports = { recognizeSupplierInvoice, parseAmount };

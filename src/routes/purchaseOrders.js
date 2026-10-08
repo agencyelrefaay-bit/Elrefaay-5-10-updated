@@ -2,6 +2,7 @@
 const express = require('express');
 const router  = express.Router();
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 const XLSX = require('xlsx');
 const { all, get, run, insert, transaction } = require('../db/database');
 const { authenticate, authorize }            = require('../middleware/auth');
@@ -12,6 +13,7 @@ const { validateInstallmentSchedule }        = require('../utils/installmentEngi
 const { buildFileUrl }                       = require('../utils/fileUrl');
 const eventBus = require('../utils/eventBus');
 const { getSupplierBalance, getPOPreviousBalance, checkSupplierCreditLimit } = require('../utils/supplierLedger');
+const { recognizeSupplierInvoice } = require('../services/supplierInvoiceOcr');
 
 // أنواع الشراء المدعومة: نقدي / آجل (من غير جدول أقساط — بتاريخ استحقاق واحد) / تقسيط (بجدول أقساط)
 const PO_TYPES = ['cash', 'credit', 'installment'];
@@ -32,6 +34,35 @@ const invoiceFileUpload = multer({
     const ext = String(file.originalname || '').split('.').pop().toLowerCase();
     cb(null, ['xlsx', 'xls', 'csv'].includes(ext));
   },
+});
+
+const invoiceOCRFileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    const ext = String(file.originalname || '').split('.').pop().toLowerCase();
+    cb(null, ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'bmp'].includes(ext));
+  },
+});
+
+function handleInvoiceOCRUpload(req, res, next) {
+  invoiceOCRFileUpload.single('invoice')(req, res, error => {
+    if (!error) return next();
+    const tooLarge = error.code === 'LIMIT_FILE_SIZE';
+    return res.status(tooLarge ? 413 : 400).json({
+      error: tooLarge
+        ? 'حجم الفاتورة أكبر من 15 ميجابايت. قلل حجم الملف ثم أعد المحاولة.'
+        : 'تعذر استقبال الملف. اختر صورة أو PDF صالحاً ثم أعد المحاولة.',
+    });
+  });
+}
+
+const invoiceOCRLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'تم الوصول إلى حد تحليل الفواتير مؤقتاً. انتظر دقيقة ثم أعد المحاولة.' },
 });
 
 function invoiceNumber(value) {
@@ -62,6 +93,39 @@ function findInvoiceColumn(headers, candidates) {
 // Preview supplier invoice rows from Excel/CSV. This endpoint never writes products,
 // purchase orders, inventory, or supplier balances; the reviewed rows are submitted
 // through the existing purchase-order workflow after warehouse assignment.
+router.post('/ocr-invoice', invoiceOCRLimiter, authorize('admin', 'manager'), handleInvoiceOCRUpload, async (req, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'اختر صورة أو PDF صالحاً بحجم لا يتجاوز 15 ميجابايت' });
+
+  const extension = String(file.originalname || '').split('.').pop().toLowerCase();
+  let result;
+  try {
+    result = await recognizeSupplierInvoice({ buffer: file.buffer, extension });
+  } catch (error) {
+    return res.status(422).json({ error: error.message || 'تعذر تحليل الملف. جرّب صورة أوضح أو ملف Excel/CSV.' });
+  }
+
+  const products = await all(`SELECT id, name, sku, barcode, category_id, unit, cost_price FROM products WHERE is_active=1`);
+  const normalizeCode = value => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9\u0600-\u06FF]/g, '');
+  const byCode = new Map();
+  for (const product of products) {
+    for (const value of [product.sku, product.barcode]) {
+      const key = normalizeCode(value);
+      if (key) byCode.set(key, product);
+    }
+  }
+  const byName = new Map(products.map(product => [String(product.name || '').trim().toLocaleLowerCase(), product]));
+  const items = result.items.map(item => {
+    const product = (item.code && byCode.get(normalizeCode(item.code))) || byName.get(item.name.toLocaleLowerCase()) || null;
+    return {
+      ...item,
+      product_id: product?.id || null,
+      matched_product: product ? { id: product.id, name: product.name, sku: product.sku, unit: product.unit } : null,
+    };
+  });
+  return res.json({ ...result, file_name: file.originalname, items });
+});
+
 router.post('/import-invoice', authorize('admin', 'manager'), invoiceFileUpload.single('invoice'), async (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'اختر ملف Excel أو CSV صحيحاً' });
