@@ -10,6 +10,7 @@
     groupRows: [],
     currentGroupId: null,
     memberSearch: "",
+    memberSelection: new Set(),
   };
   const $ = (id) => document.getElementById(id);
   const typeLabel = (type) => (type === "customers" ? "العملاء" : "الموردين");
@@ -709,6 +710,11 @@
     ob.currentGroupId = Number(id);
     const group = ob.groupRows.find((g) => Number(g.id) === Number(id));
     if (!group) return;
+    ob.memberSelection = new Set(
+      ob.groupPeople
+        .filter((person) => Number(person.group_id) === Number(group.id))
+        .map((person) => Number(person.id)),
+    );
     $("pgName").value = group.name;
     $("pgDescription").value = group.description || "";
     renderPartyGroupPeople();
@@ -729,7 +735,7 @@
         ),
     );
     $("pgMembers").innerHTML =
-      `<div style="font-weight:700">أعضاء ${esc(group.name)}</div><p class="text-muted" style="font-size:.78rem;line-height:1.5">عند الحفظ، نقل ${personLabel(ob.groupType)} من مجموعة أخرى يحدّث انتماءه تلقائياً. أزل التحديد لإبقائه بلا مجموعة.</p><div class="flex gap-sm"><input class="form-control" value="${esc(ob.memberSearch)}" placeholder="بحث عن ${personLabel(ob.groupType)}" aria-label="بحث الأعضاء" oninput="setPartyGroupSearch(this.value)"><button class="btn btn-ghost btn-xs" onclick="toggleAllPartyGroupPeople(true)">تحديد الكل</button><button class="btn btn-ghost btn-xs" onclick="toggleAllPartyGroupPeople(false)">مسح</button></div><div class="pg-member-list">${people.length ? people.map((p) => `<label class="pg-person"><input type="checkbox" value="${Number(p.id)}" ${Number(p.group_id) === Number(group.id) ? "checked" : ""} aria-label="${esc(p.name)}"><span><strong>${esc(p.name)}</strong><span class="text-muted" style="display:block;font-size:.73rem">${esc(p.code || "")}${p.group_id && Number(p.group_id) !== Number(group.id) ? " · سينتقل من مجموعته الحالية" : ""}</span></span></label>`).join("") : '<div class="empty-state"><div class="empty-title">لا توجد نتائج</div></div>'}</div><button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="savePartyGroupMembers()">حفظ الأعضاء</button>`;
+      `<div style="font-weight:700">أعضاء ${esc(group.name)}</div><p class="text-muted" style="font-size:.78rem;line-height:1.5">اختياراتك تظل محفوظة عند تغيير البحث. عند الحفظ، نقل ${personLabel(ob.groupType)} من مجموعة أخرى يحدّث انتماءه تلقائياً.</p><div class="flex gap-sm"><input class="form-control" value="${esc(ob.memberSearch)}" placeholder="بحث عن ${personLabel(ob.groupType)}" aria-label="بحث الأعضاء" oninput="setPartyGroupSearch(this.value)"><button class="btn btn-ghost btn-xs" onclick="toggleAllPartyGroupPeople(true)">تحديد الكل</button><button class="btn btn-ghost btn-xs" onclick="toggleAllPartyGroupPeople(false)">مسح النتائج</button></div><div class="pg-member-list">${people.length ? people.map((p) => `<label class="pg-person"><input type="checkbox" value="${Number(p.id)}" ${ob.memberSelection.has(Number(p.id)) ? "checked" : ""} aria-label="${esc(p.name)}" onchange="togglePartyGroupPerson(${Number(p.id)},this.checked)"><span><strong>${esc(p.name)}</strong><span class="text-muted" style="display:block;font-size:.73rem">${esc(p.code || "")}${p.group_id && Number(p.group_id) !== Number(group.id) ? " · سينتقل من مجموعته الحالية" : ""}</span></span></label>`).join("") : '<div class="empty-state"><div class="empty-title">لا توجد نتائج</div></div>'}</div><button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="savePartyGroupMembers()">حفظ الأعضاء</button>`;
   }
   window.setPartyGroupSearch = (value) => {
     ob.memberSearch = value;
@@ -747,7 +753,14 @@
       .querySelectorAll(".pg-person input")
       .forEach((input) => {
         input.checked = checked;
+        const id = Number(input.value);
+        if (checked) ob.memberSelection.add(id);
+        else ob.memberSelection.delete(id);
       });
+  window.togglePartyGroupPerson = (id, checked) => {
+    if (checked) ob.memberSelection.add(Number(id));
+    else ob.memberSelection.delete(Number(id));
+  };
   window.savePartyGroup = async function () {
     const name = $("pgName").value.trim();
     if (!name) {
@@ -781,9 +794,7 @@
   };
   window.savePartyGroupMembers = async function () {
     if (!ob.currentGroupId) return;
-    const ids = [
-      ...$("pgMembers").querySelectorAll(".pg-person input:checked"),
-    ].map((input) => Number(input.value));
+    const ids = [...ob.memberSelection];
     try {
       await API.put(
         `/party-groups/${ob.groupType}/${ob.currentGroupId}/members`,
