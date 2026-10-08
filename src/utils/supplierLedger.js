@@ -30,15 +30,16 @@ async function getSupplierBalance(supplierId) {
     WHERE supplier_id = ?
   `, [supplierId]);
 
-  const totalInvoiced = (supplier.opening_balance || 0) + (poTotals.total_invoiced || 0);
-  const totalPaid     = payTotals.total_paid || 0;
-  const balance       = totalInvoiced - totalPaid;
+  const openingBalance = round2(supplier.opening_balance || 0);
+  const totalInvoiced = round2(poTotals.total_invoiced || 0);
+  const totalPaid = round2(payTotals.total_paid || 0);
+  const balance = round2(openingBalance + totalInvoiced - totalPaid);
 
   return {
-    opening_balance:  supplier.opening_balance || 0,
-    total_invoiced:   poTotals.total_invoiced || 0,
-    total_paid:       totalPaid,
-    balance,           // موجب = المورد دائن علينا
+    opening_balance: openingBalance,
+    total_invoiced: totalInvoiced,
+    total_paid: totalPaid,
+    balance, // موجب = المورد دائن علينا
     is_overdue:       false,
   };
 }

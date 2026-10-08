@@ -22,15 +22,16 @@ async function getCustomerBalance(customerId) {
     FROM sales_returns WHERE customer_id=? AND status='completed'
   `,[customerId]);
 
-  const totalInvoiced  = (customer.opening_balance||0) + (invTotals.total_invoiced||0);
-  const totalPaid      = (payTotals.total_paid||0) + (returnTotals.total_refunded||0);
-  const balance        = totalInvoiced - totalPaid; // موجب = العميل مدين لنا
+  const openingBalance = round2(customer.opening_balance || 0);
+  const totalInvoiced = round2(invTotals.total_invoiced || 0);
+  const totalPaid = round2((payTotals.total_paid || 0) + (returnTotals.total_refunded || 0));
+  const balance = round2(openingBalance + totalInvoiced - totalPaid); // موجب = العميل مدين لنا
 
   return {
-    opening_balance:   customer.opening_balance||0,
-    total_invoiced:    invTotals.total_invoiced||0,
-    total_paid:        payTotals.total_paid||0,
-    total_refunded:    returnTotals.total_refunded||0,
+    opening_balance: openingBalance,
+    total_invoiced: totalInvoiced,
+    total_paid: round2(payTotals.total_paid || 0),
+    total_refunded: round2(returnTotals.total_refunded || 0),
     balance,
   };
 }

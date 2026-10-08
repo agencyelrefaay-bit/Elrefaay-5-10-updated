@@ -932,6 +932,20 @@ html[data-going="light"]::view-transition-new(root) { z-index: 2147483646; }
   box-shadow: var(--shadow-input);
 }
 
+/* Keep numeric entry fields easy to scan and consistently left-to-right in the Arabic UI. */
+.form-control[type="number"],
+.form-control[type="tel"],
+input[inputmode="decimal"],
+input[inputmode="numeric"],
+input[inputmode="tel"] {
+  direction: ltr;
+  text-align: start;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
 .form-control:focus {
   border-color: var(--gold-1);
   box-shadow: 0 0 0 3px var(--gold-glow-sm);
@@ -1366,6 +1380,9 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
 ════════════════════════════════════════ */
 .page { display: none; animation: pageIn var(--t-med) var(--ease-smooth); }
 .page.active { display: block; }
+@keyframes erpDataFresh { from { opacity: 0.72; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+.page.erp-refresh-pulse { animation: erpDataFresh 420ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .page.erp-refresh-pulse { animation: none; } }
 
 @keyframes pageIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -3582,10 +3599,17 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
             <div class="page-title">أوامر الشراء</div>
             <div class="page-subtitle">إنشاء ومتابعة أوامر الشراء من الموردين</div>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openPOModal()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            أمر شراء جديد
-          </button>
+          <div class="flex gap-sm">
+            <input id="poInvoiceFile" type="file" accept=".xlsx,.xls,.csv,.pdf,image/*" hidden onchange="importPurchaseInvoice(this)"/>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('poInvoiceFile').click()" title="استيراد فاتورة Excel أو CSV">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              استيراد فاتورة
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openPOModal()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              أمر شراء جديد
+            </button>
+          </div>
         </div>
 
         <div class="filters-bar">
@@ -3822,6 +3846,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
             <div class="ob-filters">
               <input class="form-control" id="obSearch" type="search" placeholder="ابحث بالاسم أو الكود أو الهاتف" oninput="renderOutstandingPeople()" aria-label="بحث">
               <select class="form-control" id="obGroupFilter" onchange="renderOutstandingPeople()" aria-label="تصفية حسب المجموعة"><option value="">كل المجموعات</option></select>
+              <select class="form-control" id="obBalanceFilter" onchange="renderOutstandingPeople();renderOutstandingPreview()" aria-label="تصفية حسب الرصيد"><option value="all">كل الأرصدة</option><option value="nonzero">عليهم رصيد فقط</option><option value="zero">رصيد صفر فقط</option></select>
               <button type="button" class="btn btn-subtle btn-sm" onclick="selectVisibleOutstanding()">تحديد الظاهر</button>
             </div>
             <div id="obPeopleList" class="ob-people-list"><div class="empty-state"><div class="spinner" style="margin:auto"></div></div></div>
@@ -5028,6 +5053,12 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
         <label class="form-label">ملاحظات</label>
         <input type="text" class="form-control" id="poNotes" placeholder="اختياري..."/>
       </div>
+      <div id="poInvoiceReceiptOption" style="display:none;margin:var(--s-md) 0;padding:var(--s-md);border:1px solid var(--gold-border);border-radius:var(--r-md);background:var(--gold-glow-sm);">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;color:var(--cream-1);font-size:0.86rem;">
+          <input id="poInvoiceReceiveNow" type="checkbox" checked style="margin-top:3px;accent-color:var(--gold-1);"/>
+          <span><strong>البضاعة وصلت بالفعل — سجّل الاستلام مع الفاتورة</strong><small style="display:block;color:var(--cream-4);margin-top:3px;line-height:1.6;">سيتم إضافة الكميات للمخزون بعد تأكيد الأمر. أزل العلامة إذا كان الاستلام سيتم لاحقاً.</small></span>
+        </label>
+      </div>
       <div class="divider"><span class="divider-label">بنود الأمر</span></div>
       <!-- PO items table header -->
       <div style="display:grid;grid-template-columns:1fr 70px 90px 7% 130px 90px 32px;gap:6px;padding:0 0 6px;font-size:0.68rem;font-weight:700;color:var(--cream-4);letter-spacing:0.1em;text-transform:uppercase;">
@@ -5110,8 +5141,8 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
     </div>
     <div class="modal-footer">
       <button class="btn btn-subtle btn-sm" onclick="closeModal('poModal')">إلغاء</button>
-      <button class="btn btn-ghost btn-sm" onclick="savePO('draft')">حفظ كمسودة</button>
-      <button class="btn btn-primary btn-sm" onclick="savePO('sent')">إرسال للمورد</button>
+      <button id="poDraftSaveBtn" class="btn btn-ghost btn-sm" onclick="savePO('draft')">حفظ كمسودة</button>
+      <button id="poSubmitBtn" class="btn btn-primary btn-sm" onclick="savePO('sent')">إرسال للمورد</button>
     </div>
   </div>
 </div>
@@ -5701,6 +5732,7 @@ const API = {
     const r = await fetch(this.base + path, opts);
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    if (method !== 'GET') window.__erpBroadcastChange?.(path, method);
     return data;
   },
   get: (p) => API.req('GET', p),
@@ -5708,6 +5740,16 @@ const API = {
   put: (p, b) => API.req('PUT', p, b),
   delete: (p) => API.req('DELETE', p),
 };
+
+const ERP_SYNC_TAB_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const ERP_SYNC_CHANNEL = typeof BroadcastChannel === 'function' ? new BroadcastChannel('alrifai-erp-data') : null;
+window.__erpBroadcastChange = (path, method) => {
+  ERP_SYNC_CHANNEL?.postMessage({ source: ERP_SYNC_TAB_ID, path, method, at: Date.now() });
+};
+ERP_SYNC_CHANNEL?.addEventListener('message', event => {
+  if (!state.token || event.data?.source === ERP_SYNC_TAB_ID) return;
+  refreshActiveRouteAfterRemoteChange();
+});
 
 // ── Toast ──
 function toast(msg, type = 'success') {
@@ -5785,6 +5827,7 @@ function openModal(id) {
 function closeModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  if (id === 'productModal') window._poInvoiceProductUid = null;
   el.classList.remove('open');
 
   const focusState = _modalFocusState.get(id);
@@ -5898,10 +5941,34 @@ function initApp() {
 
   // Load initial data
   loadCategories().then(() => {
-    navigate('dashboard');
+    restoreAppRoute();
     loadLocations();
     loadProducts();
   });
+}
+
+function restoreAppRoute() {
+  const routeFromHash = (() => {
+    const match = String(location.hash || '').match(/^#\/?([a-z][a-z-]*)(?:\/(.*))?$/i);
+    return match ? { page: match[1], entity: match[2] ? decodeURIComponent(match[2]) : null } : null;
+  })();
+  let route = routeFromHash;
+  if (!route) {
+    try { route = JSON.parse(sessionStorage.getItem('erpCurrentRoute') || 'null'); } catch (_) { route = null; }
+  }
+  const page = route?.page;
+  if (page === 'po-detail' && Number(route.entity) > 0) return viewPO(Number(route.entity));
+  if (page === 'supplier-detail' && Number(route.entity) > 0) return viewSupplier(Number(route.entity));
+  if (page === 'account-statement' && route.entity) {
+    const [accountType, accountId, encodedName = ''] = String(route.entity).split(':');
+    if (['customer', 'supplier'].includes(accountType) && Number(accountId) > 0) {
+      const today = new Date(), first = new Date(today.getFullYear(), today.getMonth(), 1);
+      state.acctStatement = { accountType, accountId: Number(accountId), accountName: decodeURIComponent(encodedName), dateFrom: asISO(first), dateTo: asISO(today), quickRange: 'this_month', data: null };
+      return navigate(page, route.entity);
+    }
+  }
+  if (page && document.getElementById(`page-${page}`)) return navigate(page, route.entity || null);
+  navigate('dashboard');
 }
 
 // ── إعدادات الشركة ──
@@ -6338,6 +6405,13 @@ document.addEventListener('keydown', (e) => {
 
 function navigate(page, entity = null) {
   state.currentPage = page;
+  state.currentEntity = entity == null ? null : entity;
+  const route = { page, entity: state.currentEntity };
+  try {
+    sessionStorage.setItem('erpCurrentRoute', JSON.stringify(route));
+    const hash = `#${page}${entity == null ? '' : `/${encodeURIComponent(String(entity))}`}`;
+    if (location.hash !== hash) history.replaceState(route, '', `${location.pathname}${location.search}${hash}`);
+  } catch (_) { /* navigation should still work if storage is unavailable */ }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -6417,13 +6491,56 @@ function navigate(page, entity = null) {
   if (page === 'settings') loadSettingsPage();
 }
 
+function refreshActiveRouteAfterRemoteChange() {
+  const page = state.currentPage;
+  const entity = state.currentEntity;
+  const refreshers = {
+    dashboard: loadDashboard,
+    products: loadProducts,
+    inventory: loadInventory,
+    transfers: loadTransfers,
+    locations: loadLocations,
+    'inventory-count': renderInventoryCountHome,
+    'account-statement': renderAccountStatement,
+    categories: () => loadCategories().then(renderCategories),
+    users: loadUsers,
+    auditlog: loadAuditLog,
+    movements: loadMovements,
+    suppliers: loadSuppliers,
+    'purchase-orders': loadPurchaseOrders,
+    installments: loadInstallments,
+    customers: loadCustomers,
+    invoices: loadInvoices,
+    'sales-returns': loadSalesReturns,
+    'cust-installments': loadCustInstallments,
+    collections: loadCollectionsPage,
+    'outstanding-balances': loadOutstandingBalances,
+    expenses: loadExpenses,
+    commissions: loadCommissions,
+    reports: loadReports,
+    settings: loadSettingsPage,
+  };
+  if (page === 'po-detail' && Number(entity) > 0) return viewPO(Number(entity));
+  if (page === 'supplier-detail' && Number(entity) > 0) return viewSupplier(Number(entity));
+  const refresh = refreshers[page];
+  if (!refresh) return;
+  const activePage = document.getElementById(`page-${page}`);
+  if (activePage) {
+    activePage.classList.remove('erp-refresh-pulse');
+    void activePage.offsetWidth;
+    activePage.classList.add('erp-refresh-pulse');
+    setTimeout(() => activePage.classList.remove('erp-refresh-pulse'), 420);
+  }
+  refresh();
+}
+
 function openImportPage() { navigate('import'); }
 
 // ── Dashboard ──
 async function loadDashboard() {
   // Update greeting
   const u = state.user;
-  document.getElementById('topbarSubtitle').textContent = `${getDashGreeting()}، ${u?.full_name || ''} — ${new Date().toLocaleDateString('ar-EG', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}`;
+  document.getElementById('topbarSubtitle').textContent = `${getDashGreeting()}، ${u?.full_name || ''} — ${new Date().toLocaleDateString('ar-EG-u-nu-latn', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}`;
 
   // Stats
   try {
@@ -6455,7 +6572,7 @@ async function loadDashboard() {
       </div>
       <div class="stat-card" style="--accent-glow:var(--success-bg);">
         <div class="stat-label">قيمة المخزون</div>
-        <div class="stat-value" style="font-size:1.5rem;">${totalValue.toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م</div>
+        <div class="stat-value" style="font-size:1.5rem;">${totalValue.toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م</div>
         <div class="stat-meta text-success">بسعر البيع</div>
         <div class="stat-icon-wrap" style="color:var(--success);">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -6496,7 +6613,7 @@ async function loadDashboard() {
           <div class="activity-dot success"></div>
           <div>
             <div class="activity-text">تحويل <strong>${t.transfer_number}</strong> من <strong>${t.from_location_name}</strong> إلى <strong>${t.to_location_name}</strong></div>
-            <div class="activity-time">${new Date(t.created_at).toLocaleString('ar-EG')}</div>
+            <div class="activity-time">${new Date(t.created_at).toLocaleString('ar-EG-u-nu-latn')}</div>
           </div>
         </div>
       `).join('');
@@ -6701,7 +6818,7 @@ function renderProducts() {
           <div class="product-card-meta">${p.sku || '—'}${measureLabel}</div>
           ${(p.suppliers && p.suppliers.length) ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">${p.suppliers.map(s => `<span class="supplier-tag" title="من مورد: ${escHtml(s.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-6 9 6v11a1 1 0 01-1 1H4a1 1 0 01-1-1z"/></svg>${escHtml(s.name)}</span>`).join('')}</div>` : ''}
           <div class="product-card-footer">
-            <span class="product-card-price">${p.sale_price.toLocaleString('ar-EG')} ج.م</span>
+            <span class="product-card-price">${p.sale_price.toLocaleString('ar-EG-u-nu-latn')} ج.م</span>
             <span class="product-card-stock">${fmtN(p.total_quantity, 2)} ${unitLabel}</span>
           </div>
         </div>
@@ -6737,7 +6854,7 @@ function renderProducts() {
             ${p.is_low_stock ? '<span class="badge badge-danger" style="font-size:0.62rem;">منخفض</span>' : ''}
           </div>`;
         } },
-      { key: 'sale_price', label: 'سعر البيع', priority: 'primary', render: p => `<span style="font-weight:600;color:var(--gold-0);">${p.sale_price.toLocaleString('ar-EG')} ج.م</span>` },
+      { key: 'sale_price', label: 'سعر البيع', priority: 'primary', render: p => `<span style="font-weight:600;color:var(--gold-0);">${p.sale_price.toLocaleString('ar-EG-u-nu-latn')} ج.م</span>` },
       { key: 'is_active', label: 'الحالة', priority: 'primary', isStatus: true, render: p => `<span class="badge ${p.is_active ? 'badge-success' : 'badge-muted'}">${p.is_active ? 'نشط' : 'غير نشط'}</span>` },
     ],
     rows: filtered,
@@ -6909,7 +7026,7 @@ function updatePmMargin() {
   const hint = document.getElementById('pmMarginHint');
   if (cost > 0 && sale > 0) {
     const margin = (((sale - cost) / cost) * 100).toFixed(1);
-    const profit = (sale - cost).toLocaleString('ar-EG', { maximumFractionDigits: 2 });
+    const profit = (sale - cost).toLocaleString('ar-EG-u-nu-latn', { maximumFractionDigits: 2 });
     hint.style.display = '';
     hint.textContent = `هامش الربح: ${margin}% (${profit} ج.م لكل وحدة)`;
     hint.style.color = sale >= cost ? 'var(--success)' : 'var(--danger)';
@@ -6918,7 +7035,7 @@ function updatePmMargin() {
   }
 }
 
-function openProductModal(productId = null) {
+function openProductModal(productId = null, prefill = null) {
   document.getElementById('pmId').value = '';
   document.getElementById('pmName').value = '';
   document.getElementById('pmSku').value = '';
@@ -6963,6 +7080,15 @@ function openProductModal(productId = null) {
         </div>
       `).join('')
     : '<div style="font-size:0.8rem; color:var(--cream-4);">لا توجد مواقع نشطة</div>';
+
+  if (prefill && !productId) {
+    document.getElementById('pmName').value = prefill.name || '';
+    document.getElementById('pmSku').value = prefill.code || '';
+    document.getElementById('pmCostPrice').value = prefill.unit_cost ?? '';
+    document.getElementById('pmDesc').value = prefill.description || '';
+    document.getElementById('pmStockDisclosure').style.display = 'none';
+    window._poInvoiceProductUid = prefill.poUid;
+  }
 
   openModal('productModal');
 }
@@ -7041,6 +7167,7 @@ async function editProduct(id) {
 
 async function saveProduct() {
   const id = document.getElementById('pmId').value;
+  const invoiceProductUid = !id ? (Number(window._poInvoiceProductUid) || null) : null;
 
   const unit = document.getElementById('pmUnit').value;
   const isMeasuredUnit = !!PM_MEASURED_UNITS[unit];
@@ -7068,6 +7195,10 @@ async function saveProduct() {
 
   const categoryId = document.getElementById('pmCategory').value;
   formData.append('category_id', categoryId);
+  if (invoiceProductUid && !categoryId) {
+    toast('اختر تصنيفاً للمنتج الجديد قبل إضافته من فاتورة المورد', 'danger');
+    return;
+  }
 
   formData.append('unit', unit);
   formData.append('unit_measurement', isMeasuredUnit ? measurement : '');
@@ -7125,8 +7256,24 @@ async function saveProduct() {
     }
 
     toast(id ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح');
+    if (invoiceProductUid) window._poInvoiceProductUid = null;
     closeModal('productModal');
     await loadProducts();
+    if (!id && invoiceProductUid) {
+      const uid = invoiceProductUid;
+      const poRow = document.getElementById(`poProdPicker${uid}`)?.closest('.po-item-card');
+      const productField = poRow?.querySelector('.po-item-product');
+      if (productField && productId) {
+        productField.value = productId;
+        updatePoProdPickerLabel(uid);
+        const invoiceRow = _poInvoiceImportedRows.get(uid);
+        if (invoiceRow) invoiceRow.product_id = productId;
+        poRow.querySelector('.po-item-cost').value = invoiceRow?.unit_cost ?? data.product?.cost_price ?? '';
+        poRow.querySelector('.po-item-import-create')?.remove();
+        _poInvoiceImportedRows.delete(uid);
+        recalcPO();
+      }
+    }
   } catch (err) {
     toast('خطأ: ' + err.message, 'danger');
   } finally {
@@ -7255,7 +7402,7 @@ function renderCategories() {
       <td><span class="mono">${c.id}</span></td>
       <td style="font-weight:600;">${c.name}</td>
       <td style="color:var(--cream-4);">${c.description || '—'}</td>
-      <td class="text-muted text-xs">${new Date(c.created_at).toLocaleDateString('ar-EG')}</td>
+      <td class="text-muted text-xs">${new Date(c.created_at).toLocaleDateString('ar-EG-u-nu-latn')}</td>
       <td>
         <button class="btn btn-xs btn-subtle" onclick="editCategory(${c.id})">تعديل</button>
       </td>
@@ -7701,7 +7848,7 @@ function openAccountStatement(accountType, accountId, accountName) {
     dateFrom: asISO(first), dateTo: asISO(today),
     quickRange: 'this_month', data: null,
   };
-  navigate('account-statement');
+  navigate('account-statement', `${accountType}:${accountId}:${encodeURIComponent(accountName || '')}`);
 }
 
 function asISO(d) { return d.toISOString().slice(0, 10); }
@@ -7886,7 +8033,7 @@ function buildStatementPrintHTML(s) {
   const accountTypeLabel = isCustomer ? 'كشف حساب عميل' : 'كشف حساب مورد';
   const closing = st.closing_balance;
   const closingColor = closing > 0.005 ? '#b3261e' : closing < -0.005 ? '#1f7a42' : '#1a1208';
-  const money = n => Math.abs(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const money = n => Math.abs(n || 0).toLocaleString('ar-EG-u-nu-latn', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // نفس تبويب "المبيعات / المرتجع / التحصيل" المستخدم في كشف العميل اليدوي
   // (الإكسيل المرجعي) — بس هنا لكل حركة منفردة ومربوطة بمستندها الأصلي،
@@ -7996,7 +8143,7 @@ function buildStatementPrintHTML(s) {
         </div>
         <div class="doc-title">
           <div class="t">${accountTypeLabel}</div>
-          <div class="n">تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}</div>
+          <div class="n">تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}</div>
         </div>
       </div>
       <div class="gold-strip"></div>
@@ -8031,7 +8178,7 @@ function buildStatementPrintHTML(s) {
         </div>
 
         <div class="footer">
-          <span>تم الإنشاء بواسطة: ${state.user?.full_name || '—'} — ${new Date().toLocaleString('ar-EG')}</span>
+          <span>تم الإنشاء بواسطة: ${state.user?.full_name || '—'} — ${new Date().toLocaleString('ar-EG-u-nu-latn')}</span>
           <span>${company.company_name}</span>
           <span class="page-number">صفحة</span>
         </div>
@@ -8130,7 +8277,7 @@ async function loadInventory() {
         <div class="location-card ${!state.selectedLocationId ? 'active' : ''}" onclick="selectInventoryLocation(null)">
           <div class="location-name">كل المواقع</div>
           <span class="badge badge-muted">شامل</span>
-          <div class="location-total">${state.inventory.reduce((s,r) => s + r.quantity, 0).toLocaleString('ar-EG', {maximumFractionDigits:1})}</div>
+          <div class="location-total">${state.inventory.reduce((s,r) => s + r.quantity, 0).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:1})}</div>
           <div class="location-total-label">إجمالي الكميات</div>
         </div>
       `;
@@ -8138,7 +8285,7 @@ async function loadInventory() {
         <div class="location-card ${state.selectedLocationId === l.id ? 'active' : ''}" onclick="selectInventoryLocation(${l.id})">
           <div class="location-name">${l.name}</div>
           <span class="badge ${l.type === 'showroom' ? 'badge-gold' : 'badge-info'} location-type-badge">${l.type === 'showroom' ? 'صالة عرض' : 'مخزن'}</span>
-          <div class="location-total">${l.total.toLocaleString('ar-EG', {maximumFractionDigits:1})}</div>
+          <div class="location-total">${l.total.toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:1})}</div>
           <div class="location-total-label">إجمالي المخزون</div>
         </div>
       `).join('');
@@ -8340,7 +8487,7 @@ function renderTransfers() {
       <td>${t.from_location_name}</td>
       <td>${t.to_location_name}</td>
       <td><span class="badge badge-muted">${t.items?.length || 0} منتجات</span></td>
-      <td class="text-muted text-xs">${new Date(t.created_at).toLocaleString('ar-EG')}</td>
+      <td class="text-muted text-xs">${new Date(t.created_at).toLocaleString('ar-EG-u-nu-latn')}</td>
       <td><span class="badge badge-success">مكتمل</span></td>
     </tr>
   `).join('');
@@ -8420,7 +8567,7 @@ function viewTransfer(id) {
       <div><div class="form-label">إلى الموقع</div><div style="font-size:1rem;color:var(--cream-0);">${t.to_location_name}</div></div>
     </div>
     <div class="form-row" style="margin-bottom:var(--s-lg);">
-      <div><div class="form-label">التاريخ</div><div style="font-size:0.85rem;color:var(--cream-3);">${new Date(t.created_at).toLocaleString('ar-EG')}</div></div>
+      <div><div class="form-label">التاريخ</div><div style="font-size:0.85rem;color:var(--cream-3);">${new Date(t.created_at).toLocaleString('ar-EG-u-nu-latn')}</div></div>
       <div><div class="form-label">الحالة</div><span class="badge badge-success">مكتمل</span></div>
     </div>
     ${t.notes ? `<div style="margin-bottom:var(--s-md);"><div class="form-label">ملاحظات</div><div style="font-size:0.85rem;color:var(--cream-3);">${t.notes}</div></div>` : ''}
@@ -8992,7 +9139,7 @@ const installStatusBadge = { pending:'badge-info', partial:'badge-warn', paid:'b
 const payMethodLabel = { cash:'نقداً', bank_transfer:'تحويل بنكي', cheque:'شيك', vodafone_cash:'فودافون كاش', instapay:'إنستاباي', other:'أخرى' };
 const EGYPT_GOVERNORATES = ['القاهرة','الجيزة','الإسكندرية','الدقهلية','البحر الأحمر','البحيرة','الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا','القليوبية','الوادي الجديد','السويس','اسوان','اسيوط','بني سويف','بورسعيد','دمياط','الشرقية','جنوب سيناء','كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج'];
 
-function fmt(n) { return (n||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt(n) { return (n||0).toLocaleString('ar-EG-u-nu-latn',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 // حساب تاريخ استحقاق القسط رقم i بناءً على تاريخ البداية والتكرار
 // (أسبوعي/شهري) — دالة مشتركة بين جدول أقساط الفواتير (عملاء) وأوامر
@@ -9003,11 +9150,36 @@ function addInstallInterval(startDateStr, i, freq) {
   else d.setMonth(d.getMonth() + i); // monthly (الافتراضي)
   return d;
 }
-// General-purpose display formatter for plain numbers/counts/quantities (Arabic-Indic digits).
+// General-purpose display formatter for plain numbers/counts/quantities (Western digits with Arabic locale conventions).
 // Use for anything shown to the user as a number — NOT for codes, phone numbers, IDs,
 // or values inside <input> fields (those must stay plain Western digits).
-function fmtN(n, maxFrac = 0) { return (n||0).toLocaleString('ar-EG', {maximumFractionDigits: maxFrac}); }
-function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ar-EG') : '—'; }
+function fmtN(n, maxFrac = 0) { return (n||0).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits: maxFrac}); }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ar-EG-u-nu-latn') : '—'; }
+
+// Convert Arabic-Indic input glyphs to the canonical Western digits accepted by the API.
+function normalizeNumericInput(field) {
+  if (!field || !/^(number|tel)$/.test(field.type) && !/^(decimal|numeric|tel)$/.test(field.inputMode || '')) return;
+  const normalized = String(field.value || '').replace(/[٠-٩۰-۹]/g, digit => {
+    const index = digit >= '۰' && digit <= '۹' ? '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit) : '٠١٢٣٤٥٦٧٨٩'.indexOf(digit);
+    return String(index);
+  });
+  if (normalized !== field.value) field.value = normalized;
+}
+document.addEventListener('input', event => normalizeNumericInput(event.target), true);
+document.addEventListener('beforeinput', event => {
+  const field = event.target;
+  const data = event.data;
+  if (!data || !field || !(/^(number|tel)$/.test(field.type) || /^(decimal|numeric|tel)$/.test(field.inputMode || ''))) return;
+  if (!/[٠-٩۰-۹]/.test(data)) return;
+  const normalized = data.replace(/[٠-٩۰-۹]/g, digit => String(digit >= '۰' && digit <= '۹' ? '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit) : '٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+  event.preventDefault();
+  const canSetCaret = ['text', 'search', 'tel', 'url', 'password'].includes(field.type);
+  const start = canSetCaret && Number.isInteger(field.selectionStart) ? field.selectionStart : field.value.length;
+  const end = canSetCaret && Number.isInteger(field.selectionEnd) ? field.selectionEnd : start;
+  field.value = field.value.slice(0, start) + normalized + field.value.slice(end);
+  if (canSetCaret) field.setSelectionRange(start + normalized.length, start + normalized.length);
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 // ── SUPPLIERS ──
 async function loadSuppliers() {
@@ -9128,7 +9300,7 @@ async function saveSupplier() {
 
 async function viewSupplier(id) {
   state.currentSupplierId = id;
-  navigate('supplier-detail');
+  navigate('supplier-detail', id);
   try {
     const data = await API.get(`/suppliers/${id}`);
     const s = data.supplier;
@@ -9350,7 +9522,7 @@ function renderBulkLinkList() {
               ${otherSuppliers.map(s => `<span class="supplier-tag">${escHtml(s.name)}</span>`).join('')}
             </div>
           </div>
-          <div style="font-size:0.8rem;color:var(--cream-3);white-space:nowrap;">${(p.sale_price||0).toLocaleString('ar-EG')} ج.م</div>
+          <div style="font-size:0.8rem;color:var(--cream-3);white-space:nowrap;">${(p.sale_price||0).toLocaleString('ar-EG-u-nu-latn')} ج.م</div>
         </label>`;
     }).join('');
   }
@@ -9415,6 +9587,71 @@ async function loadPurchaseOrders() {
   } catch(err) { toast('فشل تحميل أوامر الشراء: ' + err.message, 'danger'); }
 }
 
+async function importPurchaseInvoice(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+    toast('استخراج البنود آلياً من PDF أو صورة يحتاج محرك OCR غير مُعدّ في هذا النظام. يمكنك إنشاء الأمر يدوياً الآن، أو استيراد نسخة Excel/CSV من الفاتورة.', 'warning');
+    input.value = '';
+    return;
+  }
+  const form = new FormData();
+  form.append('invoice', file);
+  try {
+    const result = await API.post('/purchase-orders/import-invoice', form);
+    const selectedSupplier = document.getElementById('poSupplierFilter')?.value || '';
+    openPOModal(selectedSupplier || null);
+    document.getElementById('poPurchaseType').value = 'credit';
+    togglePOInstallSection();
+    document.getElementById('poNotes').value = `استيراد بنود من ${file.name}`;
+    window.__poImportedInvoiceMode = true;
+    document.getElementById('poInvoiceReceiptOption').style.display = '';
+    document.getElementById('poInvoiceReceiveNow').checked = true;
+    document.getElementById('poDraftSaveBtn').textContent = 'حفظ كمسودة (لن تُسجّل مديونية)';
+    document.getElementById('poSubmitBtn').textContent = 'تأكيد الفاتورة وإثبات المديونية';
+    document.getElementById('poItemsList').innerHTML = '';
+    _poInvoiceImportedRows = new Map();
+    result.items.forEach(item => {
+      addPOItem();
+      const row = document.querySelector('#poItemsList > .po-item-card:last-child');
+      const uid = Number(row?.querySelector('.po-item-product')?.id.replace('poProdField', ''));
+      const productField = row?.querySelector('.po-item-product');
+      const qtyField = row?.querySelector('.po-item-qty');
+      const costField = row?.querySelector('.po-item-cost');
+      const discountField = row?.querySelector('.po-item-disc');
+      if (productField && item.product_id) {
+        productField.value = item.product_id;
+        updatePoProdPickerLabel(uid);
+      } else {
+        const search = document.getElementById(`poProdPickerQ${uid}`);
+        if (search) search.value = item.code || item.name;
+        _poInvoiceImportedRows.set(uid, item);
+        row?.querySelector('.inv-line-card-top')?.insertAdjacentHTML('beforeend', `<button type="button" class="btn btn-ghost btn-xs po-item-import-create" onclick="createProductFromInvoice(${uid})" title="إضافة هذا الصنف إلى كتالوج المنتجات">+ إنشاء منتج</button>`);
+      }
+      if (qtyField) qtyField.value = item.qty_ordered;
+      if (costField) costField.value = item.unit_cost;
+      if (discountField) discountField.value = item.discount_pct;
+    });
+    recalcPO();
+    const unmatched = result.unmatched_count || 0;
+    const skippedRows = result.issues?.length || 0;
+    toast(unmatched || skippedRows
+      ? `تمت قراءة ${result.items.length} بنداً. ${unmatched} بند يحتاج ربطه بمنتج، وتم تجاوز ${skippedRows} صف غير صالح.`
+      : `تمت قراءة ${result.items.length} بنداً ومطابقتها. راجع المورد والمخزن والإجمالي قبل الحفظ.`, unmatched || skippedRows ? 'warning' : 'success');
+  } catch (error) {
+    toast('تعذرت قراءة الفاتورة: ' + error.message, 'danger');
+  } finally {
+    input.value = '';
+  }
+}
+
+function createProductFromInvoice(uid) {
+  const item = _poInvoiceImportedRows.get(Number(uid));
+  if (!item) return;
+  openProductModal(null, { poUid: Number(uid), name: item.name, code: item.code, unit_cost: item.unit_cost });
+}
+
 function renderPurchaseOrders() {
   const orders = state.purchaseOrders;
 
@@ -9475,6 +9712,10 @@ function renderPurchaseOrders() {
 RDV_PAGE_REFRESHERS['purchase-orders'] = renderPurchaseOrders;
 
 function openPOModal(presetSupplierId = null) {
+  window.__poImportedInvoiceMode = false;
+  document.getElementById('poInvoiceReceiptOption').style.display = 'none';
+  document.getElementById('poDraftSaveBtn').textContent = 'حفظ كمسودة';
+  document.getElementById('poSubmitBtn').textContent = 'إرسال للمورد';
   // Populate dropdowns
   const sSel = document.getElementById('poSupplier');
   sSel.innerHTML = '<option value="">اختر المورد...</option>' + state.suppliers.filter(s => s.is_active).map(s => `<option value="${s.id}" ${s.id == presetSupplierId ? 'selected' : ''}>${s.name}</option>`).join('');
@@ -9572,6 +9813,7 @@ function updatePOSupplierInfo() {
 }
 
 let _poItems = [];
+let _poInvoiceImportedRows = new Map();
 
 let _poItemUid = 0;
 
@@ -9619,7 +9861,7 @@ function addPOItem() {
 }
 
 // _poCurrentTotal: نفس مبدأ إصلاح فاتورة المبيعات — نخزّن الإجمالي كرقم خام بدل
-// ما نحاول نعيد قراءته من نص متنسّق بـ toLocaleString('ar-EG')، اللي بيطبع أرقام
+// ما نحاول نعيد قراءته من نص متنسّق بـ toLocaleString('ar-EG-u-nu-latn')، اللي بيطبع أرقام
 // هندية عربية على بعض المتصفحات ويكسر أي regex بيدوّر على أرقام إنجليزية 0-9.
 let _poCurrentTotal = 0;
 
@@ -9704,7 +9946,7 @@ function renderAutoPOInstallments() {
     _poInstallmentSchedule.map((inst, i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--overlay-05);font-size:0.78rem;">
       <span class="text-muted">القسط ${i+1}</span>
       <span class="mono">${fmt(inst.amount)} ج.م</span>
-      <span class="text-muted">${new Date(inst.due_date).toLocaleDateString('ar-EG')}</span>
+      <span class="text-muted">${new Date(inst.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</span>
     </div>`).join('')
   }</div>`;
 }
@@ -9804,10 +10046,29 @@ async function savePO(status) {
 async function submitPO(body) {
   try {
     const data = await API.post('/purchase-orders', body);
-    toast('تم إنشاء أمر الشراء بنجاح');
+    let receiptWarning = '';
+    const shouldReceiveImportedInvoice = window.__poImportedInvoiceMode && body.status === 'sent' && document.getElementById('poInvoiceReceiveNow')?.checked;
+    if (shouldReceiveImportedInvoice && data.order?.id) {
+      try {
+        const detail = await API.get(`/purchase-orders/${data.order.id}`);
+        await API.post('/purchase-receipts', {
+          po_id: data.order.id,
+          supplier_id: body.supplier_id,
+          location_id: body.location_id,
+          receipt_date: body.order_date,
+          notes: `استلام الفاتورة الواردة ${data.order.po_number}`,
+          items: (detail.items || []).map(item => ({ po_item_id: item.id, product_id: item.product_id, qty_received: item.qty_ordered, location_id: item.location_id })),
+        });
+      } catch (receiptError) {
+        receiptWarning = `تم إنشاء الأمر وإثبات المديونية، لكن لم يكتمل تحديث المخزون: ${receiptError.message}. افتح الأمر وسجّل الاستلام بعد مراجعة المخازن.`;
+      }
+    }
+    window.__poImportedInvoiceMode = false;
+    toast(receiptWarning || ('تم إنشاء أمر الشراء بنجاح' + (shouldReceiveImportedInvoice ? ' وتسجيل استلام البضاعة بالمخازن المحددة' : '')), receiptWarning ? 'warning' : 'success');
     closeModal('poModal');
     loadPurchaseOrders();
     if (typeof loadSuppliers === 'function') loadSuppliers();
+    if (shouldReceiveImportedInvoice && !receiptWarning) { loadInventory(); loadProducts(); }
     if (data.order?.id) viewPO(data.order.id);
   } catch(err) {
     // مدير النظام فقط يقدر يتجاوز حد ائتمان المورد — تأكيد صريح بدل الرفض الصامت
@@ -9869,7 +10130,7 @@ function poAccountCardHtml(o) {
 
 async function viewPO(id) {
   state.currentPOId = id;
-  navigate('po-detail');
+  navigate('po-detail', id);
   try {
     const data = await API.get(`/purchase-orders/${id}`);
     const o = data.order;
@@ -9900,9 +10161,9 @@ async function viewPO(id) {
     document.getElementById('podBody').innerHTML = `
       <!-- PO KPI -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-md);margin-bottom:var(--s-lg);">
-        <div class="stat-card card-gold"><div class="stat-label">الإجمالي</div><div class="stat-value" style="font-size:1.3rem;">${fmt(o.total).toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م</div></div>
-        <div class="stat-card"><div class="stat-label">المدفوع</div><div class="stat-value" style="font-size:1.3rem;color:var(--success);">${fmt(o.paid_amount).toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م</div></div>
-        <div class="stat-card"><div class="stat-label">المتبقي</div><div class="stat-value" style="font-size:1.3rem;color:${o.balance_due>0?'var(--danger)':'var(--success)'};">${fmt(o.balance_due).toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م</div></div>
+        <div class="stat-card card-gold"><div class="stat-label">الإجمالي</div><div class="stat-value" style="font-size:1.3rem;">${fmt(o.total).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م</div></div>
+        <div class="stat-card"><div class="stat-label">المدفوع</div><div class="stat-value" style="font-size:1.3rem;color:var(--success);">${fmt(o.paid_amount).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م</div></div>
+        <div class="stat-card"><div class="stat-label">المتبقي</div><div class="stat-value" style="font-size:1.3rem;color:${o.balance_due>0?'var(--danger)':'var(--success)'};">${fmt(o.balance_due).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م</div></div>
         <div class="stat-card"><div class="stat-label">موقع الاستلام</div><div style="font-size:0.9rem;margin-top:var(--s-xs);">${o.location_name||'—'}</div></div>
       </div>
       ${poCreditStripHtml(o)}
@@ -9923,7 +10184,7 @@ async function viewPO(id) {
                     <td class="text-xs">${i.location_name || '<span class="text-muted">—</span>'}</td>
                     <td class="mono">${i.qty_ordered}</td>
                     <td class="mono" style="color:${i.qty_received>=i.qty_ordered?'var(--success)':'var(--warn)'};">${i.qty_received}</td>
-                    <td class="mono">${fmt(i.unit_cost).toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م</td>
+                    <td class="mono">${fmt(i.unit_cost).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م</td>
                     <td class="text-muted">${i.discount_pct||0}%</td>
                     <td class="mono text-gold">${fmt(i.line_total)}</td>
                   </tr>
@@ -10370,16 +10631,16 @@ loadDashboard = async function() {
       extra.innerHTML = `
         <div class="stat-card" style="--accent-glow:var(--info-bg);">
           <div class="stat-label">الموردون</div>
-          <div class="stat-value">${suppliers.filter(s=>s.is_active).length.toLocaleString('ar-EG', {maximumFractionDigits:0})}</div>
-          <div class="stat-meta"><span class="badge badge-muted">${suppliers.length.toLocaleString('ar-EG', {maximumFractionDigits:0})} إجمالي</span></div>
+          <div class="stat-value">${suppliers.filter(s=>s.is_active).length.toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})}</div>
+          <div class="stat-meta"><span class="badge badge-muted">${suppliers.length.toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} إجمالي</span></div>
           <div class="stat-icon-wrap" style="color:var(--info);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           </div>
         </div>
         <div class="stat-card" style="--accent-glow:${(od.c||0)>0?'var(--danger-bg)':'var(--success-bg)'};">
           <div class="stat-label" style="color:${(od.c||0)>0?'var(--danger)':''};">أقساط متأخرة</div>
-          <div class="stat-value" style="color:${(od.c||0)>0?'var(--danger)':'var(--success)'};">${(od.c||0).toLocaleString('ar-EG', {maximumFractionDigits:0})}</div>
-          <div class="stat-meta" style="color:${(od.c||0)>0?'var(--danger)':'var(--success)'};">${fmt(od.total||0).toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م مستحقة</div>
+          <div class="stat-value" style="color:${(od.c||0)>0?'var(--danger)':'var(--success)'};">${(od.c||0).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})}</div>
+          <div class="stat-meta" style="color:${(od.c||0)>0?'var(--danger)':'var(--success)'};">${fmt(od.total||0).toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م مستحقة</div>
           <div class="stat-icon-wrap" style="color:${(od.c||0)>0?'var(--danger)':'var(--success)'};">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           </div>
@@ -10502,7 +10763,7 @@ function filterAuditLog() {
       <td style="font-size:0.78rem;color:var(--cream-4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
         ${l.details ? (typeof l.details === 'string' ? l.details : JSON.stringify(l.details)).substring(0, 80) : '—'}
       </td>
-      <td class="text-xs text-muted">${new Date(l.created_at).toLocaleString('ar-EG')}</td>
+      <td class="text-xs text-muted">${new Date(l.created_at).toLocaleString('ar-EG-u-nu-latn')}</td>
     </tr>
   `).join('');
 }
@@ -10575,7 +10836,7 @@ async function loadMovements() {
         <td><span class="mono text-muted">${m.quantity_before}</span></td>
         <td><span class="mono" style="color:var(--cream-1);">${m.quantity_after}</span></td>
         <td style="font-size:0.78rem;color:var(--cream-4);">${m.notes || '—'}</td>
-        <td class="text-xs text-muted">${new Date(m.created_at).toLocaleString('ar-EG')}</td>
+        <td class="text-xs text-muted">${new Date(m.created_at).toLocaleString('ar-EG-u-nu-latn')}</td>
       </tr>
     `}).join('');
   } catch {
@@ -10671,8 +10932,8 @@ async function viewProductDetail(id) {
       </div>
       <div style="flex:1; min-width:220px; display:flex; flex-direction:column; gap:8px;">
         <div>${statusBadge}</div>
-        <div style="font-family:var(--font-display); font-size:1.5rem; color:var(--gold-0); font-weight:700;">${p.sale_price.toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م</div>
-        ${canViewCost && margin ? `<div style="font-size:0.82rem; color:var(--cream-3);">التكلفة: ${p.cost_price.toLocaleString('ar-EG', {maximumFractionDigits:0})} ج.م — <span class="badge badge-success">هامش ${margin}%</span></div>` : ''}
+        <div style="font-family:var(--font-display); font-size:1.5rem; color:var(--gold-0); font-weight:700;">${p.sale_price.toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م</div>
+        ${canViewCost && margin ? `<div style="font-size:0.82rem; color:var(--cream-3);">التكلفة: ${p.cost_price.toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})} ج.م — <span class="badge badge-success">هامش ${margin}%</span></div>` : ''}
         <div style="margin-top:auto;">
           <button class="btn btn-subtle btn-sm" onclick="closeModal('transferDetailModal'); editProduct(${p.id});">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -10719,7 +10980,7 @@ async function viewProductDetail(id) {
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:var(--s-lg);padding:var(--s-md) var(--s-lg);background:var(--ink-4);border-radius:var(--r-md);">
       <span class="form-label" style="margin:0;">الإجمالي</span>
-      <span style="font-family:var(--font-display);font-size:1.6rem;color:var(--gold-0);font-weight:600;">${p.total_quantity.toLocaleString('ar-EG', {maximumFractionDigits:0})}</span>
+      <span style="font-family:var(--font-display);font-size:1.6rem;color:var(--gold-0);font-weight:600;">${p.total_quantity.toLocaleString('ar-EG-u-nu-latn', {maximumFractionDigits:0})}</span>
     </div>
   `;
   
@@ -10759,7 +11020,7 @@ initApp();
 
 // ── helpers ──
 
-const dateAr = d => d ? new Date(d).toLocaleDateString('ar-EG') : '—';
+const dateAr = d => d ? new Date(d).toLocaleDateString('ar-EG-u-nu-latn') : '—';
 
 function statusBadgeInvoice(s) {
   const map = { draft:'مسودة',confirmed:'مؤكدة',paid:'مدفوعة',partial:'جزئي',cancelled:'ملغية' };
@@ -11712,8 +11973,8 @@ function onInvoiceProdChange(id) {
 
 // ملحوظة هندسية مهمة (إصلاح باج حقيقي): _invoiceCurrentTotal بيخزّن قيمة الإجمالي
 // كرقم JS خام (مش نص منسّق). قبل كده كانت getInvoiceTotalValue() بتقرأ نص العنصر
-// #ifTotal (اللي متنسّق بـ toLocaleString('ar-EG')) وتحاول تشيل منه أي حرف مش رقم
-// إنجليزي 0-9. المشكلة: على متصفحات/أنظمة تشغيل معينة، toLocaleString('ar-EG')
+// #ifTotal (اللي متنسّق بـ toLocaleString('ar-EG-u-nu-latn')) وتحاول تشيل منه أي حرف مش رقم
+// إنجليزي 0-9. المشكلة: على متصفحات/أنظمة تشغيل معينة، toLocaleString('ar-EG-u-nu-latn')
 // بيطبع الأرقام بالصيغة الهندية العربية (٠١٢٣٤٥٦٧٨٩) مش بالأرقام الإنجليزية —
 // فالـ regex كان بيمسح النص بالكامل (مفيش ولا رقم إنجليزي فيه) ويرجّع NaN، فيتحول
 // لـ 0 بصمت. النتيجة: كل الأقساط بتتحفظ بمبلغ 0.00 من غير أي تحذير للمستخدم، رغم
@@ -11809,7 +12070,7 @@ function renderAutoInvoiceInstallments() {
     return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--overlay-05);font-size:0.78rem;">
       <span class="text-muted">القسط ${i+1}</span>
       <span class="mono">${fmt(perInstall)} ج.م</span>
-      <span class="text-muted">${d.toLocaleDateString('ar-EG')}</span>
+      <span class="text-muted">${d.toLocaleDateString('ar-EG-u-nu-latn')}</span>
     </div>`;
   }).join('');
   preview.innerHTML = `<div style="background:var(--ink-4);border-radius:var(--r-md);padding:var(--s-md);">${rows}</div>`;
@@ -12646,7 +12907,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
   const installmentRows = (invoice.installments || []).map(ins => `
     <tr>
       <td style="padding:6px 12px;">قسط #${ins.installment_number}</td>
-      <td style="padding:6px 12px;text-align:center;">${new Date(ins.due_date).toLocaleDateString('ar-EG')}</td>
+      <td style="padding:6px 12px;text-align:center;">${new Date(ins.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</td>
       <td style="padding:6px 12px;text-align:left;font-family:'RifaiDigits','Tajawal',monospace;">${fmt(ins.amount)} ج.م</td>
     </tr>
   `).join('');
@@ -12863,7 +13124,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
     </div>
   </div>
   <div class="meta-bar">
-    <div class="meta-cell"><div class="lbl">التاريخ</div><div class="val">${new Date(invoice.invoice_date).toLocaleDateString('ar-EG')}</div></div>
+    <div class="meta-cell"><div class="lbl">التاريخ</div><div class="val">${new Date(invoice.invoice_date).toLocaleDateString('ar-EG-u-nu-latn')}</div></div>
     <div class="meta-cell"><div class="lbl">العميل</div><div class="val">${invoice.customer_name || '—'}</div></div>
     <div class="meta-cell"><div class="lbl">نوع الدفع</div><div class="val">${payTypeLabel[invoice.payment_type] || invoice.payment_type}</div></div>
     <div class="meta-cell"><div class="lbl">الموقع</div><div class="val">${invoice.location_name || '—'}</div></div>
@@ -12897,8 +13158,8 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
       <div class="install-summary">
         <div class="i-card"><div class="i-lbl">عدد الأقساط</div><strong>${installmentSummary.count} قسط</strong></div>
         ${installmentSummary.months !== null ? `<div class="i-card"><div class="i-lbl">مدة التقسيط</div><strong>~${installmentSummary.months} شهر تقريباً</strong></div>` : ''}
-        <div class="i-card"><div class="i-lbl">أول قسط</div><strong>${fmt(installmentSummary.first.amount)} ج.م</strong> — ${new Date(installmentSummary.first.due_date).toLocaleDateString('ar-EG')}</div>
-        <div class="i-card"><div class="i-lbl">آخر قسط</div><strong>${fmt(installmentSummary.last.amount)} ج.م</strong> — ${new Date(installmentSummary.last.due_date).toLocaleDateString('ar-EG')}</div>
+        <div class="i-card"><div class="i-lbl">أول قسط</div><strong>${fmt(installmentSummary.first.amount)} ج.م</strong> — ${new Date(installmentSummary.first.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</div>
+        <div class="i-card"><div class="i-lbl">آخر قسط</div><strong>${fmt(installmentSummary.last.amount)} ج.م</strong> — ${new Date(installmentSummary.last.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</div>
       </div>
       <table class="inst-table">
         <thead><tr><th>القسط</th><th style="text-align:center;">تاريخ الاستحقاق</th><th style="text-align:left;">المبلغ</th><th style="text-align:center;">الحالة</th></tr></thead>
@@ -12906,7 +13167,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
       </table>
     </div>` : ''}
     ${invoice.payment_type === 'credit' && invoice.due_date ? `
-    <div class="note-box credit">📌 <strong>تاريخ استحقاق الأجل:</strong> ${new Date(invoice.due_date).toLocaleDateString('ar-EG')}</div>` : ''}
+    <div class="note-box credit">📌 <strong>تاريخ استحقاق الأجل:</strong> ${new Date(invoice.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</div>` : ''}
     ${invoice.notes ? `<div class="note-box">📝 ${invoice.notes}</div>` : ''}
   </div>
   <div class="footer">
@@ -12920,7 +13181,7 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
     ${company.phone ? `<div class="brand-contact">📞 ${company.phone}</div>` : ''}
     <div class="invoice-num">${invoice.invoice_number}</div>
   </div>
-  <div class="meta-row"><span>التاريخ:</span><span>${new Date(invoice.invoice_date).toLocaleDateString('ar-EG')}</span></div>
+  <div class="meta-row"><span>التاريخ:</span><span>${new Date(invoice.invoice_date).toLocaleDateString('ar-EG-u-nu-latn')}</span></div>
   <div class="meta-row"><span>العميل:</span><span>${invoice.customer_name || '—'}</span></div>
   <div class="meta-row"><span>نوع الدفع:</span><span>${payTypeLabel[invoice.payment_type] || '—'}</span></div>
   <div class="divider"></div>
@@ -12937,12 +13198,12 @@ function buildInvoiceHTML({ invoice, items }, mode = 'a4') {
   <div style="font-size:10px;font-weight:700;margin-bottom:3px;">📆 تفاصيل التقسيط:</div>
   <div style="font-size:10px;">عدد الأقساط: ${installmentSummary.count} قسط</div>
   ${installmentSummary.months !== null ? `<div style="font-size:10px;">مدة التقسيط: ~${installmentSummary.months} شهر</div>` : ''}
-  <div style="font-size:10px;">أول قسط: ${fmt(installmentSummary.first.amount)} ج.م — ${new Date(installmentSummary.first.due_date).toLocaleDateString('ar-EG')}</div>
-  <div style="font-size:10px;">آخر قسط: ${fmt(installmentSummary.last.amount)} ج.م — ${new Date(installmentSummary.last.due_date).toLocaleDateString('ar-EG')}</div>
+  <div style="font-size:10px;">أول قسط: ${fmt(installmentSummary.first.amount)} ج.م — ${new Date(installmentSummary.first.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</div>
+  <div style="font-size:10px;">آخر قسط: ${fmt(installmentSummary.last.amount)} ج.م — ${new Date(installmentSummary.last.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</div>
   ` : ''}
   ${invoice.payment_type === 'credit' && invoice.due_date ? `
   <div class="divider"></div>
-  <div style="font-size:10px;">📌 تاريخ استحقاق الأجل: ${new Date(invoice.due_date).toLocaleDateString('ar-EG')}</div>
+  <div style="font-size:10px;">📌 تاريخ استحقاق الأجل: ${new Date(invoice.due_date).toLocaleDateString('ar-EG-u-nu-latn')}</div>
   ` : ''}
   ${invoice.notes ? `<div class="divider"></div><div style="font-size:10px;">📝 ${invoice.notes}</div>` : ''}
   <div class="footer"> بمؤسسة الرفـاعـي للنجف والاضاءة<br>شكراً لثقتكم</div>
@@ -13218,7 +13479,7 @@ function buildWhatsAppMessage(invoice, items, installments) {
   if (company.phone) msg += `📞 ${company.phone}\n`;
   msg += `${sep}\n`;
   msg += `📄 *فاتورة رقم:* ${invoice.invoice_number}\n`;
-  msg += `📅 *التاريخ:* ${new Date(invoice.invoice_date).toLocaleDateString('ar-EG')}\n`;
+  msg += `📅 *التاريخ:* ${new Date(invoice.invoice_date).toLocaleDateString('ar-EG-u-nu-latn')}\n`;
   msg += `👤 *العميل:* ${invoice.customer_name || '—'}\n`;
   msg += `💳 *نوع الدفع:* ${wa_pay[invoice.payment_type] || invoice.payment_type || '—'}\n`;
   if (invoice.location_name) msg += `🏪 *الفرع:* ${invoice.location_name}\n`;
@@ -13249,7 +13510,7 @@ function buildWhatsAppMessage(invoice, items, installments) {
   // تفاصيل الأجل
   if (invoice.payment_type === 'credit' && invoice.due_date) {
     msg += `${sep}\n`;
-    msg += `📌 *تاريخ استحقاق الأجل:* ${new Date(invoice.due_date).toLocaleDateString('ar-EG')}\n`;
+    msg += `📌 *تاريخ استحقاق الأجل:* ${new Date(invoice.due_date).toLocaleDateString('ar-EG-u-nu-latn')}\n`;
   }
 
   // تفاصيل التقسيط
@@ -13264,12 +13525,12 @@ function buildWhatsAppMessage(invoice, items, installments) {
     msg += `📆 *تفاصيل التقسيط:*\n`;
     msg += `  • عدد الأقساط: *${sorted.length}* قسط\n`;
     if (months !== null) msg += `  • مدة التقسيط: *~${months}* شهر\n`;
-    msg += `  • أول قسط: *${fmt(first.amount)} ج.م* — ${new Date(first.due_date).toLocaleDateString('ar-EG')}\n`;
-    if (sorted.length > 1) msg += `  • آخر قسط: *${fmt(last.amount)} ج.م* — ${new Date(last.due_date).toLocaleDateString('ar-EG')}\n`;
+    msg += `  • أول قسط: *${fmt(first.amount)} ج.م* — ${new Date(first.due_date).toLocaleDateString('ar-EG-u-nu-latn')}\n`;
+    if (sorted.length > 1) msg += `  • آخر قسط: *${fmt(last.amount)} ج.م* — ${new Date(last.due_date).toLocaleDateString('ar-EG-u-nu-latn')}\n`;
     msg += `\n📋 *جدول الأقساط:*\n`;
     sorted.forEach(ins => {
       const statusLabel = { pending:'⏳', partial:'🔄', paid:'✅', overdue:'🔴' }[ins.status] || '⏳';
-      msg += `  ${statusLabel} قسط #${ins.installment_number}: *${fmt(ins.amount)} ج.م* — ${new Date(ins.due_date).toLocaleDateString('ar-EG')}\n`;
+      msg += `  ${statusLabel} قسط #${ins.installment_number}: *${fmt(ins.amount)} ج.م* — ${new Date(ins.due_date).toLocaleDateString('ar-EG-u-nu-latn')}\n`;
     });
   }
 
@@ -15051,7 +15312,7 @@ async function saveSettings() {
     if (!isFinite(target) || Math.abs(target) < 10) return;
     const dec = ((orig.split(/[.٫]/)[1]) || '').replace(/\D/g, '').length;
     const grouping = /[٬,]/.test(orig);
-    const fmtr = new Intl.NumberFormat('ar-EG', { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: grouping });
+    const fmtr = new Intl.NumberFormat('ar-EG-u-nu-latn', { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: grouping });
     el.dataset.cu = '1';
     const dur = 750, t0 = performance.now();
     el.textContent = fmtr.format(0);
@@ -15245,7 +15506,7 @@ async function saveSettings() {
   }, 250);
 })();
 </script>
-<script src="/receivables.js?v=10" defer></script>
+<script src="/receivables.js?v=11" defer></script>
 
 </body>
 </html>

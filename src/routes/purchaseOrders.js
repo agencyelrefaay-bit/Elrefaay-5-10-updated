@@ -1,6 +1,8 @@
 // routes/purchaseOrders.js
 const express = require('express');
 const router  = express.Router();
+const multer = require('multer');
+const XLSX = require('xlsx');
 const { all, get, run, insert, transaction } = require('../db/database');
 const { authenticate, authorize }            = require('../middleware/auth');
 const { logAction }                          = require('../utils/auditLog');
@@ -23,6 +25,115 @@ const todayISO = () => new Date().toISOString().split('T')[0];
 
 router.use(authenticate);
 
+const invoiceFileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = String(file.originalname || '').split('.').pop().toLowerCase();
+    cb(null, ['xlsx', 'xls', 'csv'].includes(ext));
+  },
+});
+
+function invoiceNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+  let text = String(value ?? '').trim()
+    .replace(/[٠-٩۰-۹]/g, digit => String(digit >= '۰' && digit <= '۹' ? '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit) : '٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[٬\s]/g, '').replace(/[٫]/g, '.').replace(/[^\d.,+-]/g, '');
+  if (text.includes(',') && text.includes('.')) {
+    const decimal = text.lastIndexOf(',') > text.lastIndexOf('.') ? ',' : '.';
+    text = decimal === ',' ? text.replace(/\./g, '').replace(',', '.') : text.replace(/,/g, '');
+  } else if (text.includes(',')) {
+    const tail = text.length - text.lastIndexOf(',') - 1;
+    text = tail === 2 ? text.replace(',', '.') : text.replace(/,/g, '');
+  }
+  return text && Number.isFinite(Number(text)) ? Number(text) : NaN;
+}
+
+function invoiceHeaderKey(value) {
+  return String(value ?? '').trim().toLowerCase().replace(/[\s_\-()٪%]/g, '');
+}
+
+function findInvoiceColumn(headers, candidates) {
+  const keys = headers.map(invoiceHeaderKey);
+  const found = keys.findIndex(key => candidates.some(candidate => key === invoiceHeaderKey(candidate) || key.includes(invoiceHeaderKey(candidate))));
+  return found;
+}
+
+// Preview supplier invoice rows from Excel/CSV. This endpoint never writes products,
+// purchase orders, inventory, or supplier balances; the reviewed rows are submitted
+// through the existing purchase-order workflow after warehouse assignment.
+router.post('/import-invoice', authorize('admin', 'manager'), invoiceFileUpload.single('invoice'), async (req, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'اختر ملف Excel أو CSV صحيحاً' });
+
+  let matrix;
+  try {
+    const workbook = XLSX.read(file.buffer, { type: 'buffer', cellDates: true });
+    const firstSheet = workbook.SheetNames[0];
+    if (!firstSheet) return res.status(400).json({ error: 'الملف لا يحتوي على ورقة بيانات' });
+    matrix = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: '', blankrows: false });
+  } catch (_error) {
+    return res.status(400).json({ error: 'تعذرت قراءة الملف. تأكد أنه Excel أو CSV صالح' });
+  }
+
+  const nameKeys = ['اسم المنتج', 'المنتج', 'الصنف', 'بيان الصنف', 'product name', 'item name', 'description', 'product'];
+  const codeKeys = ['كود المنتج', 'كود', 'الكود', 'sku', 'product code', 'item code', 'barcode'];
+  const qtyKeys = ['الكمية', 'كمية', 'عدد', 'qty', 'quantity'];
+  const costKeys = ['سعر الوحدة', 'سعر التكلفة', 'التكلفة', 'unit cost', 'cost', 'price'];
+  const discountKeys = ['خصم %', 'نسبة الخصم', 'discount %', 'discount pct'];
+  let headerRow = -1, columns = null;
+  for (let rowIndex = 0; rowIndex < Math.min(matrix.length, 25); rowIndex++) {
+    const row = matrix[rowIndex] || [];
+    const name = findInvoiceColumn(row, nameKeys);
+    const qty = findInvoiceColumn(row, qtyKeys);
+    let cost = findInvoiceColumn(row, costKeys);
+    if (cost < 0) cost = row.findIndex(header => /سعر|price/i.test(String(header ?? '')) && !/بيع|sale/i.test(String(header ?? '')));
+    if (name >= 0 && qty >= 0 && cost >= 0) {
+      headerRow = rowIndex;
+      columns = { name, code: findInvoiceColumn(row, codeKeys), qty, cost, discount: findInvoiceColumn(row, discountKeys) };
+      break;
+    }
+  }
+  if (headerRow < 0) return res.status(400).json({ error: 'لم أجد أعمدة واضحة لاسم المنتج والكمية وسعر الوحدة. استخدم ملفاً بعناوين أعمدة ثم أعد المحاولة' });
+
+  const rows = [];
+  const issues = [];
+  for (let rowIndex = headerRow + 1; rowIndex < matrix.length; rowIndex++) {
+    const row = matrix[rowIndex] || [];
+    const name = String(row[columns.name] ?? '').trim();
+    const code = columns.code >= 0 ? String(row[columns.code] ?? '').trim() : '';
+    const rawQty = row[columns.qty];
+    const rawCost = row[columns.cost];
+    const rawDiscount = columns.discount >= 0 ? row[columns.discount] : 0;
+    if (!name && !code && rawQty === '' && rawCost === '') continue;
+    const qty = invoiceNumber(rawQty);
+    const unitCost = invoiceNumber(rawCost);
+    const discountPct = rawDiscount === '' || rawDiscount == null ? 0 : invoiceNumber(rawDiscount);
+    if (!name || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unitCost) || unitCost < 0 || !Number.isFinite(discountPct) || discountPct < 0 || discountPct > 100) {
+      issues.push({ row: rowIndex + 1, message: `راجع اسم المنتج والكمية والسعر والخصم في الصف ${rowIndex + 1}` });
+      continue;
+    }
+    rows.push({ source_row: rowIndex + 1, name, code, qty_ordered: qty, unit_cost: round2(unitCost), discount_pct: discountPct, line_total: round2(qty * unitCost * (1 - discountPct / 100)) });
+  }
+  if (!rows.length) return res.status(400).json({ error: issues[0]?.message || 'لم أجد بنوداً صالحة في الملف', issues });
+
+  const products = await all(`SELECT id, name, sku, barcode, category_id, unit, cost_price FROM products WHERE is_active=1`);
+  const normalizeCode = value => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9\u0600-\u06FF]/g, '');
+  const byCode = new Map();
+  for (const product of products) {
+    for (const value of [product.sku, product.barcode]) {
+      const key = normalizeCode(value);
+      if (key) byCode.set(key, product);
+    }
+  }
+  const byName = new Map(products.map(product => [String(product.name || '').trim().toLocaleLowerCase(), product]));
+  const matched = rows.map(row => {
+    const product = (row.code && byCode.get(normalizeCode(row.code))) || byName.get(row.name.toLocaleLowerCase()) || null;
+    return { ...row, product_id: product?.id || null, matched_product: product ? { id: product.id, name: product.name, sku: product.sku, unit: product.unit } : null };
+  });
+  res.json({ file_name: file.originalname, items: matched, issues, subtotal: round2(matched.reduce((sum, row) => sum + row.line_total, 0)), unmatched_count: matched.filter(row => !row.product_id).length });
+});
+
 const { nextDocumentNumber } = require('../utils/sequenceGenerator');
 // تم استبدال مولّد COUNT(*) غير الآمن تحت التزامن بـ SEQUENCE ذرّي (راجع src/utils/sequenceGenerator.js)
 async function genPONumber() {
@@ -35,11 +146,13 @@ async function genPONumber() {
 function calcPOTotals(items) {
   let subtotal = 0;
   const enriched = items.map(item => {
-    const lineBeforeDisc = item.qty_ordered * item.unit_cost;
-    const discAmt        = lineBeforeDisc * (item.discount_pct || 0) / 100;
-    const lineTotal      = round2(lineBeforeDisc - discAmt);
+    const qty = Number(item.qty_ordered);
+    const unitCost = round2(item.unit_cost);
+    const discountPct = Number(item.discount_pct || 0);
+    const lineBeforeDisc = qty * unitCost;
+    const lineTotal = round2(lineBeforeDisc * (1 - discountPct / 100));
     subtotal += lineTotal;
-    return { ...item, line_total: lineTotal };
+    return { ...item, qty_ordered: qty, unit_cost: unitCost, discount_pct: discountPct, line_total: lineTotal };
   });
   return { enriched, subtotal: round2(subtotal) };
 }
@@ -143,6 +256,23 @@ router.post('/', authorize('admin','manager'), async (req, res) => {
   if (!supplier_id) return res.status(400).json({ error: 'المورد مطلوب' });
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: 'يجب إضافة منتج واحد على الأقل' });
+  for (const [index, item] of items.entries()) {
+    const qty = Number(item?.qty_ordered);
+    const unitCost = Number(item?.unit_cost);
+    const discountPct = Number(item?.discount_pct || 0);
+    if (!Number.isFinite(qty) || qty <= 0)
+      return res.status(400).json({ error: `كمية البند رقم ${index + 1} يجب أن تكون أكبر من صفر` });
+    if (!Number.isFinite(unitCost) || unitCost < 0)
+      return res.status(400).json({ error: `تكلفة البند رقم ${index + 1} غير صالحة` });
+    if (!Number.isFinite(discountPct) || discountPct < 0 || discountPct > 100)
+      return res.status(400).json({ error: `خصم البند رقم ${index + 1} يجب أن يكون بين 0 و100%` });
+    if (!Number.isInteger(Number(item?.product_id)) || Number(item.product_id) <= 0)
+      return res.status(400).json({ error: `المنتج في البند رقم ${index + 1} غير صالح` });
+  }
+  const requestedDiscount = Number(discount_amount || 0);
+  const requestedTax = Number(tax_amount || 0);
+  if (!Number.isFinite(requestedDiscount) || requestedDiscount < 0 || !Number.isFinite(requestedTax) || requestedTax < 0)
+    return res.status(400).json({ error: 'قيمة الخصم أو الضريبة غير صالحة' });
   const supplierRow = await get(`SELECT id, payment_terms FROM suppliers WHERE id=? AND is_active=1`,[supplier_id]);
   if (!supplierRow)
     return res.status(404).json({ error: 'المورد غير موجود أو غير نشط' });
@@ -163,8 +293,8 @@ router.post('/', authorize('admin','manager'), async (req, res) => {
   }
 
   const { enriched, subtotal } = calcPOTotals(items);
-  const discAmt = round2(parseFloat(discount_amount)||0);
-  const taxAmt  = round2(parseFloat(tax_amount)||0);
+  const discAmt = round2(requestedDiscount);
+  const taxAmt  = round2(requestedTax);
   const total   = round2(subtotal - discAmt + taxAmt);
   if (total < 0) return res.status(400).json({ error: 'إجمالي أمر الشراء لا يمكن أن يكون بالسالب — راجع الخصم' });
 
@@ -340,6 +470,15 @@ router.put('/:id', authorize('admin','manager'), async (req, res) => {
   }
 
   if (items && items.length > 0) {
+    for (const [index, item] of items.entries()) {
+      const qty = Number(item?.qty_ordered);
+      const unitCost = Number(item?.unit_cost);
+      const discountPct = Number(item?.discount_pct || 0);
+      if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unitCost) || unitCost < 0 ||
+          !Number.isFinite(discountPct) || discountPct < 0 || discountPct > 100 ||
+          !Number.isInteger(Number(item?.product_id)) || Number(item.product_id) <= 0)
+        return res.status(400).json({ error: `راجع الكمية والتكلفة والخصم والمنتج في البند رقم ${index + 1}` });
+    }
     const receiptCount = await get(`SELECT COUNT(*) as c FROM purchase_receipts WHERE po_id=?`,[id]);
     if (receiptCount?.c > 0)
       return res.status(400).json({
@@ -350,9 +489,22 @@ router.put('/:id', authorize('admin','manager'), async (req, res) => {
   await transaction(async () => {
     if (items && items.length > 0) {
       const { enriched, subtotal } = calcPOTotals(items);
-      const discAmt = round2(discount_amount !== undefined ? parseFloat(discount_amount) || 0 : po.discount_amount);
-      const taxAmt  = round2(tax_amount !== undefined ? parseFloat(tax_amount) || 0 : po.tax_amount);
+      const rawDiscount = discount_amount !== undefined ? Number(discount_amount) : Number(po.discount_amount);
+      const rawTax = tax_amount !== undefined ? Number(tax_amount) : Number(po.tax_amount);
+      if (!Number.isFinite(rawDiscount) || rawDiscount < 0 || !Number.isFinite(rawTax) || rawTax < 0) {
+        const err = new Error('قيمة الخصم أو الضريبة غير صالحة');
+        err.status = 400;
+        throw err;
+      }
+      const discAmt = round2(rawDiscount);
+      const taxAmt = round2(rawTax);
       const total   = round2(subtotal - discAmt + taxAmt);
+
+      if (total < 0) {
+        const err = new Error('إجمالي أمر الشراء لا يمكن أن يكون بالسالب — راجع الخصم');
+        err.status = 400;
+        throw err;
+      }
 
       // ── منع خفض الإجمالي لأقل من المبلغ المدفوع فعلاً — وإلا balance_due يبقى سالب
       //    ويوهم إن المورد مدين لينا بينما إحنا فعلياً دفعنا أكتر من قيمة الأمر ──

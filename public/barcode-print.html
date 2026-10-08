@@ -495,7 +495,7 @@
         ${showPrice && p.sale_price ? `
           <div class="label-divider"></div>
           <div class="label-price">
-            <span class="label-price-value">${Number(p.sale_price).toLocaleString('ar-EG')}</span>
+            <span class="label-price-value">${Number(p.sale_price).toLocaleString('ar-EG-u-nu-latn')}</span>
             <span class="label-price-unit">ج.م</span>
           </div>` : ''}
         <div class="label-sku">${escHtml(p.sku)}</div>
@@ -568,7 +568,7 @@
         ${showPrice && p.sale_price ? `
           <div class="label-divider"></div>
           <div class="label-price">
-            <span class="label-price-value">${Number(p.sale_price).toLocaleString('ar-EG')}</span>
+            <span class="label-price-value">${Number(p.sale_price).toLocaleString('ar-EG-u-nu-latn')}</span>
             <span class="label-price-unit">ج.م</span>
           </div>` : ''}
         <div class="label-sku">${escHtml(p.sku || '')}</div>

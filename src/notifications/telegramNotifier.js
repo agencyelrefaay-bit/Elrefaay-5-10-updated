@@ -9,12 +9,12 @@ const { get, insert } = require('../db/database');
 
 function fmt(n) {
   const num = Number(n) || 0;
-  return num.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return num.toLocaleString('ar-EG-u-nu-latn', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtDate(d) {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' }); }
   catch { return d; }
 }
 

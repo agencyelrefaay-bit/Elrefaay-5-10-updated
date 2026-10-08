@@ -30,8 +30,16 @@
         );
   const money = (value) =>
     `${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م`;
+  const balanceFilterMatches = (person) => {
+    const mode = $("obBalanceFilter")?.value || "all";
+    const hasBalance = Math.abs(Number(person.balance || 0)) > 0.000001;
+    return mode === "all" || (mode === "nonzero" ? hasBalance : !hasBalance);
+  };
   const current = () =>
-    ob.people.filter((person) => ob.selected.has(Number(person.id)));
+    ob.people.filter(
+      (person) =>
+        ob.selected.has(Number(person.id)) && balanceFilterMatches(person),
+    );
   const canManage = (type) =>
     type === "customers"
       ? ["admin", "manager", "sales"].includes(state.user?.role)
@@ -58,7 +66,7 @@
     .ob-choice-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--gold-glow-sm);color:var(--gold-0);font-size:1.35rem}
     .ob-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:var(--s-md);flex-wrap:wrap}.ob-toolbar-title{font-weight:700;flex:1}.ob-columns{display:grid;grid-template-columns:minmax(300px,.86fr) minmax(0,1.2fr);gap:var(--s-md);align-items:start}
     .ob-selector,.ob-preview-shell{padding:var(--s-md);min-width:0}.ob-summary,.ob-preview-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.ob-summary{padding-bottom:12px;border-bottom:1px solid var(--border-subtle)}
-    .ob-filters{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:8px;padding:12px 0}.ob-filters .form-control{min-width:0}.ob-people-list{display:grid;gap:7px;max-height:66vh;overflow:auto;overscroll-behavior:contain}
+    .ob-filters{display:grid;grid-template-columns:minmax(0,1fr) 150px 170px auto;gap:8px;padding:12px 0}.ob-filters .form-control{min-width:0}.ob-people-list{display:grid;gap:7px;max-height:66vh;overflow:auto;overscroll-behavior:contain}
     .ob-person{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px;border:1px solid var(--border-subtle);border-radius:12px;cursor:pointer;transition:background .15s,border-color .15s}
     .ob-person:hover{border-color:var(--gold-border)}.ob-person.is-selected{background:var(--gold-glow-sm);border-color:var(--gold-border)}.ob-person input{width:18px;height:18px;accent-color:var(--gold-1)}.ob-person-name{font-weight:600;overflow-wrap:anywhere}.ob-person-sub{font-size:.75rem;color:var(--cream-4);margin-top:3px}.ob-person-balance{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.83rem}
     .ob-preview-actions{padding-bottom:12px;border-bottom:1px solid var(--border-subtle);margin-bottom:12px}.ob-report-actions{display:flex;gap:8px;flex-wrap:wrap}.ob-preview-title{font-weight:700;font-size:1rem}.ob-preview{min-height:190px;max-height:70vh;overflow:auto}.ob-preview-company{display:grid;gap:4px;padding:0 8px 12px;border-bottom:1px solid var(--border-subtle);font-size:.8rem}.ob-preview-company strong{font-size:1rem}.ob-preview-company span,.ob-preview-company small{color:var(--cream-4)}.ob-preview-group{margin:12px 0 6px;padding:8px 10px;border-right:3px solid var(--gold-1);background:var(--gold-glow-sm);font-weight:700}.ob-preview-row{display:grid;grid-template-columns:minmax(0,1fr) 125px minmax(130px,.9fr);gap:10px;align-items:center;padding:9px 8px;border-bottom:1px solid var(--border-subtle)}.ob-preview-column-head{font-size:.72rem;color:var(--cream-4);font-weight:600;padding-top:2px;padding-bottom:5px}.ob-preview-subtotal{display:flex;justify-content:space-between;padding:6px 8px;font-size:.78rem;color:var(--cream-3);font-weight:600}
@@ -145,6 +153,7 @@
         );
       return (
         matches &&
+        balanceFilterMatches(p) &&
         (!groupId ||
           (groupId === "none" ? !p.group_id : String(p.group_id) === groupId))
       );
@@ -157,8 +166,8 @@
           })
           .join("")
       : '<div class="empty-state"><div class="empty-title">لا توجد نتائج</div><div class="empty-desc">جرّب تغيير عبارة البحث أو المجموعة المحددة</div></div>';
-    $("obSelectedCount").textContent = Number(ob.selected.size).toLocaleString(
-      "ar-EG",
+    $("obSelectedCount").textContent = Number(current().length).toLocaleString(
+      "ar-EG-u-nu-latn",
     );
   };
 
@@ -184,6 +193,7 @@
                 .toLocaleLowerCase()
                 .includes(q),
             )) &&
+          balanceFilterMatches(p) &&
           (!groupId ||
             (groupId === "none"
               ? !p.group_id
@@ -210,7 +220,7 @@
   function renderOutstandingPreview() {
     const rows = current();
     $("obPreviewMeta").textContent = rows.length
-      ? `${rows.length.toLocaleString("ar-EG")} ${personLabel(ob.type)} · ${money(rows.reduce((sum, p) => sum + Number(p.balance || 0), 0))}`
+      ? `${rows.length.toLocaleString("ar-EG-u-nu-latn")} ${personLabel(ob.type)} · ${money(rows.reduce((sum, p) => sum + Number(p.balance || 0), 0))}`
       : "اختر سجلات لبدء المعاينة";
     if (!rows.length) {
       $("obPreview").innerHTML =
@@ -242,7 +252,7 @@
         );
         total += subtotal;
         return (
-          `<div class="ob-preview-group">${esc(name)} <span style="font-weight:400;color:var(--cream-4)">· ${people.length.toLocaleString("ar-EG")}</span></div><div class="ob-preview-row ob-preview-column-head"><span>${personLabel(ob.type)} / الكود</span><span>الرصيد</span><span>ملاحظات</span></div>` +
+          `<div class="ob-preview-group">${esc(name)} <span style="font-weight:400;color:var(--cream-4)">· ${people.length.toLocaleString("ar-EG-u-nu-latn")}</span></div><div class="ob-preview-row ob-preview-column-head"><span>${personLabel(ob.type)} / الكود</span><span>الرصيد</span><span>ملاحظات</span></div>` +
           people
             .map(
               (p) =>
@@ -254,7 +264,7 @@
       })
       .join("");
     $("obPreview").innerHTML =
-      `${renderGroupOrderControls()}<div class="ob-preview-company"><strong>${esc(company.company_name || "مؤسسة الرفاعي للنجف والإضاءة")}</strong><span>${[company.phone, company.address].filter(Boolean).map(esc).join(" · ")}</span><small>${esc(new Date().toLocaleDateString("ar-EG"))}</small></div>${sections}<div class="ob-preview-total"><span>${ob.type === "customers" ? "إجمالي مستحق من العملاء" : "إجمالي مستحق للموردين"}</span><span>${money(total)}</span></div>`;
+      `${renderGroupOrderControls()}<div class="ob-preview-company"><strong>${esc(company.company_name || "مؤسسة الرفاعي للنجف والإضاءة")}</strong><span>${[company.phone, company.address].filter(Boolean).map(esc).join(" · ")}</span><small>${esc(new Date().toLocaleDateString("ar-EG-u-nu-latn"))}</small></div>${sections}<div class="ob-preview-total"><span>${ob.type === "customers" ? "إجمالي مستحق من العملاء" : "إجمالي مستحق للموردين"}</span><span>${money(total)}</span></div>`;
   }
   window.setOutstandingNote = (id, value) => ob.notes.set(Number(id), value);
   window.moveOutstandingGroup = (id, direction) => {
@@ -298,7 +308,7 @@
     const title = isSupplier
       ? "كشف أرصدة الموردين المستحقة"
       : "كشف أرصدة العملاء المستحقة";
-    const date = new Date().toLocaleDateString("ar-EG", {
+    const date = new Date().toLocaleDateString("ar-EG-u-nu-latn", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -322,9 +332,9 @@
     const GROUP_HEIGHT_MM = 6.5;
     const TABLE_HEADER_MM = 7;
     // Font controls (px) for printed names and balances.
-    const PRINT_NAME_FONT_PX = 14;
-    const PRINT_BALANCE_FONT_PX = 14;
-    const NAME_CHARS_PER_LINE = isSupplier ? 48 : 23;
+    const PRINT_NAME_FONT_PX = 16;
+    const PRINT_BALANCE_FONT_PX = 16;
+    const NAME_CHARS_PER_LINE = isSupplier ? 38 : 18;
     const NOTE_CHARS_PER_LINE = isSupplier ? 110 : 58;
     const estimatePersonHeight = (person) => {
       const nameLength = [...String(person.name || "")].length;
@@ -337,8 +347,8 @@
             0,
           )
         : 0;
-      const partyRow = Math.max(11, nameLines * 4.5 + 2.5);
-      return partyRow + (noteLines ? 2 + noteLines * 4.5 : 0) + 1;
+      const partyRow = Math.max(11, nameLines * 5.5 + 2.5);
+      return partyRow + (noteLines ? 2 + noteLines * 4.8 : 0) + 1;
     };
     const groupCost = (group) =>
       GROUP_HEIGHT_MM + group.members.reduce((sum, person) => sum + estimatePersonHeight(person), 0);
@@ -683,7 +693,7 @@
       ? ob.groupRows
           .map(
             (g) =>
-              `<div class="pg-item"><button type="button" class="btn btn-ghost btn-sm pg-item-main" onclick="openPartyGroupMembers(${Number(g.id)})"><strong>${esc(g.name)}</strong><span class="text-muted" style="display:block;font-size:.75rem">${Number(g.member_count || 0).toLocaleString("ar-EG")} ${personLabel(ob.groupType)}</span></button><button class="btn btn-icon btn-subtle" title="تعديل الاسم" onclick="editPartyGroup(${Number(g.id)})">✎</button><button class="btn btn-icon btn-subtle" title="حذف المجموعة" onclick="deletePartyGroup(${Number(g.id)})">×</button></div>`,
+              `<div class="pg-item"><button type="button" class="btn btn-ghost btn-sm pg-item-main" onclick="openPartyGroupMembers(${Number(g.id)})"><strong>${esc(g.name)}</strong><span class="text-muted" style="display:block;font-size:.75rem">${Number(g.member_count || 0).toLocaleString("ar-EG-u-nu-latn")} ${personLabel(ob.groupType)}</span></button><button class="btn btn-icon btn-subtle" title="تعديل الاسم" onclick="editPartyGroup(${Number(g.id)})">✎</button><button class="btn btn-icon btn-subtle" title="حذف المجموعة" onclick="deletePartyGroup(${Number(g.id)})">×</button></div>`,
           )
           .join("")
       : '<div class="empty-state"><div class="empty-title">لا توجد مجموعات بعد</div><div class="empty-desc">أضف مجموعة لتنظيم الأرصدة حسب خط السير أو المنطقة</div></div>';
