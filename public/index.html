@@ -640,6 +640,19 @@ html[data-going="light"]::view-transition-new(root) { z-index: 2147483646; }
 .user-card-trigger:focus-visible { outline:2px solid var(--gold-1); outline-offset:3px; border-radius:8px; }
 .user-name { font-size: 0.8rem; font-weight: 600; color: var(--cream-1); truncate; }
 .user-role { font-size: 0.7rem; color: var(--cream-4); margin-top: 1px; }
+.topbar-user-trigger { position:relative; display:inline-flex; align-items:center; gap:7px; min-height:42px; padding:5px 8px; overflow:visible; border:1px solid transparent; border-radius:12px; color:var(--cream-4); background:transparent; font:500 .78rem var(--font-body); white-space:nowrap; cursor:pointer; transition:color .22s ease,background .22s ease,border-color .22s ease,transform .22s ease; }
+.topbar-user-trigger:hover,.topbar-user-trigger:focus-visible { color:var(--cream-1); background:var(--gold-glow-sm); border-color:var(--gold-border); transform:translateY(-1px); outline:none; }
+.topbar-user-trigger:focus-visible { outline:2px solid var(--gold-1); outline-offset:2px; }
+.topbar-user-trigger.is-owner { color:var(--cream-2); direction:ltr; }
+.topbar-user-trigger.is-owner .topbar-user-name { position:relative; display:inline-block; padding:8px 2px 2px; color:var(--cream-1); font-size:.92rem; font-weight:800; letter-spacing:.012em; transition:transform .3s var(--ease-spring),color .3s ease; }
+.topbar-user-trigger.is-owner:hover .topbar-user-name,.topbar-user-trigger.is-owner:focus-visible .topbar-user-name { transform:translateY(-2px) scale(1.045); color:var(--gold-0); }
+.topbar-user-trigger.is-owner .topbar-user-role { color:var(--gold-0); font-size:.73rem; }
+.topbar-user-trigger.is-owner .topbar-user-separator { color:var(--gold-2); opacity:.65; }
+.owner-sun { position:absolute; left:-17px; top:20px; z-index:2; width:25px; height:25px; opacity:0; color:var(--gold-0); filter:drop-shadow(0 0 7px rgba(232,184,74,.55)); pointer-events:none; }
+.owner-sun svg { display:block; width:100%; height:100%; overflow:visible; }
+.topbar-user-trigger.is-owner:hover .owner-sun,.topbar-user-trigger.is-owner:focus-visible .owner-sun { animation:ownerNameSunrise .78s cubic-bezier(.2,.82,.25,1.18) both; }
+@keyframes ownerNameSunrise { 0% { opacity:0; transform:translate3d(0,15px,0) scale(.55); } 48% { opacity:1; transform:translate3d(25px,-16px,0) scale(1.05); } 72% { transform:translate3d(43px,-36px,0) scale(.96); } 100% { opacity:1; transform:translate3d(55px,-43px,0) scale(1); } }
+@media (prefers-reduced-motion:reduce) { .topbar-user-trigger,.topbar-user-trigger.is-owner .topbar-user-name { transition:none; } .topbar-user-trigger.is-owner:hover .owner-sun,.topbar-user-trigger.is-owner:focus-visible .owner-sun { animation:none; opacity:.8; transform:translate3d(42px,-40px,0); } }
 
 /* ════════════════════════════════════════
    MAIN AREA
@@ -2324,6 +2337,9 @@ table.rdv-compact-table tbody td { padding: 11px var(--s-sm); font-size: 0.82rem
   .topbar-title { font-size: 1.05rem; }
   .topbar-subtitle { display: none; } /* تبسيط الهيدر — الاسم مهم، الوصف الفرعي مش ضروري على موبايل */
   #topbarUser { display: none; } /* موجود بالفعل في صفحة "المزيد" وفي الـ drawer، تكراره في الهيدر الضيق مش ضروري */
+  #topbarUser.is-owner { display:inline-flex; order:8; max-width:34vw; min-width:0; padding:3px 6px; }
+  #topbarUser.is-owner .topbar-user-role, #topbarUser.is-owner .topbar-user-separator { display:none; }
+  #topbarUser.is-owner .topbar-user-name { max-width:30vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.78rem; }
   .search-bar { order: 10; flex-basis: 100%; margin-top: var(--s-sm); }
   .search-bar input { min-height: var(--touch-target); font-size: 1rem; }
 
@@ -3261,7 +3277,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
         <input type="text" placeholder="بحث في النظام..." id="globalSearch"/>
       </div>
 
-      <div id="topbarUser" style="font-size:0.78rem; color:var(--cream-4);"></div>
+      <button type="button" id="topbarUser" class="topbar-user-trigger" onclick="state?.user?.role==='owner' ? window.openOwnerProfile?.() : openAccountSettings()" aria-label="فتح الملف الشخصي"></button>
 
       <!-- زرار بحث للموبايل فقط (CSS بيخفيه ≥600px) — بيفتح/يقفل شريط البحث العام -->
       <button type="button" class="btn btn-icon btn-subtle mob-search-btn" id="mobSearchBtn" aria-label="بحث في النظام" aria-expanded="false" aria-controls="globalSearch">
@@ -6233,13 +6249,31 @@ async function saveAccountSettings() {
   finally { button.disabled = false; button.textContent = 'حفظ التغييرات'; }
 }
 
+function renderTopbarUser(user) {
+  const host = document.getElementById('topbarUser');
+  if (!host || !user) return;
+  const roles = { owner:'مالك المشروع', admin:'مسؤول النظام', manager:'مدير', sales:'مبيعات', warehouse:'مخزن' };
+  const isOwner = user.role === 'owner';
+  host.classList.toggle('is-owner', isOwner);
+  host.setAttribute('aria-label', isOwner ? 'افتح ملف المالك ومساحته الخاصة' : 'افتح إعدادات حسابك');
+  host.title = isOwner ? 'ملفك ومساحتك الخاصة' : 'إعدادات الحساب';
+  if (!isOwner) { host.textContent = `${user.full_name || ''} · ${roles[user.role] || user.role || ''}`; return; }
+  host.replaceChildren();
+  const role = document.createElement('span'); role.className = 'topbar-user-role'; role.textContent = roles.owner;
+  const separator = document.createElement('span'); separator.className = 'topbar-user-separator'; separator.textContent = '·';
+  const name = document.createElement('span'); name.className = 'topbar-user-name'; name.textContent = user.full_name || 'المالك';
+  const sun = document.createElement('span'); sun.className = 'owner-sun'; sun.setAttribute('aria-hidden', 'true');
+  sun.innerHTML = '<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 22a11 11 0 0 1 22 0" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="19" r="6.5" fill="url(#ownerSunGold)"/><path d="M16 3v4M4.7 8l2.8 2.8M27.3 8l-2.8 2.8M2 19h4m20 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><defs><linearGradient id="ownerSunGold" x1="10" y1="12" x2="22" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#FFE8A3"/><stop offset="1" stop-color="#D49A2A"/></linearGradient></defs></svg>';
+  name.appendChild(sun); host.append(role, separator, name);
+}
+
 function initCurrentUserDisplay() {
   const user = state.user; if (!user) return;
   const roles = { owner:'مالك المشروع', admin:'مسؤول النظام', manager:'مدير', sales:'موظف مبيعات', warehouse:'أمين مخزن' };
   renderUserAvatar(document.getElementById('sidebarAvatar'), user); renderUserAvatar(document.getElementById('drawerAvatar'), user);
   document.getElementById('sidebarUserName').textContent = user.full_name; document.getElementById('drawerUserName').textContent = user.full_name;
   document.getElementById('sidebarUserRole').textContent = roles[user.role] || user.role; document.getElementById('drawerUserRole').textContent = roles[user.role] || user.role;
-  document.getElementById('topbarUser').textContent = user.full_name + ' · ' + (roles[user.role] || user.role);
+  renderTopbarUser(user);
 }
 
 // ── Init ──
@@ -6287,7 +6321,7 @@ function initApp() {
     document.getElementById('sidebarUserName').textContent = u.full_name;
     const roleNames = { owner: 'مالك المشروع', admin: 'مسؤول النظام', manager: 'مدير', sales: 'مبيعات', warehouse: 'مخزن' };
     document.getElementById('sidebarUserRole').textContent = roleNames[u.role] || u.role;
-    document.getElementById('topbarUser').textContent = `${u.full_name} · ${roleNames[u.role] || u.role}`;
+    renderTopbarUser(u);
     // نفس بيانات المستخدم في الـ drawer (تابلت portrait)
     renderUserAvatar(document.getElementById('drawerAvatar'), u);
     document.getElementById('drawerUserName').textContent = u.full_name;
@@ -9130,7 +9164,7 @@ async function saveUser() {
         document.getElementById('sidebarUserName').textContent = state.user.full_name;
         document.getElementById('drawerUserName').textContent = state.user.full_name;
         const roleNames = { admin: 'مسؤول النظام', manager: 'مدير', sales: 'موظف مبيعات', warehouse: 'أمين مخزن' };
-        document.getElementById('topbarUser').textContent = `${state.user.full_name} · ${roleNames[state.user.role] || state.user.role}`;
+        renderTopbarUser(state.user);
       }
       toast('تم تحديث المستخدم ✓');
     } else {
