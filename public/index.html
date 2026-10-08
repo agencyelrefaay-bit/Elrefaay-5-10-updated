@@ -648,17 +648,17 @@ html[data-going="light"]::view-transition-new(root) { z-index: 2147483646; }
 .topbar-user-trigger.is-owner:hover .topbar-user-name,.topbar-user-trigger.is-owner:focus-visible .topbar-user-name { transform:translateY(-2px) scale(1.045); color:var(--gold-0); }
 .topbar-user-trigger.is-owner .topbar-user-role { color:var(--gold-0); font-size:.73rem; }
 .topbar-user-trigger.is-owner .topbar-user-separator { color:var(--gold-2); opacity:.65; }
-.owner-sun { position:absolute; left:-24px; top:14px; z-index:2; width:34px; height:34px; opacity:0; pointer-events:none; filter:drop-shadow(0 3px 8px rgba(232,184,74,.5)); }
+.owner-sun { position:absolute; left:-24px; top:8px; z-index:2; width:30px; height:30px; opacity:0; pointer-events:none; filter:drop-shadow(0 3px 8px rgba(232,184,74,.5)); }
 .owner-sun img { display:block; width:100%; height:100%; }
 .topbar-user-trigger.is-owner:hover .owner-sun,.topbar-user-trigger.is-owner:focus-visible .owner-sun { animation:ownerNameSunrise 1.7s cubic-bezier(.22,.75,.22,1) both; }
-@keyframes ownerNameSunrise { 0% { opacity:0; transform:translate3d(-7px,27px,0) scale(.48) rotate(-24deg); } 22% { opacity:1; transform:translate3d(10px,-5px,0) scale(.76) rotate(-8deg); } 44% { transform:translate3d(42px,-39px,0) scale(1.02) rotate(8deg); } 66% { transform:translate3d(83px,-26px,0) scale(.94) rotate(20deg); } 84% { transform:translate3d(104px,4px,0) scale(.82) rotate(4deg); } 100% { opacity:1; transform:translate3d(100px,26px,0) scale(.78) rotate(0); } }
+@keyframes ownerNameSunrise { 0% { opacity:0; transform:translate3d(-7px,22px,0) scale(.48) rotate(-24deg); } 22% { opacity:1; transform:translate3d(10px,-5px,0) scale(.76) rotate(-8deg); } 44% { transform:translate3d(42px,-39px,0) scale(1.02) rotate(8deg); } 66% { transform:translate3d(83px,-26px,0) scale(.94) rotate(20deg); } 84% { transform:translate3d(104px,2px,0) scale(.82) rotate(4deg); } 100% { opacity:1; transform:translate3d(100px,12px,0) scale(.78) rotate(0); } }
 .topbar-user-trigger.is-owner .owner-name-initial { position:relative; display:inline-block; }
 .owner-name-butterfly { position:absolute; left:0; top:0; z-index:3; width:26px; height:26px; opacity:0; pointer-events:none; transform:translate3d(130px,-18px,0) rotate(18deg) scale(.7); }
-.owner-name-butterfly img { display:block; width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply; animation:ownerButterflyWings .34s ease-in-out infinite alternate; }
+.owner-name-butterfly img { display:block; width:100%; height:100%; object-fit:contain; animation:ownerButterflyWings .34s ease-in-out infinite alternate; }
 .topbar-user-trigger.is-owner:hover .owner-name-butterfly,.topbar-user-trigger.is-owner:focus-visible .owner-name-butterfly { animation:ownerButterflyLand 1.8s cubic-bezier(.2,.75,.25,1) .08s both; }
 @keyframes ownerButterflyLand { 0% { opacity:0; transform:translate3d(130px,-18px,0) rotate(18deg) scale(.7); } 36% { opacity:.9; transform:translate3d(72px,-36px,0) rotate(-8deg) scale(.9); } 64% { opacity:1; transform:translate3d(29px,-16px,0) rotate(10deg) scale(1.04); } 84% { transform:translate3d(-7px,-8px,0) rotate(-5deg) scale(.94); } 100% { opacity:1; transform:translate3d(0,-7px,0) rotate(0) scale(.88); } }
 @keyframes ownerButterflyWings { from { transform:scaleX(.92) rotate(-1deg); } to { transform:scaleX(1.04) rotate(1deg); } }
-@media (prefers-reduced-motion:reduce) { .topbar-user-trigger,.topbar-user-trigger.is-owner .topbar-user-name { transition:none; } .topbar-user-trigger.is-owner:hover .owner-sun,.topbar-user-trigger.is-owner:focus-visible .owner-sun { animation:none; opacity:1; transform:translate3d(100px,26px,0) scale(.78); } .topbar-user-trigger.is-owner:hover .owner-name-butterfly,.topbar-user-trigger.is-owner:focus-visible .owner-name-butterfly { animation:none; opacity:.9; transform:translate3d(0,-7px,0); } .owner-name-butterfly img { animation:none; } }
+@media (prefers-reduced-motion:reduce) { .topbar-user-trigger,.topbar-user-trigger.is-owner .topbar-user-name { transition:none; } .topbar-user-trigger.is-owner:hover .owner-sun,.topbar-user-trigger.is-owner:focus-visible .owner-sun { animation:none; opacity:1; transform:translate3d(100px,12px,0) scale(.78); } .topbar-user-trigger.is-owner:hover .owner-name-butterfly,.topbar-user-trigger.is-owner:focus-visible .owner-name-butterfly { animation:none; opacity:.9; transform:translate3d(0,-7px,0); } .owner-name-butterfly img { animation:none; } }
 
 /* ════════════════════════════════════════
    MAIN AREA
@@ -6255,6 +6255,17 @@ async function saveAccountSettings() {
   finally { button.disabled = false; button.textContent = 'حفظ التغييرات'; }
 }
 
+function normalizeUserDisplayName(value) {
+  const fullName = String(value || '').trim();
+  if (!fullName) return '';
+  const mid = Math.floor(fullName.length / 2);
+  for (let split = Math.max(1, mid - 2); split <= Math.min(fullName.length - 1, mid + 2); split++) {
+    const firstHalf = fullName.slice(0, split).trim(), secondHalf = fullName.slice(split).trim();
+    if (firstHalf.length > 2 && firstHalf === secondHalf) return firstHalf;
+  }
+  return fullName;
+}
+
 function renderTopbarUser(user) {
   const host = document.getElementById('topbarUser');
   if (!host || !user) return;
@@ -6273,15 +6284,15 @@ function renderTopbarUser(user) {
   };
   if (!isOwner) { host.textContent = `${user.full_name || ''} · ${roles[user.role] || user.role || ''}`; return; }
   host.replaceChildren();
-  const name = document.createElement('span'); name.className = 'topbar-user-name'; name.textContent = user.full_name || 'المالك';
+  const name = document.createElement('span'); name.className = 'topbar-user-name';
   const sun = document.createElement('span'); sun.className = 'owner-sun'; sun.setAttribute('aria-hidden', 'true');
-  const displayName = user.full_name || 'المالك';
+  const displayName = normalizeUserDisplayName(user.full_name) || 'المالك';
   const sIndex = displayName.search(/s/i);
   sun.innerHTML = '<img src="/assets/owner-sun.svg" alt="" draggable="false">';
   if (sIndex >= 0) {
     const initial = document.createElement('span'); initial.className = 'owner-name-initial'; initial.textContent = displayName[sIndex];
     const butterfly = document.createElement('span'); butterfly.className = 'owner-name-butterfly'; butterfly.setAttribute('aria-hidden', 'true');
-    butterfly.innerHTML = '<img src="/assets/owner-butterfly.webp" alt="" draggable="false">';
+    butterfly.innerHTML = '<img src="/assets/owner-butterfly.png" alt="" draggable="false">';
     initial.appendChild(butterfly);
     name.append(document.createTextNode(displayName.slice(0, sIndex)), initial, document.createTextNode(displayName.slice(sIndex + 1)));
   } else name.textContent = displayName;
@@ -6290,9 +6301,10 @@ function renderTopbarUser(user) {
 
 function initCurrentUserDisplay() {
   const user = state.user; if (!user) return;
+  const displayName = normalizeUserDisplayName(user.full_name) || user.full_name;
   const roles = { owner:'مالك المشروع', admin:'مسؤول النظام', manager:'مدير', sales:'موظف مبيعات', warehouse:'أمين مخزن' };
   renderUserAvatar(document.getElementById('sidebarAvatar'), user); renderUserAvatar(document.getElementById('drawerAvatar'), user);
-  document.getElementById('sidebarUserName').textContent = user.full_name; document.getElementById('drawerUserName').textContent = user.full_name;
+  document.getElementById('sidebarUserName').textContent = displayName; document.getElementById('drawerUserName').textContent = displayName;
   document.getElementById('sidebarUserRole').textContent = roles[user.role] || user.role; document.getElementById('drawerUserRole').textContent = roles[user.role] || user.role;
   renderTopbarUser(user);
   window.mountOwnerStudio?.();
@@ -6339,14 +6351,15 @@ function initApp() {
   // Set user info
   const u = state.user;
   if (u) {
+    const displayName = normalizeUserDisplayName(u.full_name) || u.full_name;
     renderUserAvatar(document.getElementById('sidebarAvatar'), u);
-    document.getElementById('sidebarUserName').textContent = u.full_name;
+    document.getElementById('sidebarUserName').textContent = displayName;
     const roleNames = { owner: 'مالك المشروع', admin: 'مسؤول النظام', manager: 'مدير', sales: 'مبيعات', warehouse: 'مخزن' };
     document.getElementById('sidebarUserRole').textContent = roleNames[u.role] || u.role;
     renderTopbarUser(u);
     // نفس بيانات المستخدم في الـ drawer (تابلت portrait)
     renderUserAvatar(document.getElementById('drawerAvatar'), u);
-    document.getElementById('drawerUserName').textContent = u.full_name;
+    document.getElementById('drawerUserName').textContent = displayName;
     document.getElementById('drawerUserRole').textContent = roleNames[u.role] || u.role;
 
     // الصلاحيات: مصدر واحد (NAV_CONFIG) بيتطبّق على كل أسطح التنقل مع بعض
@@ -9183,8 +9196,8 @@ async function saveUser() {
         localStorage.setItem('arUser', JSON.stringify(state.user));
         renderUserAvatar(document.getElementById('sidebarAvatar'), state.user);
         renderUserAvatar(document.getElementById('drawerAvatar'), state.user);
-        document.getElementById('sidebarUserName').textContent = state.user.full_name;
-        document.getElementById('drawerUserName').textContent = state.user.full_name;
+        document.getElementById('sidebarUserName').textContent = normalizeUserDisplayName(state.user.full_name) || state.user.full_name;
+        document.getElementById('drawerUserName').textContent = normalizeUserDisplayName(state.user.full_name) || state.user.full_name;
         const roleNames = { admin: 'مسؤول النظام', manager: 'مدير', sales: 'موظف مبيعات', warehouse: 'أمين مخزن' };
         renderTopbarUser(state.user);
       }

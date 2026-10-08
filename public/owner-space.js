@@ -8,7 +8,7 @@
     @keyframes ownerPageIn{from{opacity:0}to{opacity:1}}
     .owner-profile-page{position:relative;z-index:1;width:min(100%,1240px);min-height:100%;margin:auto}
     .owner-butterfly-garden{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-    .owner-butterfly-flight{position:absolute;display:block;width:clamp(34px,4vw,54px);aspect-ratio:1;opacity:.24;filter:drop-shadow(0 5px 12px #71598b25);mix-blend-mode:multiply;will-change:transform}
+    .owner-butterfly-flight{position:absolute;display:block;width:clamp(34px,4vw,54px);aspect-ratio:1;opacity:.24;filter:drop-shadow(0 5px 12px #71598b25);will-change:transform}
     .owner-butterfly-flight img{display:block;width:100%;height:100%;object-fit:contain;animation:ownerGardenWings .42s ease-in-out infinite alternate}
     .owner-butterfly-flight--one{left:-7vw;top:73vh;animation:ownerGardenFlightOne 24s ease-in-out -7s infinite}
     .owner-butterfly-flight--two{left:87vw;top:68vh;animation:ownerGardenFlightTwo 28s ease-in-out -16s infinite}
@@ -80,7 +80,7 @@
     return String(value || '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   }
   function mount() {
-    if (!window.state?.token || !window.state?.user || state.user.role !== 'owner' || document.getElementById('app')?.style.display === 'none') return;
+    if (!state?.token || !state?.user || state.user.role !== 'owner' || document.getElementById('app')?.style.display === 'none') return;
     if (!document.getElementById('ownerStudioLauncher')) {
       const button = document.createElement('button');
       button.id = 'ownerStudioLauncher'; button.type = 'button'; button.textContent = '✦ مساحتي'; button.setAttribute('aria-label', 'افتح ملف المالك ومساحته الخاصة');
@@ -90,7 +90,7 @@
     if (document.getElementById('ownerStudioPanel')) return;
 
     const panel = document.createElement('div'); panel.id = 'ownerStudioPanel'; panel.setAttribute('aria-hidden', 'true');
-    panel.innerHTML = `<div class="owner-butterfly-garden" aria-hidden="true"><span class="owner-butterfly-flight owner-butterfly-flight--one"><img src="/assets/owner-butterfly.webp" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--two"><img src="/assets/owner-butterfly.webp" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--three"><img src="/assets/owner-butterfly.webp" alt=""></span></div><main class="owner-profile-page" role="dialog" aria-modal="true" aria-label="الملف الشخصي الخاص بالمالك">
+    panel.innerHTML = `<div class="owner-butterfly-garden" aria-hidden="true"><span class="owner-butterfly-flight owner-butterfly-flight--one"><img src="/assets/owner-butterfly.png" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--two"><img src="/assets/owner-butterfly.png" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--three"><img src="/assets/owner-butterfly.png" alt=""></span></div><main class="owner-profile-page" role="dialog" aria-modal="true" aria-label="الملف الشخصي الخاص بالمالك">
       <header class="owner-page-top"><button type="button" class="owner-back" id="ownerStudioClose"><span aria-hidden="true">←</span> العودة للنظام</button><div class="owner-page-mark"><span>AL-RIFAI · PRIVATE SPACE</span><span class="owner-page-secure">✦ مساحة خاصة ومحمية</span></div></header>
       <section class="owner-profile-hero" aria-label="الملف الشخصي">
         <div class="owner-hero-stars" aria-hidden="true"></div><div class="owner-hero-sun" aria-hidden="true"><img src="/assets/owner-sun.svg" alt=""></div><div class="owner-hero-horizon" aria-hidden="true"></div>
@@ -134,7 +134,7 @@
     const user = state?.user || {};
     const name = document.getElementById('ownerProfileName');
     const avatar = document.getElementById('ownerProfileAvatar');
-    if (name) name.textContent = user.full_name || 'المالك';
+    if (name) name.textContent = window.normalizeUserDisplayName?.(user.full_name) || user.full_name || 'المالك';
     if (avatar) window.renderUserAvatar?.(avatar, user);
   }
   function openOwnerProfile() {
