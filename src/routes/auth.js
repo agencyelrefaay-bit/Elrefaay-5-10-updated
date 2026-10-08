@@ -27,14 +27,21 @@ function getStorageConfig() {
       if (match) url = 'https://' + match[1] + '.supabase.co';
     } catch (_) {}
   }
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+  const key = secretKey || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:') return null;
     url = parsed.origin;
   } catch (_) { return null; }
-  return { url, key };
+  return { url, key, isModernSecret: Boolean(secretKey) };
+}
+
+function storageAuthHeaders(config, extra = {}) {
+  const headers = { apikey: config.key, ...extra };
+  if (!config.isModernSecret) headers.Authorization = 'Bearer ' + config.key;
+  return headers;
 }
 
 async function uploadAvatarToStorage(userId, file) {
@@ -44,7 +51,7 @@ async function uploadAvatarToStorage(userId, file) {
   const objectPath = String(userId) + '/' + randomUUID() + '.' + ext;
   const response = await fetch(config.url + '/storage/v1/object/user-avatars/' + objectPath, {
     method: 'POST',
-    headers: { apikey: config.key, Authorization: 'Bearer ' + config.key, 'Content-Type': file.mimetype, 'x-upsert': 'false' },
+    headers: storageAuthHeaders(config, { 'Content-Type': file.mimetype, 'x-upsert': 'false' }),
     body: file.buffer,
   });
   if (!response.ok) {
@@ -64,7 +71,7 @@ async function deleteAvatarFromStorage(config, avatarUrl) {
     const objectPath = parsed.pathname.slice(prefix.length).split('/').map(decodeURIComponent).join('/');
     await fetch(config.url + '/storage/v1/object/user-avatars', {
       method: 'DELETE',
-      headers: { apikey: config.key, Authorization: 'Bearer ' + config.key, 'Content-Type': 'application/json' },
+      headers: storageAuthHeaders(config, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ prefixes: [objectPath] }),
     });
   } catch (_) {}
