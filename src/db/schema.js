@@ -1023,9 +1023,13 @@ async function migrateOwnerAccountSchema() {
   await run(`ALTER TABLE users ADD CONSTRAINT users_role_check CHECK(role IN ('owner', 'admin', 'manager', 'sales', 'warehouse'));`);
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT;`);
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled INTEGER NOT NULL DEFAULT 0;`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS owner_email_otp_hash TEXT;`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS owner_email_otp_expires_at TEXT;`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS owner_email_otp_sent_at TEXT;`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS owner_email_otp_attempts INTEGER NOT NULL DEFAULT 0;`);
   await run(`CREATE TABLE IF NOT EXISTS owner_notes (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT 'rose', is_pinned INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`);
   await run(`CREATE INDEX IF NOT EXISTS idx_owner_notes_user_updated ON owner_notes(user_id, updated_at DESC);`);
-  await run(`UPDATE users SET role = 'owner', updated_at = datetime('now') WHERE lower(username) = 'shrouk';`);
+  await run(`UPDATE users SET role = 'owner', totp_secret = NULL, totp_enabled = 0, updated_at = datetime('now') WHERE lower(username) = 'shrouk';`);
   console.log('✓ تم التأكد من مخطط حساب المالك ومساحته الخاصة');
 }
 module.exports.migrateOwnerAccountSchema = migrateOwnerAccountSchema;

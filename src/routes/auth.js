@@ -2,7 +2,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
-const { get, run } = require('../db/database');
+const { get, run, all } = require('../db/database');
+const nodemailer = require('nodemailer');
 const { generateToken, authenticate, JWT_SECRET } = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -118,9 +119,24 @@ router.post('/login', asyncHandler(async (req, res) => {
   }
 
   if (user.role === 'owner') {
-    const challenge_token = jwt.sign({ id: user.id, username: user.username, purpose: 'owner_totp' }, JWT_SECRET, { expiresIn: '5m' });
-    await logAction(user.id, 'login_password_verified', 'user', user.id, null);
-    return res.json({ requires_2fa: true, setup_required: !user.totp_enabled, challenge_token, user: { username: user.username } });
+    let to;
+    const lastSentAt = user.owner_email_otp_sent_at ? Date.parse(user.owner_email_otp_sent_at) : 0;
+    if (lastSentAt && Date.now() - lastSentAt < 60_000) {
+      return res.status(429).json({ error: 'تم إرسال رمز مؤخرًا. انتظر دقيقة قبل طلب رمز جديد.' });
+    }
+    const code = String(crypto.randomInt(100000, 1000000));
+    try {
+      to = getOwnerEmail();
+      await sendOwnerLoginCode(to, code);
+    } catch (error) {
+      await logAction(user.id, 'login_email_otp_send_failed', 'user', user.id, null);
+      return res.status(503).json({ error: error.code === 'OWNER_EMAIL_NOT_CONFIGURED' ? 'إعداد بريد الإرسال غير مكتمل على الخادم' : 'تعذر إرسال رمز التحقق. راجع إعداد Gmail SMTP على الخادم.' });
+    }
+    const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+    await run('UPDATE users SET owner_email_otp_hash=?, owner_email_otp_expires_at=?, owner_email_otp_sent_at=?, owner_email_otp_attempts=0 WHERE id=?', [hashOwnerEmailCode(code), expiresAt, new Date().toISOString(), user.id]);
+    const challenge_token = jwt.sign({ id: user.id, username: user.username, purpose: 'owner_email_otp' }, JWT_SECRET, { expiresIn: '5m' });
+    await logAction(user.id, 'login_email_otp_sent', 'user', user.id, null);
+    return res.json({ requires_2fa: true, challenge_token, destination: maskOwnerEmail(to), user: { username: user.username } });
   }
 
   const token = generateToken(user);
@@ -139,20 +155,66 @@ router.post('/login', asyncHandler(async (req, res) => {
   });
 }));
 
-// مصادقة TOTP مجانية (RFC 6238). يُشفّر السر باستخدام مفتاح مشتق من JWT_SECRET قبل التخزين.
-const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-function base32Encode(buffer) { let bits=0, value=0, out=''; for (const byte of buffer) { value=(value<<8)|byte; bits+=8; while(bits>=5){out+=base32Alphabet[(value >>> (bits-5))&31];bits-=5;} } if(bits) out+=base32Alphabet[(value<<(5-bits))&31]; return out; }
-function base32Decode(input) { let bits=0,value=0,out=[]; for(const char of input.toUpperCase().replace(/=+$/,'')){const n=base32Alphabet.indexOf(char);if(n<0)throw new Error('Invalid TOTP secret');value=(value<<5)|n;bits+=5;if(bits>=8){out.push((value >>> (bits-8))&255);bits-=8;}} return Buffer.from(out); }
-function totpAt(secret, counter) { const msg=Buffer.alloc(8); msg.writeBigUInt64BE(BigInt(counter)); const mac=crypto.createHmac('sha1',base32Decode(secret)).update(msg).digest(); const offset=mac[mac.length-1]&15; const num=(mac.readUInt32BE(offset)&0x7fffffff)%1000000; return String(num).padStart(6,'0'); }
-function verifyTotp(secret, code) { const clean=String(code||'').replace(/\s/g,''); if(!/^\d{6}$/.test(clean))return false; const step=Math.floor(Date.now()/30000); return [-1,0,1].some(delta=>crypto.timingSafeEqual(Buffer.from(totpAt(secret,step+delta)),Buffer.from(clean))); }
-function encryptTotpSecret(secret) { const key=crypto.createHash('sha256').update(JWT_SECRET+'|owner-totp-v1').digest(); const iv=crypto.randomBytes(12); const cipher=crypto.createCipheriv('aes-256-gcm',key,iv); const encrypted=Buffer.concat([cipher.update(secret,'utf8'),cipher.final()]); return [iv.toString('base64'),cipher.getAuthTag().toString('base64'),encrypted.toString('base64')].join('.'); }
-function decryptTotpSecret(value) { const [iv,tag,data]=String(value||'').split('.'); const key=crypto.createHash('sha256').update(JWT_SECRET+'|owner-totp-v1').digest(); const decipher=crypto.createDecipheriv('aes-256-gcm',key,Buffer.from(iv,'base64')); decipher.setAuthTag(Buffer.from(tag,'base64')); return Buffer.concat([decipher.update(Buffer.from(data,'base64')),decipher.final()]).toString('utf8'); }
-async function getOwnerChallenge(req,res) { const header=req.headers.authorization||''; if(!header.startsWith('Bearer ')) {res.status(401).json({error:'جلسة التحقق غير صالحة'});return null;} try { const payload=jwt.verify(header.slice(7),JWT_SECRET); if(payload.purpose!=='owner_totp')throw new Error(); const user=await get('SELECT id,username,role,is_active,totp_secret,totp_enabled FROM users WHERE id=?',[payload.id]); if(!user||user.role!=='owner'||!user.is_active)throw new Error(); return user; } catch (_) {res.status(401).json({error:'انتهت جلسة التحقق، أعد تسجيل الدخول'});return null;} }
-function issueOwnerSession(user,res) { const token=generateToken({...user,role:'owner',can_view_cost_price:1}); return res.json({token,user:{id:user.id,full_name:user.full_name,username:user.username,role:'owner',can_view_cost_price:true,avatar_url:user.avatar_url||null}}); }
-const ownerTotpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'محاولات تحقق كثيرة، حاول بعد 15 دقيقة' } });
-router.post('/owner-2fa/setup', ownerTotpLimiter, asyncHandler(async(req,res)=>{ const user=await getOwnerChallenge(req,res);if(!user)return;if(user.totp_enabled)return res.status(409).json({error:'التحقق بخطوتين مُعدّ بالفعل'}); const secret=base32Encode(crypto.randomBytes(20)); const uri='otpauth://totp/'+encodeURIComponent('الرفاعي ERP:'+user.username)+'?secret='+secret+'&issuer='+encodeURIComponent('الرفاعي ERP')+'&algorithm=SHA1&digits=6&period=30'; req.app.locals.ownerTotpSetup ||= new Map(); req.app.locals.ownerTotpSetup.set(user.id,{secret,expires:Date.now()+10*60*1000}); res.json({secret,otpauth_url:uri}); }));
-router.post('/owner-2fa/confirm', ownerTotpLimiter, asyncHandler(async(req,res)=>{ const user=await getOwnerChallenge(req,res);if(!user)return; const pending=req.app.locals.ownerTotpSetup?.get(user.id); if(!pending||pending.expires<Date.now())return res.status(410).json({error:'انتهت مهلة الإعداد، أعد المحاولة'}); if(!verifyTotp(pending.secret,req.body.code))return res.status(400).json({error:'رمز التحقق غير صحيح'}); await run('UPDATE users SET totp_secret=?,totp_enabled=1,updated_at=datetime(\'now\') WHERE id=?',[encryptTotpSecret(pending.secret),user.id]); req.app.locals.ownerTotpSetup.delete(user.id); const current=await get('SELECT id,username,full_name,avatar_url FROM users WHERE id=?',[user.id]); await logAction(user.id,'owner_2fa_enabled','user',user.id,null); issueOwnerSession(current,res); }));
-router.post('/owner-2fa/verify', ownerTotpLimiter, asyncHandler(async(req,res)=>{ const user=await getOwnerChallenge(req,res);if(!user)return;if(!user.totp_enabled||!user.totp_secret)return res.status(409).json({error:'يجب إعداد التحقق بخطوتين أولاً'}); let secret;try{secret=decryptTotpSecret(user.totp_secret);}catch(_){return res.status(503).json({error:'تعذر فك إعداد التحقق؛ راجع مفتاح JWT_SECRET'});} if(!verifyTotp(secret,req.body.code)){await logAction(user.id,'login_2fa_failed','user',user.id,null);return res.status(401).json({error:'رمز التحقق غير صحيح'});} await logAction(user.id,'login','user',user.id,null); const current=await get('SELECT id,username,full_name,avatar_url FROM users WHERE id=?',[user.id]);issueOwnerSession(current,res); }));
+// بريد المالك: رمز OTP قصير العمر، محفوظ كـ HMAC ولا يُخزَّن كنص صريح.
+function getOwnerEmail() {
+  const email = String(process.env.OWNER_EMAIL || 'oalaaofficial@gmail.com').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Object.assign(new Error('Invalid owner email'), { code: 'OWNER_EMAIL_NOT_CONFIGURED' });
+  return email;
+}
+function maskOwnerEmail(email) { const [name, domain] = email.split('@'); return (name[0] || '*') + '*'.repeat(Math.max(2, Math.min(name.length - 1, 8))) + '@' + domain; }
+function hashOwnerEmailCode(code) { return crypto.createHmac('sha256', JWT_SECRET).update(String(code)).digest('hex'); }
+async function sendOwnerLoginCode(to, code) {
+  const sender = String(process.env.GMAIL_USER || to).trim();
+  const appPassword = String(process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+  if (!appPassword) throw Object.assign(new Error('Gmail App Password is missing'), { code: 'OWNER_EMAIL_NOT_CONFIGURED' });
+  const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: sender, pass: appPassword } });
+  try { await transporter.sendMail({
+    from: { name: 'الرفاعي ERP', address: sender }, to,
+    subject: 'رمز التحقق لحساب المالك',
+    text: 'رمز التحقق الخاص بتسجيل الدخول هو: ' + code + '\nصالح لمدة 5 دقائق. إذا لم تطلبه، تجاهل هذه الرسالة.',
+    html: '<div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#241b24"><h2>رمز التحقق</h2><p>استخدم الرمز التالي لإكمال تسجيل الدخول إلى حساب المالك:</p><div style="font-size:30px;font-weight:700;letter-spacing:8px;text-align:center;padding:18px;background:#f8eff6;border-radius:12px">' + code + '</div><p>الرمز صالح لمدة 5 دقائق، ولا تشاركه مع أي شخص.</p><small>إذا لم تطلب هذا الرمز، يمكنك تجاهل الرسالة.</small></div>',
+  }); } finally { transporter.close(); }
+}
+async function getOwnerEmailChallenge(req, res) {
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Bearer ')) { res.status(401).json({ error: 'جلسة التحقق غير صالحة' }); return null; }
+  try {
+    const payload = jwt.verify(header.slice(7), JWT_SECRET);
+    if (payload.purpose !== 'owner_email_otp') throw new Error();
+    const user = await get('SELECT id,username,role,is_active,owner_email_otp_hash,owner_email_otp_expires_at,owner_email_otp_attempts FROM users WHERE id=?', [payload.id]);
+    if (!user || user.role !== 'owner' || !user.is_active) throw new Error();
+    return user;
+  } catch (_) { res.status(401).json({ error: 'انتهت جلسة التحقق، أعد تسجيل الدخول' }); return null; }
+}
+function issueOwnerSession(user, res) {
+  const token = generateToken({ ...user, role: 'owner', can_view_cost_price: 1 });
+  return res.json({ token, user: { id: user.id, full_name: user.full_name, username: user.username, role: 'owner', can_view_cost_price: true, avatar_url: user.avatar_url || null } });
+}
+const ownerEmailOtpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'محاولات تحقق كثيرة، حاول بعد 15 دقيقة' } });
+router.post('/owner-2fa/verify', ownerEmailOtpLimiter, asyncHandler(async (req, res) => {
+  const user = await getOwnerEmailChallenge(req, res); if (!user) return;
+  const storedHash = String(user.owner_email_otp_hash || '');
+  const expiresAt = Date.parse(user.owner_email_otp_expires_at || '');
+  if (!storedHash || !expiresAt || Date.now() >= expiresAt) {
+    await run('UPDATE users SET owner_email_otp_hash=NULL, owner_email_otp_expires_at=NULL, owner_email_otp_attempts=0 WHERE id=?', [user.id]);
+    return res.status(410).json({ error: 'انتهت صلاحية الرمز. ابدأ تسجيل الدخول من جديد.' });
+  }
+  if (Number(user.owner_email_otp_attempts || 0) >= 5) return res.status(429).json({ error: 'تم تجاوز عدد المحاولات. ابدأ تسجيل الدخول من جديد.' });
+  const code = String(req.body.code || '').replace(/\s/g, '');
+  const validFormat = /^\d{6}$/.test(code);
+  const candidate = validFormat ? hashOwnerEmailCode(code) : '';
+  const matches = validFormat && /^[a-f0-9]{64}$/.test(storedHash) && crypto.timingSafeEqual(Buffer.from(candidate, 'hex'), Buffer.from(storedHash, 'hex'));
+  if (!matches) {
+    await all('UPDATE users SET owner_email_otp_attempts=owner_email_otp_attempts+1 WHERE id=? AND owner_email_otp_hash=? AND owner_email_otp_expires_at>? AND owner_email_otp_attempts<5 RETURNING id', [user.id, storedHash, new Date().toISOString()]);
+    await logAction(user.id, 'login_email_otp_failed', 'user', user.id, null);
+    return res.status(401).json({ error: 'رمز التحقق غير صحيح' });
+  }
+  const consumed = await all('UPDATE users SET owner_email_otp_hash=NULL, owner_email_otp_expires_at=NULL, owner_email_otp_attempts=0 WHERE id=? AND owner_email_otp_hash=? AND owner_email_otp_expires_at>? AND owner_email_otp_attempts<5 RETURNING id', [user.id, storedHash, new Date().toISOString()]);
+  if (!consumed.length) return res.status(401).json({ error: 'الرمز غير صالح أو استُخدم بالفعل' });
+  const current = await get('SELECT id,username,full_name,avatar_url FROM users WHERE id=?', [user.id]);
+  await logAction(user.id, 'login', 'user', user.id, { method: 'email_otp' });
+  issueOwnerSession(current, res);
+}));
 
 // PUT /api/auth/profile — تغيير الاسم والصورة من إعدادات الحساب الشخصي.
 router.put('/profile', authenticate, (req, res, next) => {

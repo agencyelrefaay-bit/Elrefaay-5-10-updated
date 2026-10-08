@@ -2915,7 +2915,6 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
 
     <div id="ownerTwoFactorPanel" style="display:none; margin:12px 0; padding:14px; border:1px solid var(--gold-2); border-radius:12px; background:var(--overlay-06);">
       <div id="ownerTwoFactorHint" style="font-size:.88rem; line-height:1.7; margin-bottom:8px;"></div>
-      <code id="ownerTwoFactorSecret" dir="ltr" style="display:none; word-break:break-all; color:var(--gold-0);"></code>
       <input id="ownerTwoFactorCode" class="form-control login-credential-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="رمز التحقق المكوّن من 6 أرقام" style="margin-top:10px; text-align:center; letter-spacing:.25em;" />
     </div>
 
@@ -5964,7 +5963,6 @@ document.querySelectorAll('.modal-overlay').forEach(ov => {
 
 // ── Auth ──
 let ownerLoginPending = false;
-let ownerSetupPending = false;
 async function doLogin() {
   const username=document.getElementById('loginUsername').value.trim();
   const password=document.getElementById('loginPassword').value;
@@ -5974,23 +5972,22 @@ async function doLogin() {
   try {
     if(ownerLoginPending) {
       const code=document.getElementById('ownerTwoFactorCode').value.trim();
-      const data=await API.post('/auth/owner-2fa/'+(ownerSetupPending?'confirm':'verify'),{code});
+      const data=await API.post('/auth/owner-2fa/verify',{code});
       state.token=data.token;state.user=data.user;localStorage.setItem('arToken',data.token);localStorage.setItem('arUser',JSON.stringify(data.user));
-      ownerLoginPending=false;ownerSetupPending=false;initApp();return;
+      ownerLoginPending=false;initApp();return;
     }
     if(!username||!password) throw new Error('يرجى إدخال اسم المستخدم وكلمة المرور');
     const data=await API.post('/auth/login',{username,password});
     if(data.requires_2fa) {
-      state.token=data.challenge_token; ownerLoginPending=true; ownerSetupPending=!!data.setup_required;
+      state.token=data.challenge_token; ownerLoginPending=true;
       document.getElementById('ownerTwoFactorPanel').style.display='block';
       document.getElementById('loginPassword').closest('.form-group').style.display='none';
       document.getElementById('loginUsername').closest('.form-group').style.display='none';
-      if(ownerSetupPending) { const setup=await API.post('/auth/owner-2fa/setup',{}); document.getElementById('ownerTwoFactorHint').textContent='إعداد المصادقة الثنائية: أضف هذا المفتاح إلى تطبيق مصادقة مجاني، ثم أدخل الرمز الحالي.'; const secret=document.getElementById('ownerTwoFactorSecret');secret.textContent=setup.secret;secret.style.display='block'; }
-      else document.getElementById('ownerTwoFactorHint').textContent='أدخل الرمز الحالي من تطبيق المصادقة لإكمال تسجيل الدخول.';
+      document.getElementById('ownerTwoFactorHint').textContent='تم إرسال رمز من 6 أرقام إلى '+(data.destination||'بريد المالك')+'. أدخله خلال 5 دقائق لإكمال تسجيل الدخول.';
       document.getElementById('loginBtn').innerHTML='<span>تحقق وتابع</span>';document.getElementById('ownerTwoFactorCode').focus();return;
     }
     state.token=data.token;state.user=data.user;localStorage.setItem('arToken',data.token);localStorage.setItem('arUser',JSON.stringify(data.user));initApp();
-  } catch(err) { fail(err.message); }
+  } catch(err) { if(ownerLoginPending&&(err.message.includes('انتهت صلاحية الرمز')||err.message.includes('انتهت جلسة التحقق')||err.message.includes('ابدأ تسجيل الدخول من جديد'))){ownerLoginPending=false;state.token=null;document.getElementById('ownerTwoFactorPanel').style.display='none';document.getElementById('loginPassword').closest('.form-group').style.display='';document.getElementById('loginUsername').closest('.form-group').style.display='';document.getElementById('ownerTwoFactorCode').value='';} fail(err.message); }
   finally { btn.disabled=false;if(ownerLoginPending)btn.innerHTML='<span>تحقق وتابع</span>';else btn.innerHTML='<span>دخول إلى النظام</span>'; }
 }
 
@@ -6011,6 +6008,7 @@ function toggleLoginPasswordVisibility() {
 document.getElementById('loginPassword').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
+document.getElementById('ownerTwoFactorCode').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 function logout() {
   localStorage.removeItem('arToken');
