@@ -30,12 +30,15 @@ function getStorageConfig() {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   const key = secretKey || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
+  const isModernSecret = key.startsWith('sb_secret_');
+  const isLegacyServiceRole = key.startsWith('eyJ') && key.split('.').length === 3;
+  if (!isModernSecret && !isLegacyServiceRole) return null;
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:') return null;
     url = parsed.origin;
   } catch (_) { return null; }
-  return { url, key, isModernSecret: Boolean(secretKey) };
+  return { url, key, isModernSecret };
 }
 
 function storageAuthHeaders(config, extra = {}) {
@@ -55,8 +58,16 @@ async function uploadAvatarToStorage(userId, file) {
     body: file.buffer,
   });
   if (!response.ok) {
-    const status = response.status === 404 ? 503 : 502;
-    throw Object.assign(new Error(response.status === 404 ? 'أنشئ bucket باسم user-avatars في Supabase Storage أولاً' : 'تعذر رفع الصورة إلى التخزين السحابي'), { status });
+    const responseText = (await response.text()).slice(0, 700);
+    let details = responseText;
+    try { const parsed = JSON.parse(responseText); details = parsed.message || parsed.error || parsed.error_description || responseText; } catch (_) {}
+    const missingBucket = response.status === 404 || /bucket.*not found/i.test(details);
+    const message = missingBucket
+      ? 'Bucket باسم user-avatars غير موجود في Supabase Storage'
+      : (response.status === 401 || response.status === 403
+        ? 'Supabase رفض مفتاح الرفع أو صلاحياته'
+        : 'تعذر رفع الصورة إلى التخزين السحابي (HTTP ' + response.status + ')');
+    throw Object.assign(new Error(message), { status: missingBucket ? 503 : 502, storageStatus: response.status, storageError: String(details).slice(0, 500) });
   }
   const publicPath = objectPath.split('/').map(encodeURIComponent).join('/');
   return { url: config.url + '/storage/v1/object/public/user-avatars/' + publicPath, objectPath, config };

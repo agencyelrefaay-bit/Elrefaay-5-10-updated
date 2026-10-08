@@ -158,6 +158,8 @@ app.use((err, req, res, next) => {
     userId: req.user?.id || null,
     status: err.status || 500,
     error: err.message,
+    storageStatus: err.storageStatus || null,
+    storageError: err.storageError || null,
     stack: err.stack,
   });
   res.status(err.status || 500).json({ error: err.message || 'حدث خطأ غير متوقع في السيرفر' });
