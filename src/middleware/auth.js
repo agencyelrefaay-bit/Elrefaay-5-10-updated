@@ -49,6 +49,7 @@ function generateToken(user) {
       full_name: user.full_name,
       role: user.role,
       can_view_cost_price: !!user.can_view_cost_price,
+      avatar_url: user.avatar_url || null,
     },
     JWT_SECRET,
     { expiresIn: '12h' }

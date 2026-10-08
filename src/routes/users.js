@@ -6,6 +6,17 @@ const { run, get, all, insert } = require('../db/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
 
+function normalizeAvatarUrl(value) {
+  if (value == null || value === '') return null;
+  if (typeof value !== 'string' || value.length > 2048) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.toString() : undefined;
+  } catch (_) {
+    return undefined;
+  }
+}
+
 router.use(authenticate);
 
 // ─── Helper: إرجاع IDs المواقع المحددة للمستخدم ───
@@ -20,7 +31,7 @@ async function getUserLocationIds(userId) {
 // GET /api/users
 router.get('/', authorize('admin'), async (req, res) => {
   const users = await all(
-    `SELECT id, full_name, username, role, is_active, can_view_cost_price, created_at FROM users ORDER BY id ASC`
+    `SELECT id, full_name, username, role, is_active, can_view_cost_price, avatar_url, created_at FROM users ORDER BY id ASC`
   );
   // أضف المواقع المحددة لكل مستخدم
   const withPerms = await Promise.all(users.map(async u => ({
@@ -33,6 +44,8 @@ router.get('/', authorize('admin'), async (req, res) => {
 // POST /api/users
 router.post('/', authorize('admin'), async (req, res) => {
   const { full_name, username, password, role, can_view_cost_price, allowed_location_ids } = req.body;
+  const avatar_url = normalizeAvatarUrl(req.body.avatar_url);
+  if (avatar_url === undefined) return res.status(400).json({ error: 'رابط الصورة يجب أن يكون رابط HTTPS صالحاً' });
 
   if (!full_name || !username || !password || !role)
     return res.status(400).json({ error: 'جميع الحقول مطلوبة' });
@@ -45,8 +58,8 @@ router.post('/', authorize('admin'), async (req, res) => {
 
   const passwordHash = bcrypt.hashSync(password, 10);
   const newId = await insert(
-    `INSERT INTO users (full_name, username, password_hash, role, can_view_cost_price) VALUES (?, ?, ?, ?, ?)`,
-    [full_name, username, passwordHash, role, can_view_cost_price ? 1 : 0]
+    `INSERT INTO users (full_name, username, password_hash, role, can_view_cost_price, avatar_url) VALUES (?, ?, ?, ?, ?, ?)`,
+    [full_name, username, passwordHash, role, can_view_cost_price ? 1 : 0, avatar_url]
   );
 
   // حفظ صلاحيات المواقع إن وُجدت
@@ -60,7 +73,7 @@ router.post('/', authorize('admin'), async (req, res) => {
   await logAction(req.user.id, 'create', 'user', newId, { username, role });
   const newUserLocationIds = await getUserLocationIds(newId);
   res.status(201).json({
-    user: { id: newId, full_name, username, role, can_view_cost_price: !!can_view_cost_price,
+    user: { id: newId, full_name, username, role, avatar_url, can_view_cost_price: !!can_view_cost_price,
             allowed_location_ids: newUserLocationIds },
   });
 });
@@ -69,6 +82,9 @@ router.post('/', authorize('admin'), async (req, res) => {
 router.put('/:id', authorize('admin'), async (req, res) => {
   const { id } = req.params;
   const { full_name, role, is_active, can_view_cost_price, password, allowed_location_ids } = req.body;
+  const avatarProvided = Object.prototype.hasOwnProperty.call(req.body, 'avatar_url');
+  const avatar_url = avatarProvided ? normalizeAvatarUrl(req.body.avatar_url) : undefined;
+  if (avatarProvided && avatar_url === undefined) return res.status(400).json({ error: 'رابط الصورة يجب أن يكون رابط HTTPS صالحاً' });
 
   const user = await get(`SELECT * FROM users WHERE id = ?`, [id]);
   if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' });
@@ -82,10 +98,13 @@ router.put('/:id', authorize('admin'), async (req, res) => {
       role = COALESCE(?, role),
       is_active = COALESCE(?, is_active),
       can_view_cost_price = COALESCE(?, can_view_cost_price),
+      avatar_url = COALESCE(?, avatar_url),
       updated_at = datetime('now')
      WHERE id = ?`,
-    [full_name ?? null, role ?? null, is_active ?? null, can_view_cost_price ?? null, id]
+    [full_name ?? null, role ?? null, is_active ?? null, can_view_cost_price ?? null, avatarProvided && avatar_url ? avatar_url : null, id]
   );
+
+  if (avatarProvided && !avatar_url) await run(`UPDATE users SET avatar_url = NULL WHERE id = ?`, [id]);
 
   if (password) {
     await run(`UPDATE users SET password_hash = ? WHERE id = ?`, [bcrypt.hashSync(password, 10), id]);
@@ -100,7 +119,7 @@ router.put('/:id', authorize('admin'), async (req, res) => {
   }
 
   await logAction(req.user.id, 'update', 'user', id, req.body);
-  const updated = await get(`SELECT id, full_name, username, role, is_active, can_view_cost_price FROM users WHERE id = ?`, [id]);
+  const updated = await get(`SELECT id, full_name, username, role, is_active, can_view_cost_price, avatar_url FROM users WHERE id = ?`, [id]);
   const updatedLocationIds = await getUserLocationIds(Number(id));
   res.json({ user: { ...updated, allowed_location_ids: updatedLocationIds } });
 });

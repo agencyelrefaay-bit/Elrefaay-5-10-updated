@@ -44,6 +44,7 @@ router.post('/login', asyncHandler(async (req, res) => {
       username: user.username,
       role: user.role,
       can_view_cost_price: !!user.can_view_cost_price,
+      avatar_url: user.avatar_url || null,
     },
   });
 }));

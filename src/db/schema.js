@@ -1012,6 +1012,12 @@ async function migrateProductListPerformanceIndexes() {
   console.log('✓ تم التأكد من فهارس أداء قائمة المنتجات (Stage 6)');
 }
 
+async function migrateUserAvatarSchema() {
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
+  console.log('✓ تم التأكد من حقل صورة المستخدم (avatar_url)');
+}
+module.exports.migrateUserAvatarSchema = migrateUserAvatarSchema;
+
 module.exports.createPhase4Schema = createPhase4Schema;
 module.exports.migratePerformanceIndexes = migratePerformanceIndexes;
 module.exports.migrateProductListPerformanceIndexes = migrateProductListPerformanceIndexes;

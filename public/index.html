@@ -617,7 +617,9 @@ html[data-going="light"]::view-transition-new(root) { z-index: 2147483646; }
   color: var(--on-gold);
   flex-shrink: 0;
   box-shadow: 0 0 12px var(--gold-glow);
+  overflow: hidden;
 }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .user-info { flex: 1; min-width: 0; }
 .user-name { font-size: 0.8rem; font-weight: 600; color: var(--cream-1); truncate; }
@@ -4889,6 +4891,14 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
           <span class="field-hint">يُستخدم لتسجيل الدخول، أحرف إنجليزية بدون مسافات.</span>
         </div>
       </div>
+      <div class="form-group" style="margin-top:4px;">
+        <label class="form-label">رابط صورة الحساب</label>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div id="uAvatarPreview" class="user-avatar" style="width:48px;height:48px;">م</div>
+          <input type="url" class="form-control" id="uAvatarUrl" placeholder="https://..." dir="ltr" oninput="previewUserAvatar()"/>
+        </div>
+        <span class="field-hint">ارفع الصورة في Storage داخل bucket باسم user-avatars، ثم الصق رابطها العام هنا. اتركه فارغاً لإزالة الصورة.</span>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">كلمة المرور</label>
@@ -5959,6 +5969,27 @@ function logout() {
 }
 
 // ── Init ──
+function safeUserAvatarUrl(value) {
+  try { const url = new URL(value); return url.protocol === 'https:' ? url.href : ''; } catch (_) { return ''; }
+}
+
+function renderUserAvatar(container, user) {
+  if (!container) return;
+  container.textContent = user?.full_name?.charAt(0) || 'م';
+  const url = safeUserAvatarUrl(user?.avatar_url);
+  if (!url) return;
+  const image = document.createElement('img');
+  image.src = url;
+  image.alt = `صورة ${user?.full_name || 'المستخدم'}`;
+  image.onerror = () => { image.remove(); container.textContent = user?.full_name?.charAt(0) || 'م'; };
+  container.textContent = '';
+  container.appendChild(image);
+}
+
+function previewUserAvatar() {
+  renderUserAvatar(document.getElementById('uAvatarPreview'), { full_name: document.getElementById('uFullName').value, avatar_url: document.getElementById('uAvatarUrl').value.trim() });
+}
+
 function initApp() {
   if (!state.token) {
     document.getElementById('loginPage').style.display = 'flex';
@@ -5976,14 +6007,13 @@ function initApp() {
   // Set user info
   const u = state.user;
   if (u) {
-    const initial = u.full_name ? u.full_name.charAt(0) : 'م';
-    document.getElementById('sidebarAvatar').textContent = initial;
+    renderUserAvatar(document.getElementById('sidebarAvatar'), u);
     document.getElementById('sidebarUserName').textContent = u.full_name;
     const roleNames = { admin: 'مسؤول النظام', manager: 'مدير', sales: 'مبيعات', warehouse: 'مخزن' };
     document.getElementById('sidebarUserRole').textContent = roleNames[u.role] || u.role;
     document.getElementById('topbarUser').textContent = `${u.full_name} · ${roleNames[u.role] || u.role}`;
     // نفس بيانات المستخدم في الـ drawer (تابلت portrait)
-    document.getElementById('drawerAvatar').textContent = initial;
+    renderUserAvatar(document.getElementById('drawerAvatar'), u);
     document.getElementById('drawerUserName').textContent = u.full_name;
     document.getElementById('drawerUserRole').textContent = roleNames[u.role] || u.role;
 
@@ -8741,6 +8771,8 @@ function getSelectedLocIds() {
 function openUserModal() {
   document.getElementById('uId').value = '';
   document.getElementById('uFullName').value = '';
+  document.getElementById('uAvatarUrl').value = '';
+  previewUserAvatar();
   document.getElementById('uUsername').value = '';
   document.getElementById('uPassword').value = '';
   document.getElementById('uRole').value = 'warehouse';
@@ -8760,6 +8792,8 @@ function editUser(id) {
   if (!u) return;
   document.getElementById('uId').value = u.id;
   document.getElementById('uFullName').value = u.full_name;
+  document.getElementById('uAvatarUrl').value = u.avatar_url || '';
+  previewUserAvatar();
   document.getElementById('uUsername').value = u.username;
   document.getElementById('uPassword').value = '';
   document.getElementById('uRole').value = u.role;
@@ -8784,6 +8818,7 @@ async function saveUser() {
   const id = document.getElementById('uId').value;
   const body = {
     full_name:          document.getElementById('uFullName').value.trim(),
+    avatar_url:         document.getElementById('uAvatarUrl').value.trim(),
     username:           document.getElementById('uUsername').value.trim(),
     role:               document.getElementById('uRole').value,
     can_view_cost_price: document.getElementById('uCanViewCost').checked,
@@ -8801,7 +8836,17 @@ async function saveUser() {
 
   try {
     if (id) {
-      await API.put(`/users/${id}`, body);
+      const result = await API.put(`/users/${id}`, body);
+      if (state.user && Number(state.user.id) === Number(id)) {
+        state.user = { ...state.user, ...result.user };
+        localStorage.setItem('arUser', JSON.stringify(state.user));
+        renderUserAvatar(document.getElementById('sidebarAvatar'), state.user);
+        renderUserAvatar(document.getElementById('drawerAvatar'), state.user);
+        document.getElementById('sidebarUserName').textContent = state.user.full_name;
+        document.getElementById('drawerUserName').textContent = state.user.full_name;
+        const roleNames = { admin: 'مسؤول النظام', manager: 'مدير', sales: 'موظف مبيعات', warehouse: 'أمين مخزن' };
+        document.getElementById('topbarUser').textContent = `${state.user.full_name} · ${roleNames[state.user.role] || state.user.role}`;
+      }
       toast('تم تحديث المستخدم ✓');
     } else {
       await API.post('/users', body);
