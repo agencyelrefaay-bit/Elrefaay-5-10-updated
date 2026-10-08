@@ -1,14 +1,16 @@
+import 'dotenv/config'
 // link-images-to-products.js
 import { createClient } from '@supabase/supabase-js'
 
 // ⚠️ عدّل دول حسب مشروعك
-const SUPABASE_URL = 'https://novqojzbfpuijvrmvypk.supabase.co'
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vdnFvanpiZnB1aWp2cm12eXBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTY1OTc1NywiZXhwIjoyMTA1MjM1NzU3fQ.9l-jQbePCdoQLxuRC6IYSXMPRqmu-s7_ev2JUez5vwA'   // مش anon key - لازم service role عشان الـ update يشتغل
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const BUCKET_NAME = 'products-images'
 const TABLE_NAME = 'products'
 const SKU_COLUMN = 'sku'
 const IMAGE_COLUMN = 'image_path'
 
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) throw new Error('Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment before running this script')
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
 async function linkImages() {
