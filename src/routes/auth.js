@@ -133,7 +133,11 @@ router.post('/login', asyncHandler(async (req, res) => {
       await logAction(user.id, 'login_email_otp_send_failed', 'user', user.id, { code: error.code || null, response_code: error.responseCode || null });
       if (error.code === 'OWNER_EMAIL_NOT_CONFIGURED') return res.status(503).json({ error: 'إعداد بريد الإرسال غير مكتمل على الخادم' });
       if (error.code === 'EAUTH' || [534, 535].includes(Number(error.responseCode))) return res.status(503).json({ error: 'Gmail رفض بيانات الدخول. تأكد من GMAIL_USER وأن GMAIL_APP_PASSWORD هي كلمة مرور تطبيق صالحة.' });
-      if (['ETIMEDOUT', 'ESOCKET', 'ECONNECTION', 'ECONNREFUSED', 'ENETUNREACH'].includes(error.code)) return res.status(503).json({ error: 'الخادم لم يستطع الاتصال بخادم Gmail SMTP. راجع اتصال الشبكة والسجلات.' });
+      if (error.code === 'ERESEND' && [401, 403].includes(Number(error.responseCode))) return res.status(503).json({ error: 'مفتاح Resend غير صالح أو لا يملك صلاحية إرسال البريد.' });
+      if (error.code === 'ERESEND' && [400, 422].includes(Number(error.responseCode))) return res.status(503).json({ error: 'عنوان الإرسال في Resend غير مقبول. استخدم عنوانًا تابعًا لنطاق موثّق في Resend.' });
+      if (error.code === 'ERESEND') return res.status(503).json({ error: 'Resend لم يقبل إرسال الرسالة. راجع حالة الخدمة وسجلاتها.' });
+      if (['ETIMEDOUT', 'ESOCKET', 'ECONNECTION', 'ECONNREFUSED', 'ENETUNREACH'].includes(error.code)) return res.status(503).json({ error: 'الخادم لم يستطع الاتصال بخادم البريد. راجع اتصال الشبكة والسجلات.' });
+      if (error.code === 'ERESEND_NETWORK') return res.status(503).json({ error: 'تعذر اتصال الخادم بواجهة Resend عبر HTTPS. راجع اتصال الشبكة والسجلات.' });
       return res.status(503).json({ error: 'تعذر إرسال الرمز. كود التشخيص: ' + String(error.code || error.responseCode || 'UNKNOWN') });
     }
     const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
@@ -168,16 +172,43 @@ function getOwnerEmail() {
 function maskOwnerEmail(email) { const [name, domain] = email.split('@'); return (name[0] || '*') + '*'.repeat(Math.max(2, Math.min(name.length - 1, 8))) + '@' + domain; }
 function hashOwnerEmailCode(code) { return crypto.createHmac('sha256', JWT_SECRET).update(String(code)).digest('hex'); }
 async function sendOwnerLoginCode(to, code) {
+  const subject = 'رمز التحقق لحساب المالك';
+  const text = 'رمز التحقق الخاص بتسجيل الدخول هو: ' + code + '\nصالح لمدة 5 دقائق. إذا لم تطلبه، تجاهل هذه الرسالة.';
+  const html = '<div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#241b24"><h2>رمز التحقق</h2><p>استخدم الرمز التالي لإكمال تسجيل الدخول إلى حساب المالك:</p><div style="font-size:30px;font-weight:700;letter-spacing:8px;text-align:center;padding:18px;background:#f8eff6;border-radius:12px">' + code + '</div><p>الرمز صالح لمدة 5 دقائق، ولا تشاركه مع أي شخص.</p><small>إذا لم تطلب هذا الرمز، يمكنك تجاهل الرسالة.</small></div>';
+
+  // Railway Free/Trial/Hobby blocks outbound SMTP; its HTTPS API remains available.
+  const resendKey = String(process.env.RESEND_API_KEY || '').trim();
+  if (resendKey) {
+    const sender = String(process.env.RESEND_FROM_EMAIL || '').trim();
+    if (!sender) throw Object.assign(new Error('RESEND_FROM_EMAIL is missing'), { code: 'OWNER_EMAIL_NOT_CONFIGURED' });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12_000);
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: sender, to: [to], subject, text, html }),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw Object.assign(new Error('Resend rejected owner OTP'), { code: 'ERESEND', responseCode: response.status });
+      return;
+    } catch (error) {
+      if (error.code) throw error;
+      throw Object.assign(new Error('Resend HTTPS request failed'), { code: error.name === 'AbortError' ? 'ETIMEDOUT' : (error.cause && error.cause.code) || 'ERESEND_NETWORK' });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   const sender = String(process.env.GMAIL_USER || to).trim();
   const appPassword = String(process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
-  if (!appPassword) throw Object.assign(new Error('Gmail App Password is missing'), { code: 'OWNER_EMAIL_NOT_CONFIGURED' });
+  if (!appPassword) throw Object.assign(new Error('Gmail App Password or Resend API key is missing'), { code: 'OWNER_EMAIL_NOT_CONFIGURED' });
   const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: sender, pass: appPassword }, connectionTimeout: 12000, greetingTimeout: 10000, socketTimeout: 15000 });
-  try { await transporter.sendMail({
-    from: { name: 'الرفاعي ERP', address: sender }, to,
-    subject: 'رمز التحقق لحساب المالك',
-    text: 'رمز التحقق الخاص بتسجيل الدخول هو: ' + code + '\nصالح لمدة 5 دقائق. إذا لم تطلبه، تجاهل هذه الرسالة.',
-    html: '<div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#241b24"><h2>رمز التحقق</h2><p>استخدم الرمز التالي لإكمال تسجيل الدخول إلى حساب المالك:</p><div style="font-size:30px;font-weight:700;letter-spacing:8px;text-align:center;padding:18px;background:#f8eff6;border-radius:12px">' + code + '</div><p>الرمز صالح لمدة 5 دقائق، ولا تشاركه مع أي شخص.</p><small>إذا لم تطلب هذا الرمز، يمكنك تجاهل الرسالة.</small></div>',
-  }); } finally { transporter.close(); }
+  try {
+    await transporter.sendMail({ from: { name: 'الرفاعي ERP', address: sender }, to, subject, text, html });
+  } finally {
+    transporter.close();
+  }
 }
 async function getOwnerEmailChallenge(req, res) {
   const header = req.headers.authorization || '';
