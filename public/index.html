@@ -6259,12 +6259,10 @@ function renderTopbarUser(user) {
   host.title = isOwner ? 'ملفك ومساحتك الخاصة' : 'إعدادات الحساب';
   if (!isOwner) { host.textContent = `${user.full_name || ''} · ${roles[user.role] || user.role || ''}`; return; }
   host.replaceChildren();
-  const role = document.createElement('span'); role.className = 'topbar-user-role'; role.textContent = roles.owner;
-  const separator = document.createElement('span'); separator.className = 'topbar-user-separator'; separator.textContent = '·';
   const name = document.createElement('span'); name.className = 'topbar-user-name'; name.textContent = user.full_name || 'المالك';
   const sun = document.createElement('span'); sun.className = 'owner-sun'; sun.setAttribute('aria-hidden', 'true');
   sun.innerHTML = '<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 22a11 11 0 0 1 22 0" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="19" r="6.5" fill="url(#ownerSunGold)"/><path d="M16 3v4M4.7 8l2.8 2.8M27.3 8l-2.8 2.8M2 19h4m20 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><defs><linearGradient id="ownerSunGold" x1="10" y1="12" x2="22" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#FFE8A3"/><stop offset="1" stop-color="#D49A2A"/></linearGradient></defs></svg>';
-  name.appendChild(sun); host.append(role, separator, name);
+  name.appendChild(sun); host.append(name);
 }
 
 function initCurrentUserDisplay() {
