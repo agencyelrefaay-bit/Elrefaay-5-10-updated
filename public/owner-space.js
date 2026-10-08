@@ -22,15 +22,28 @@
     .owner-back:hover{transform:translateY(-2px);box-shadow:0 8px 18px #6e4e231c}
     .owner-page-mark{display:flex;align-items:center;gap:9px;color:#78684f;font:700 11px Tajawal,sans-serif;letter-spacing:.06em}
     .owner-page-secure{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #d7c598;border-radius:30px;background:#fbf5e6;color:#80642a;letter-spacing:0}
-    .owner-profile-hero{position:relative;display:flex;align-items:flex-end;gap:24px;min-height:300px;overflow:hidden;padding:clamp(24px,5vw,54px);border:1px solid #c6a96b;border-radius:28px;background:linear-gradient(115deg,#352c3b 0%,#63505c 40%,#bd9072 72%,#e8c891 100%);color:#fffaf2;isolation:isolate;box-shadow:0 20px 55px #49341d24}
-    .owner-profile-hero:before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 20% 90%,#ffd98988,transparent 45%),linear-gradient(180deg,#fff5dc08 0%,transparent 52%,#21152655 100%)}
-    .owner-hero-stars{position:absolute;inset:0;z-index:-1;opacity:.6;background-image:radial-gradient(1px 1px at 14% 25%,#fff 98%,transparent),radial-gradient(1px 1px at 55% 19%,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 84% 32%,#fff 98%,transparent),radial-gradient(1px 1px at 68% 58%,#fff 98%,transparent);background-size:230px 150px;animation:ownerStarDrift 16s linear infinite}
+    .owner-profile-hero{position:relative;display:flex;align-items:flex-end;gap:24px;min-height:300px;overflow:hidden;padding:clamp(24px,5vw,54px);border:1px solid #c6a96b;border-radius:28px;background:linear-gradient(115deg,#352c3b 0%,#63505c 40%,#bd9072 72%,#e8c891 100%);color:#fffaf2;isolation:isolate;box-shadow:0 20px 55px #49341d24;transition:background 1.8s ease,border-color 1.8s ease}
+    .owner-profile-hero:before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 20% 90%,#ffd98988,transparent 45%),linear-gradient(180deg,#fff5dc08 0%,transparent 52%,#21152655 100%);transition:background 1.8s ease}
+    .owner-hero-stars{position:absolute;inset:0;z-index:-1;opacity:.35;background-image:radial-gradient(1px 1px at 14% 25%,#fff 98%,transparent),radial-gradient(1px 1px at 55% 19%,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 84% 32%,#fff 98%,transparent),radial-gradient(1px 1px at 68% 58%,#fff 98%,transparent);background-size:230px 150px;animation:ownerStarDrift 16s linear infinite;transition:opacity 1.8s ease}
     @keyframes ownerStarDrift{to{background-position:0 -150px}}
-    .owner-hero-horizon{position:absolute;left:0;right:0;bottom:0;height:70px;z-index:-1;background:linear-gradient(180deg,transparent,#f8d79755 72%,#f0d4a8aa);clip-path:polygon(0 60%,18% 48%,34% 68%,55% 40%,73% 62%,100% 35%,100% 100%,0 100%)}
+    .owner-profile-hero.is-night{border-color:#8077a9;background:linear-gradient(115deg,#151a36 0%,#292e55 42%,#51436a 75%,#79556d 100%)}
+    .owner-profile-hero.is-night:before{background:radial-gradient(ellipse at 24% 88%,#8ea7e044,transparent 48%),radial-gradient(ellipse at 83% 12%,#c7a7e033,transparent 40%),linear-gradient(180deg,#11152b40 0%,transparent 50%,#10142e70 100%)}
+    .owner-profile-hero.is-night .owner-hero-stars{opacity:.96;animation:ownerStarDrift 22s linear infinite,ownerNightTwinkle 4.5s ease-in-out infinite alternate}
+    .owner-profile-hero.is-night .owner-hero-stars:after{content:"";position:absolute;inset:0;background-image:radial-gradient(2px 2px at 23% 19%,#fff9d7 98%,transparent),radial-gradient(1.5px 1.5px at 39% 53%,#fff 98%,transparent),radial-gradient(2px 2px at 74% 37%,#e7ddff 98%,transparent),radial-gradient(1.5px 1.5px at 91% 68%,#fff3c2 98%,transparent);background-size:310px 210px;animation:ownerStarDrift 28s linear infinite,ownerStarBlink 3.1s ease-in-out infinite alternate}
+    @keyframes ownerNightTwinkle{from{opacity:.66}to{opacity:1}}
+    @keyframes ownerStarBlink{from{opacity:.35;transform:scale(.99)}to{opacity:1;transform:scale(1.01)}}
+    .owner-hero-horizon{position:absolute;left:0;right:0;bottom:0;height:70px;z-index:-1;background:linear-gradient(180deg,transparent,#f8d79755 72%,#f0d4a8aa);clip-path:polygon(0 60%,18% 48%,34% 68%,55% 40%,73% 62%,100% 35%,100% 100%,0 100%);transition:background 1.8s ease}
+    .owner-profile-hero.is-night .owner-hero-horizon{background:linear-gradient(180deg,transparent,#9c8bb344 45%,#3a426fbb 100%)}
     .owner-hero-sun{position:absolute;left:19%;bottom:-26px;z-index:0;width:76px;height:76px;opacity:0;filter:drop-shadow(0 0 24px #ffde987a) drop-shadow(0 0 62px #ffdd8255)}
     .owner-hero-sun img{display:block;width:100%;height:100%}
     #ownerStudioPanel.open .owner-hero-sun{animation:profileSunRise 1.35s cubic-bezier(.2,.8,.2,1) .12s forwards}
+    .owner-profile-hero.is-night .owner-hero-sun{animation:none!important;opacity:0!important}
     @keyframes profileSunRise{0%{opacity:0;transform:translate3d(-22px,55px,0) scale(.72)}55%{opacity:1;transform:translate3d(20px,-26px,0) scale(1.04)}78%{transform:translate3d(33px,-49px,0) scale(.98)}100%{opacity:1;transform:translate3d(42px,-43px,0) scale(1)}}
+    .owner-hero-moon{position:absolute;left:20%;top:18%;z-index:0;width:74px;height:74px;opacity:0;filter:drop-shadow(0 0 19px #fff0be88) drop-shadow(0 0 48px #c6c7ff44)}
+    .owner-hero-moon img{display:block;width:100%;height:100%;animation:ownerMoonFloat 6.5s ease-in-out 1s infinite alternate}
+    .owner-profile-hero.is-night .owner-hero-moon{animation:profileMoonRise .9s cubic-bezier(.2,.8,.2,1) .12s both}
+    @keyframes profileMoonRise{from{opacity:0;transform:translate3d(-18px,24px,0) scale(.72)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+    @keyframes ownerMoonFloat{from{transform:translateY(-3px) rotate(-3deg)}to{transform:translateY(4px) rotate(3deg)}}
     .owner-profile-avatar{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 112px;width:112px;height:112px;overflow:hidden;border:3px solid #fff9e5;border-radius:50%;background:#f4e2c0;color:#765327;font:800 38px Tajawal,sans-serif;box-shadow:0 0 0 7px #fff2d52e,0 12px 30px #2117253b}
     .owner-profile-avatar img{width:100%;height:100%;object-fit:cover}
     .owner-hero-copy{position:relative;z-index:1;min-width:0}
@@ -40,6 +53,8 @@
     .owner-hero-subtitle{margin:0;color:#fff1d7;font:500 14px Tajawal,sans-serif}
     .owner-hero-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
     .owner-hero-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #fff6df50;border-radius:99px;background:#291f2b33;color:#fff8e8;font:600 12px Tajawal,sans-serif;backdrop-filter:blur(8px)}
+    .owner-sky-status{font-variant-numeric:tabular-nums}
+    .owner-sky-status time{direction:ltr;unicode-bidi:isolate;opacity:.9}
     .owner-profile-actions{position:absolute;top:22px;left:22px;z-index:2;display:flex;gap:8px}
     .owner-profile-action{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border:1px solid #fff4dc77;border-radius:12px;background:#291f2b37;color:#fffaf0;font:700 12px Tajawal,sans-serif;cursor:pointer;backdrop-filter:blur(8px);transition:background .2s,transform .2s}
     .owner-profile-action:hover{background:#291f2b65;transform:translateY(-2px)}
@@ -69,12 +84,13 @@
     .owner-profile-footer{margin-top:18px;text-align:center;color:#958674;font:500 11px Tajawal,sans-serif}
     @media(max-width:800px){.owner-profile-hero{min-height:290px}.owner-feature-grid{grid-template-columns:1fr}.owner-studio-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:560px){#ownerStudioPanel{padding:10px}.owner-profile-hero{display:block;min-height:390px;padding:25px 20px 27px;border-radius:22px}.owner-profile-actions{top:14px;left:14px}.owner-profile-action{padding:8px 10px}.owner-profile-avatar{width:82px;height:82px;margin-top:72px;font-size:30px}.owner-hero-name{font-size:34px}.owner-hero-sun{left:56%}.owner-page-mark{font-size:9px}.owner-studio-grid{grid-template-columns:1fr}.owner-feature-card{padding:14px}.owner-profile-heading h2{font-size:19px}}
-    @media(prefers-reduced-motion:reduce){#ownerStudioPanel.open,.owner-profile-hero *, .owner-feature-card,.owner-hero-name,.owner-hero-stars,.owner-butterfly-flight,.owner-butterfly-flight img{animation:none!important;transition:none!important}.owner-hero-sun{opacity:.9;transform:translate(42px,-43px)}}
+    @media(prefers-reduced-motion:reduce){#ownerStudioPanel.open,.owner-profile-hero *, .owner-profile-hero .owner-hero-stars:after,.owner-feature-card,.owner-hero-name,.owner-hero-stars,.owner-butterfly-flight,.owner-butterfly-flight img{animation:none!important;transition:none!important}.owner-profile-hero:not(.is-night) .owner-hero-sun{opacity:.9;transform:translate(42px,-43px)}.owner-profile-hero.is-night .owner-hero-sun{opacity:0!important}.owner-profile-hero.is-night .owner-hero-moon{opacity:1;transform:none}.owner-profile-hero.is-night .owner-hero-stars{opacity:.96}}
   `;
   document.head.appendChild(style);
 
   let cal = '0', stored = null, operator = null, fresh = false, returnFocus = null;
   let lastAlertKey = null;
+  let skyTimer = null, skyVisibilityBound = false;
   const storageKey = (name) => `rifai:owner:${Number(state?.user?.id) || 'local'}:${name}`;
   function safe(value) {
     return String(value || '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -93,12 +109,12 @@
     panel.innerHTML = `<div class="owner-butterfly-garden" aria-hidden="true"><span class="owner-butterfly-flight owner-butterfly-flight--one"><img src="/assets/owner-butterfly.png" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--two"><img src="/assets/owner-butterfly.png" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--three"><img src="/assets/owner-butterfly.png" alt=""></span></div><main class="owner-profile-page" role="dialog" aria-modal="true" aria-label="الملف الشخصي الخاص بالمالك">
       <header class="owner-page-top"><button type="button" class="owner-back" id="ownerStudioClose"><span aria-hidden="true">←</span> العودة للنظام</button><div class="owner-page-mark"><span>AL-RIFAI · PRIVATE SPACE</span><span class="owner-page-secure">✦ مساحة خاصة ومحمية</span></div></header>
       <section class="owner-profile-hero" aria-label="الملف الشخصي">
-        <div class="owner-hero-stars" aria-hidden="true"></div><div class="owner-hero-sun" aria-hidden="true"><img src="/assets/owner-sun.svg" alt=""></div><div class="owner-hero-horizon" aria-hidden="true"></div>
+        <div class="owner-hero-stars" aria-hidden="true"></div><div class="owner-hero-sun" aria-hidden="true"><img src="/assets/owner-sun.svg" alt=""></div><div class="owner-hero-moon" aria-hidden="true"><img src="/assets/owner-moon.svg" alt=""></div><div class="owner-hero-horizon" aria-hidden="true"></div>
         <div class="owner-profile-actions"><button type="button" class="owner-profile-action" id="ownerProfileSettings"><span aria-hidden="true">⚙</span> الملف والإعدادات</button></div>
         <div class="owner-profile-avatar" id="ownerProfileAvatar" aria-label="الصورة الشخصية">م</div>
-        <div class="owner-hero-copy"><div class="owner-hero-eyebrow">مساحتك الخاصة</div><h1 class="owner-hero-name" id="ownerProfileName">المالك</h1><p class="owner-hero-subtitle">ملفك الشخصي وأدواتك اليومية في مكان واحد</p><div class="owner-hero-badges"><span class="owner-hero-badge">✦ مالك المشروع</span><span class="owner-hero-badge">✓ تحقق بخطوتين مفعّل</span></div></div>
+        <div class="owner-hero-copy"><div class="owner-hero-eyebrow">مساحتك الخاصة</div><h1 class="owner-hero-name" id="ownerProfileName">المالك</h1><p class="owner-hero-subtitle">ملفك الشخصي وأدواتك اليومية في مكان واحد</p><div class="owner-hero-badges"><span class="owner-hero-badge">✦ مالك المشروع</span><span class="owner-hero-badge">✓ تحقق بخطوتين مفعّل</span><span class="owner-hero-badge owner-sky-status" id="ownerSkyStatus"><span id="ownerSkyIcon" aria-hidden="true">☀</span><span id="ownerSkyLabel">النهار</span><time id="ownerSkyTime"></time></span></div></div>
       </section>
-      <section class="owner-profile-main"><div class="owner-profile-heading"><div><h2>مساحتك</h2><p>ملاحظاتك وأدواتك المفضلة، بتصميم هادئ وإضاءة شروق دافئة.</p></div></div>
+      <section class="owner-profile-main"><div class="owner-profile-heading"><div><h2>مساحتك</h2><p id="ownerSkyDescription">ملاحظاتك وأدواتك المفضلة، بتصميم هادئ وإضاءة شروق دافئة.</p></div></div>
         <div class="owner-feature-grid">
           <section class="owner-feature-card"><div class="owner-card-heading"><span style="display:flex;align-items:center;gap:10px"><span class="owner-card-icon" aria-hidden="true">✎</span> ملاحظاتي</span><button class="btn btn-primary btn-sm" id="ownerNewNote">＋ ملاحظة جديدة</button></div>
             <div class="owner-studio-box"><label class="owner-small" for="ownerNoteTitle">عنوان الملاحظة</label><input class="owner-input" id="ownerNoteTitle" maxlength="160" placeholder="عنوان واضح لملاحظتك"><label class="owner-small" for="ownerNoteBody" style="display:block;margin-top:10px">النص</label><textarea class="owner-input" id="ownerNoteBody" maxlength="20000" rows="3" placeholder="اكتبي فكرة أو تذكيرًا..."></textarea><button class="btn btn-subtle btn-sm" id="ownerSaveNote" style="margin-top:9px">حفظ الملاحظة</button></div><div id="ownerNotes" style="margin-top:11px"></div>
@@ -128,7 +144,44 @@
     soundCheck.addEventListener('change', () => localStorage.setItem(storageKey('soundEnabled'), String(soundCheck.checked)));
     document.addEventListener('keydown', handleProfileKeydown);
     window.addEventListener('storage', handleOwnerStorage);
+    startOwnerSkyClock();
     window.mountOwnerStudio = mount;
+  }
+  function updateOwnerSky() {
+    const hero = document.querySelector('#ownerStudioPanel .owner-profile-hero');
+    if (!hero) return;
+    const now = new Date();
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Cairo';
+    const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(now));
+    const isDay = hour >= 6 && hour < 18;
+    hero.classList.toggle('is-night', !isDay);
+    const label = document.getElementById('ownerSkyLabel');
+    const icon = document.getElementById('ownerSkyIcon');
+    const time = document.getElementById('ownerSkyTime');
+    const description = document.getElementById('ownerSkyDescription');
+    if (label) label.textContent = isDay ? 'النهار' : 'الليل';
+    if (icon) icon.textContent = isDay ? '☀' : '☾';
+    if (description) description.textContent = isDay
+      ? 'مساحة هادئة بإضاءة نهارية دافئة وفراشات رقيقة.'
+      : 'مساحة ليلية هادئة بقمر مبتسم ونجوم متلألئة وفراشات رقيقة.';
+    if (time) {
+      time.textContent = new Intl.DateTimeFormat('ar-EG', { timeZone, hour: 'numeric', minute: '2-digit' }).format(now);
+      time.dateTime = now.toISOString();
+    }
+  }
+  function scheduleOwnerSkyUpdate() {
+    clearTimeout(skyTimer);
+    skyTimer = setTimeout(() => { updateOwnerSky(); scheduleOwnerSkyUpdate(); }, 60000 - (Date.now() % 60000) + 30);
+  }
+  function startOwnerSkyClock() {
+    updateOwnerSky();
+    scheduleOwnerSkyUpdate();
+    if (!skyVisibilityBound) {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) { updateOwnerSky(); scheduleOwnerSkyUpdate(); }
+      });
+      skyVisibilityBound = true;
+    }
   }
   function updateProfileIdentity() {
     const user = state?.user || {};
@@ -142,6 +195,7 @@
     if (!document.getElementById('ownerStudioPanel')) mount();
     const panel = document.getElementById('ownerStudioPanel');
     if (!panel) { toast('تعذر تجهيز مساحة المالك. حدّث الصفحة ثم حاول مرة أخرى.', 'danger'); return; }
+    updateOwnerSky();
     returnFocus = document.activeElement;
     updateProfileIdentity(); panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
     loadNotes(); panel.querySelector('#ownerStudioClose')?.focus({ preventScroll: true });

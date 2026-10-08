@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <linearGradient id="moon" x1="25" y1="17" x2="72" y2="80" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFBE2"/><stop offset=".62" stop-color="#FFE9AA"/><stop offset="1" stop-color="#F5C97B"/></linearGradient>
+    <mask id="crescent"><rect width="96" height="96" fill="black"/><circle cx="44" cy="46" r="32" fill="white"/><circle cx="62" cy="32" r="25" fill="black"/></mask>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+  <circle cx="44" cy="46" r="34" fill="#FFF1C1" fill-opacity=".26" filter="url(#soft)"/>
+  <circle cx="44" cy="46" r="32" fill="url(#moon)" mask="url(#crescent)"/>
+  <g fill="#FFF5D6"><path d="m77 20 2.4 5.6L85 28l-5.6 2.4L77 36l-2.4-5.6L69 28l5.6-2.4L77 20ZM23 18l1.6 3.4L28 23l-3.4 1.6L23 28l-1.6-3.4L18 23l3.4-1.6L23 18Z"/><circle cx="78" cy="47" r="1.7"/><circle cx="16" cy="42" r="1.5"/></g>
+  <g stroke="#72526A" stroke-width="2.4" stroke-linecap="round"><path d="M22 42c1.1-1.8 2.4-2.7 3.8-2.7 1.5 0 2.8.9 3.9 2.7"/><path d="M30 42c1.1-1.8 2.4-2.7 3.8-2.7 1.5 0 2.8.9 3.9 2.7"/><path d="M25 49c1.9 2.8 4.2 4.2 7 4.2s5.1-1.4 7-4.2"/></g>
+  <ellipse cx="22" cy="49" rx="2.8" ry="1.5" fill="#F0A3A0" fill-opacity=".72"/><ellipse cx="41" cy="48" rx="2.8" ry="1.5" fill="#F0A3A0" fill-opacity=".72"/>
+  <path d="M34 23c4.4-3.4 9.2-4.7 14-4.2" stroke="white" stroke-width="2.8" stroke-linecap="round" opacity=".75"/>
+</svg>
