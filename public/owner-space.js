@@ -6,7 +6,17 @@
     #ownerStudioPanel{position:fixed;inset:0;z-index:1300;display:none;overflow:auto;padding:clamp(14px,3vw,34px);background:#f5efe5;color:#342b27;isolation:isolate}
     #ownerStudioPanel.open{display:block;animation:ownerPageIn .32s ease both}
     @keyframes ownerPageIn{from{opacity:0}to{opacity:1}}
-    .owner-profile-page{width:min(100%,1240px);min-height:100%;margin:auto}
+    .owner-profile-page{position:relative;z-index:1;width:min(100%,1240px);min-height:100%;margin:auto}
+    .owner-butterfly-garden{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+    .owner-butterfly-flight{position:absolute;display:block;width:clamp(34px,4vw,54px);aspect-ratio:1;opacity:.24;filter:drop-shadow(0 5px 12px #71598b25);mix-blend-mode:multiply;will-change:transform}
+    .owner-butterfly-flight img{display:block;width:100%;height:100%;object-fit:contain;animation:ownerGardenWings .42s ease-in-out infinite alternate}
+    .owner-butterfly-flight--one{left:-7vw;top:73vh;animation:ownerGardenFlightOne 24s ease-in-out -7s infinite}
+    .owner-butterfly-flight--two{left:87vw;top:68vh;animation:ownerGardenFlightTwo 28s ease-in-out -16s infinite}
+    .owner-butterfly-flight--three{left:9vw;top:18vh;width:clamp(28px,3vw,42px);opacity:.19;animation:ownerGardenFlightThree 32s ease-in-out -22s infinite}
+    @keyframes ownerGardenFlightOne{0%,100%{transform:translate3d(0,0,0) rotate(-12deg)}22%{transform:translate3d(18vw,-16vh,0) rotate(10deg)}48%{transform:translate3d(42vw,-36vh,0) rotate(-8deg)}73%{transform:translate3d(70vw,-20vh,0) rotate(12deg)}90%{transform:translate3d(94vw,-49vh,0) rotate(-5deg)}}
+    @keyframes ownerGardenFlightTwo{0%,100%{transform:translate3d(0,0,0) rotate(12deg)}24%{transform:translate3d(-18vw,-21vh,0) rotate(-8deg)}51%{transform:translate3d(-44vw,-40vh,0) rotate(10deg)}77%{transform:translate3d(-70vw,-18vh,0) rotate(-12deg)}92%{transform:translate3d(-94vw,-48vh,0) rotate(6deg)}}
+    @keyframes ownerGardenFlightThree{0%,100%{transform:translate3d(0,0,0) rotate(-8deg)}30%{transform:translate3d(19vw,12vh,0) rotate(10deg)}58%{transform:translate3d(38vw,35vh,0) rotate(-9deg)}82%{transform:translate3d(60vw,22vh,0) rotate(11deg)}}
+    @keyframes ownerGardenWings{from{transform:scaleX(.94) rotate(-1.5deg)}to{transform:scaleX(1.04) rotate(1.5deg)}}
     .owner-page-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
     .owner-back{display:inline-flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid #dfd2be;border-radius:12px;background:#fffaf2;color:#574437;font:700 14px Tajawal,sans-serif;cursor:pointer;transition:transform .2s,box-shadow .2s}
     .owner-back:hover{transform:translateY(-2px);box-shadow:0 8px 18px #6e4e231c}
@@ -17,7 +27,8 @@
     .owner-hero-stars{position:absolute;inset:0;z-index:-1;opacity:.6;background-image:radial-gradient(1px 1px at 14% 25%,#fff 98%,transparent),radial-gradient(1px 1px at 55% 19%,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 84% 32%,#fff 98%,transparent),radial-gradient(1px 1px at 68% 58%,#fff 98%,transparent);background-size:230px 150px;animation:ownerStarDrift 16s linear infinite}
     @keyframes ownerStarDrift{to{background-position:0 -150px}}
     .owner-hero-horizon{position:absolute;left:0;right:0;bottom:0;height:70px;z-index:-1;background:linear-gradient(180deg,transparent,#f8d79755 72%,#f0d4a8aa);clip-path:polygon(0 60%,18% 48%,34% 68%,55% 40%,73% 62%,100% 35%,100% 100%,0 100%)}
-    .owner-hero-sun{position:absolute;left:19%;bottom:-26px;width:76px;height:76px;border-radius:50%;background:linear-gradient(145deg,#fff1bd,#f0b94f 72%,#d79235);box-shadow:0 0 34px #ffde987a,0 0 110px #ffdd8255;opacity:0;z-index:-1}
+    .owner-hero-sun{position:absolute;left:19%;bottom:-26px;z-index:0;width:76px;height:76px;opacity:0;filter:drop-shadow(0 0 24px #ffde987a) drop-shadow(0 0 62px #ffdd8255)}
+    .owner-hero-sun img{display:block;width:100%;height:100%}
     #ownerStudioPanel.open .owner-hero-sun{animation:profileSunRise 1.35s cubic-bezier(.2,.8,.2,1) .12s forwards}
     @keyframes profileSunRise{0%{opacity:0;transform:translate3d(-22px,55px,0) scale(.72)}55%{opacity:1;transform:translate3d(20px,-26px,0) scale(1.04)}78%{transform:translate3d(33px,-49px,0) scale(.98)}100%{opacity:1;transform:translate3d(42px,-43px,0) scale(1)}}
     .owner-profile-avatar{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 112px;width:112px;height:112px;overflow:hidden;border:3px solid #fff9e5;border-radius:50%;background:#f4e2c0;color:#765327;font:800 38px Tajawal,sans-serif;box-shadow:0 0 0 7px #fff2d52e,0 12px 30px #2117253b}
@@ -58,7 +69,7 @@
     .owner-profile-footer{margin-top:18px;text-align:center;color:#958674;font:500 11px Tajawal,sans-serif}
     @media(max-width:800px){.owner-profile-hero{min-height:290px}.owner-feature-grid{grid-template-columns:1fr}.owner-studio-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:560px){#ownerStudioPanel{padding:10px}.owner-profile-hero{display:block;min-height:390px;padding:25px 20px 27px;border-radius:22px}.owner-profile-actions{top:14px;left:14px}.owner-profile-action{padding:8px 10px}.owner-profile-avatar{width:82px;height:82px;margin-top:72px;font-size:30px}.owner-hero-name{font-size:34px}.owner-hero-sun{left:56%}.owner-page-mark{font-size:9px}.owner-studio-grid{grid-template-columns:1fr}.owner-feature-card{padding:14px}.owner-profile-heading h2{font-size:19px}}
-    @media(prefers-reduced-motion:reduce){#ownerStudioPanel.open,.owner-profile-hero *, .owner-feature-card,.owner-hero-name,.owner-hero-stars{animation:none!important;transition:none!important}.owner-hero-sun{opacity:.8;transform:translate(42px,-43px)}}
+    @media(prefers-reduced-motion:reduce){#ownerStudioPanel.open,.owner-profile-hero *, .owner-feature-card,.owner-hero-name,.owner-hero-stars,.owner-butterfly-flight,.owner-butterfly-flight img{animation:none!important;transition:none!important}.owner-hero-sun{opacity:.9;transform:translate(42px,-43px)}}
   `;
   document.head.appendChild(style);
 
@@ -69,16 +80,20 @@
     return String(value || '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   }
   function mount() {
-    if (!window.state?.token || !window.state?.user || state.user.role !== 'owner' || document.getElementById('app')?.style.display === 'none' || document.getElementById('ownerStudioLauncher')) return;
-    const button = document.createElement('button');
-    button.id = 'ownerStudioLauncher'; button.type = 'button'; button.textContent = '✦ مساحتي'; button.setAttribute('aria-label', 'افتح ملف المالك ومساحته الخاصة');
-    button.addEventListener('click', openOwnerProfile); document.body.appendChild(button);
+    if (!window.state?.token || !window.state?.user || state.user.role !== 'owner' || document.getElementById('app')?.style.display === 'none') return;
+    if (!document.getElementById('ownerStudioLauncher')) {
+      const button = document.createElement('button');
+      button.id = 'ownerStudioLauncher'; button.type = 'button'; button.textContent = '✦ مساحتي'; button.setAttribute('aria-label', 'افتح ملف المالك ومساحته الخاصة');
+      button.addEventListener('click', openOwnerProfile); document.body.appendChild(button);
+    }
+    // يمكن أن يُستدعى mount مجددًا بعد تحديث بيانات المستخدم؛ لا تكرر عناصر الصفحة أو مستمعيها.
+    if (document.getElementById('ownerStudioPanel')) return;
 
     const panel = document.createElement('div'); panel.id = 'ownerStudioPanel'; panel.setAttribute('aria-hidden', 'true');
-    panel.innerHTML = `<main class="owner-profile-page" role="dialog" aria-modal="true" aria-label="الملف الشخصي الخاص بالمالك">
+    panel.innerHTML = `<div class="owner-butterfly-garden" aria-hidden="true"><span class="owner-butterfly-flight owner-butterfly-flight--one"><img src="/assets/owner-butterfly.webp" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--two"><img src="/assets/owner-butterfly.webp" alt=""></span><span class="owner-butterfly-flight owner-butterfly-flight--three"><img src="/assets/owner-butterfly.webp" alt=""></span></div><main class="owner-profile-page" role="dialog" aria-modal="true" aria-label="الملف الشخصي الخاص بالمالك">
       <header class="owner-page-top"><button type="button" class="owner-back" id="ownerStudioClose"><span aria-hidden="true">←</span> العودة للنظام</button><div class="owner-page-mark"><span>AL-RIFAI · PRIVATE SPACE</span><span class="owner-page-secure">✦ مساحة خاصة ومحمية</span></div></header>
       <section class="owner-profile-hero" aria-label="الملف الشخصي">
-        <div class="owner-hero-stars" aria-hidden="true"></div><div class="owner-hero-sun" aria-hidden="true"></div><div class="owner-hero-horizon" aria-hidden="true"></div>
+        <div class="owner-hero-stars" aria-hidden="true"></div><div class="owner-hero-sun" aria-hidden="true"><img src="/assets/owner-sun.svg" alt=""></div><div class="owner-hero-horizon" aria-hidden="true"></div>
         <div class="owner-profile-actions"><button type="button" class="owner-profile-action" id="ownerProfileSettings"><span aria-hidden="true">⚙</span> الملف والإعدادات</button></div>
         <div class="owner-profile-avatar" id="ownerProfileAvatar" aria-label="الصورة الشخصية">م</div>
         <div class="owner-hero-copy"><div class="owner-hero-eyebrow">مساحتك الخاصة</div><h1 class="owner-hero-name" id="ownerProfileName">المالك</h1><p class="owner-hero-subtitle">ملفك الشخصي وأدواتك اليومية في مكان واحد</p><div class="owner-hero-badges"><span class="owner-hero-badge">✦ مالك المشروع</span><span class="owner-hero-badge">✓ تحقق بخطوتين مفعّل</span></div></div>
@@ -126,7 +141,7 @@
     if (state?.user?.role !== 'owner') return;
     if (!document.getElementById('ownerStudioPanel')) mount();
     const panel = document.getElementById('ownerStudioPanel');
-    if (!panel) return;
+    if (!panel) { toast('تعذر تجهيز مساحة المالك. حدّث الصفحة ثم حاول مرة أخرى.', 'danger'); return; }
     returnFocus = document.activeElement;
     updateProfileIdentity(); panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
     loadNotes(); panel.querySelector('#ownerStudioClose')?.focus({ preventScroll: true });
