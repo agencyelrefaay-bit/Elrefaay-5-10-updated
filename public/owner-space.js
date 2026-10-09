@@ -423,15 +423,7 @@
     const host = document.getElementById('ownerSongList');
     if (!host) return;
     try {
-      let { songs } = await API.get('/owner-workspace/songs');
-      if (!songs.some(song => song.is_seeded)) {
-        try {
-          await API.post('/owner-workspace/songs/seed-initial', {});
-          songs = (await API.get('/owner-workspace/songs')).songs;
-        } catch (error) {
-          if (!songs.length) toast(error.message || 'تعذر تجهيز الأغنية المبدئية', 'warning');
-        }
-      }
+      const { songs } = await API.get('/owner-workspace/songs');
       renderSongs(songs);
     } catch (error) {
       host.textContent = error.message || 'تعذر تحميل مكتبة الأغاني.';

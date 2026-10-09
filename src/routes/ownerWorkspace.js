@@ -3,7 +3,6 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { all, get, insert, run } = require('../db/database');
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
 const { Readable } = require('stream');
@@ -173,39 +172,28 @@ async function pipePrivateSong(req, res, song, objectPath, mimeType) {
 }
 
 router.get('/songs', async (req, res) => {
+  // Remove the previously bundled starter track on its next owner-library
+  // visit, then leave the library empty until Shrouk uploads her own songs.
+  const starterTracks = await all(
+    'SELECT id,audio_path,cover_path FROM owner_songs WHERE user_id=? AND seed_key=?',
+    [req.user.id, 'owner-first-track-v1']
+  );
+  if (starterTracks.length) {
+    const config = getStorageConfig();
+    if (config) {
+      try {
+        await deleteMusicObjects(config, starterTracks.flatMap(song => [song.audio_path, song.cover_path]));
+        await run('DELETE FROM owner_songs WHERE user_id=? AND seed_key=?', [req.user.id, 'owner-first-track-v1']);
+      } catch (error) {
+        console.warn('Could not remove the owner starter song from private storage:', error.message);
+      }
+    }
+  }
   const songs = await all(
-    'SELECT id,title,artist,audio_mime,audio_size,cover_path,is_favorite,seed_key,created_at FROM owner_songs WHERE user_id=? ORDER BY is_favorite DESC, created_at DESC',
+    "SELECT id,title,artist,audio_mime,audio_size,cover_path,is_favorite,seed_key,created_at FROM owner_songs WHERE user_id=? AND (seed_key IS NULL OR seed_key <> 'owner-first-track-v1') ORDER BY is_favorite DESC, created_at DESC",
     [req.user.id]
   );
   res.json({ songs: songs.map(publicSong) });
-});
-
-router.post('/songs/seed-initial', async (req, res) => {
-  const existing = await get('SELECT * FROM owner_songs WHERE user_id=? AND seed_key=?', [req.user.id, 'owner-first-track-v1']);
-  if (existing) return res.json({ song: publicSong(existing), created: false });
-  const seedPath = path.join(__dirname, '../../data/owner-seed/owner-first-track.mp3');
-  if (!fs.existsSync(seedPath)) return res.status(404).json({ error: 'ملف الأغنية الأولية غير موجود على الخادم' });
-  const config = getStorageConfig();
-  if (!config) return res.status(503).json({ error: 'إعداد Supabase Storage غير مكتمل على الخادم' });
-  const buffer = await fs.promises.readFile(seedPath);
-  const objectPath = `${req.user.id}/${randomUUID()}.mp3`;
-  await uploadMusicObject(config, objectPath, { buffer, mimetype: 'audio/mpeg' });
-  try {
-    const id = await insert(
-      `INSERT INTO owner_songs(user_id,title,artist,audio_path,audio_mime,audio_size,is_favorite,seed_key) VALUES(?,?,?,?,?,?,1,?) ON CONFLICT (user_id,seed_key) WHERE seed_key IS NOT NULL DO NOTHING`,
-      [req.user.id, 'شفت كلام', 'مروان بابلو', objectPath, 'audio/mpeg', buffer.length, 'owner-first-track-v1']
-    );
-    if (!id) {
-      await deleteMusicObjects(config, [objectPath]);
-      const raced = await get('SELECT * FROM owner_songs WHERE user_id=? AND seed_key=?', [req.user.id, 'owner-first-track-v1']);
-      return res.json({ song: publicSong(raced), created: false });
-    }
-    const song = await get('SELECT * FROM owner_songs WHERE id=? AND user_id=?', [id, req.user.id]);
-    return res.status(201).json({ song: publicSong(song), created: true });
-  } catch (error) {
-    await deleteMusicObjects(config, [objectPath]).catch(() => {});
-    throw error;
-  }
 });
 
 router.post('/songs', acceptMusicUpload, async (req, res) => {
