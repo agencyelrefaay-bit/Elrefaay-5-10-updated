@@ -84,7 +84,13 @@ async function ensurePrivateMusicBucket(config) {
     if (!makePrivate.ok) throw safeStorageError(makePrivate, await makePrivate.text());
     return;
   }
-  if (current.status !== 404) throw safeStorageError(current, await current.text());
+  // Supabase Storage may expose a missing bucket as HTTP 400 while its
+  // legacy response body reports statusCode 404 / code NoSuchBucket.
+  const currentBody = await current.json().catch(() => ({}));
+  const missingBucket = current.status === 404
+    || Number(currentBody.statusCode ?? currentBody.status) === 404
+    || currentBody.code === 'NoSuchBucket';
+  if (!missingBucket) throw safeStorageError(current, JSON.stringify(currentBody));
   const create = await fetch(`${config.url}/storage/v1/bucket`, {
     method: 'POST',
     headers: storageAuthHeaders(config, { 'Content-Type': 'application/json' }),
