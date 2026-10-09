@@ -82,8 +82,57 @@
     .owner-sound-row{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid #eee4d5}
     .owner-sound-row>div{flex:1;min-width:0}
     .owner-profile-footer{margin-top:18px;text-align:center;color:#958674;font:500 11px Tajawal,sans-serif}
-    @media(max-width:800px){.owner-profile-hero{min-height:290px}.owner-feature-grid{grid-template-columns:1fr}.owner-studio-grid{grid-template-columns:1fr 1fr}}
-    @media(max-width:560px){#ownerStudioPanel{padding:10px}.owner-profile-hero{display:block;min-height:390px;padding:25px 20px 27px;border-radius:22px}.owner-profile-actions{top:14px;left:14px}.owner-profile-action{padding:8px 10px}.owner-profile-avatar{width:82px;height:82px;margin-top:72px;font-size:30px}.owner-hero-name{font-size:34px}.owner-hero-sun{left:56%}.owner-page-mark{font-size:9px}.owner-studio-grid{grid-template-columns:1fr}.owner-feature-card{padding:14px}.owner-profile-heading h2{font-size:19px}}
+    .owner-music-card{margin:0 0 16px;overflow:hidden}
+    .owner-music-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .owner-music-title{display:flex;align-items:center;gap:10px;color:#453831;font:800 17px Tajawal,sans-serif}
+    .owner-music-caption{margin:3px 0 0;color:#8b7c6c;font:500 12px Tajawal,sans-serif}
+    .owner-music-count{padding:6px 10px;border:1px solid #ebdfcc;border-radius:999px;background:#fff8eb;color:#856d43;font:700 11px Tajawal,sans-serif;white-space:nowrap}
+    .owner-music-upload{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(250px,.8fr);gap:14px;padding:14px;border:1px solid #eee4d5;border-radius:16px;background:linear-gradient(120deg,#fffaf2,#fffdf9)}
+    .owner-music-form-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .owner-music-form-fields .owner-input{margin-top:0}
+    .owner-music-file{display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0;padding:11px 13px;border:1px dashed #d9c6a6;border-radius:12px;background:#fff;color:#685747;font:600 12px Tajawal,sans-serif;cursor:pointer;transition:border-color .2s,background .2s}
+    .owner-music-file:hover{border-color:#b88d43;background:#fff9ec}
+    .owner-music-file input{width:100%;max-width:100%;font:500 11px Tajawal,sans-serif;color:#77695a}
+    .owner-music-file small{color:#968775;font-weight:500}
+    .owner-music-upload-actions{display:flex;align-items:center;gap:9px;grid-column:1/-1}
+    .owner-music-upload-actions .owner-small{flex:1}
+    .owner-song-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:10px;margin-top:13px}
+    .owner-song-card{display:flex;align-items:center;gap:10px;min-width:0;padding:10px;border:1px solid #eee4d5;border-radius:14px;background:#fff;transition:transform .18s,border-color .18s,box-shadow .18s}
+    .owner-song-card:hover{transform:translateY(-2px);border-color:#d9c39d;box-shadow:0 8px 20px #4e382014}
+    .owner-song-art{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border-radius:12px;background:radial-gradient(circle at 72% 28%,#ffe8b6 0 3px,transparent 4px),linear-gradient(145deg,#d9b6c9,#a890bc 56%,#7e718f);color:#fff8ea;font-size:22px;box-shadow:inset 0 0 0 1px #fff8}
+    .owner-song-copy{flex:1;min-width:0}
+    .owner-song-copy strong,.owner-song-copy span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .owner-song-copy strong{color:#40342e;font:800 13px Tajawal,sans-serif}
+    .owner-song-copy span{margin-top:3px;color:#968775;font:500 11px Tajawal,sans-serif}
+    .owner-song-actions{display:flex;gap:3px;align-items:center}
+    .owner-song-action{display:grid;place-items:center;flex:0 0 31px;width:31px;height:31px;padding:0;border:0;border-radius:9px;background:transparent;color:#76644e;font-size:15px;cursor:pointer;transition:background .16s,color .16s,transform .16s}
+    .owner-song-action:hover{background:#f8f0e4;color:#8a5e2a;transform:scale(1.06)}
+    .owner-song-action.is-favorite{color:#c66c87}
+    .owner-music-player{position:fixed;right:18px;bottom:18px;z-index:1500;display:none;align-items:center;gap:11px;width:min(390px,calc(100vw - 30px));min-height:88px;padding:11px 12px;border:1px solid #d8c69e;border-radius:18px;background:linear-gradient(135deg,#fffdf9ed,#fff8ebf5);color:#41352f;box-shadow:0 16px 45px #31223838;backdrop-filter:blur(18px);transition:transform .42s cubic-bezier(.2,.8,.2,1),opacity .25s;touch-action:pan-y}
+    .owner-music-player.is-visible{display:flex;animation:ownerPlayerEnter .35s cubic-bezier(.2,.8,.2,1) both}
+    @keyframes ownerPlayerEnter{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+    .owner-music-player.is-collapsed{transform:translateX(calc(100% - 42px));opacity:.92}
+    .owner-music-art{display:grid;place-items:center;flex:0 0 62px;width:62px;height:62px;overflow:hidden;border-radius:13px;background:radial-gradient(circle at 72% 26%,#fff3ca 0 4px,transparent 5px),linear-gradient(145deg,#ddb9cc,#a38db6 55%,#665d7a);color:#fff7e7;font-size:30px;box-shadow:inset 0 0 0 1px #fff8;cursor:grab;touch-action:pan-y}
+    .owner-music-art img{width:100%;height:100%;object-fit:cover}
+    .owner-music-body{flex:1;min-width:0;transition:opacity .22s}
+    .owner-music-player.is-collapsed .owner-music-body{opacity:0;pointer-events:none}
+    .owner-music-meta{display:flex;align-items:center;gap:9px;min-width:0;margin-bottom:9px;cursor:grab;touch-action:pan-y}
+    .owner-music-meta-copy{flex:1;min-width:0}
+    .owner-music-meta strong,.owner-music-meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .owner-music-meta strong{color:#42352e;font:800 13px Tajawal,sans-serif}
+    .owner-music-meta span{margin-top:2px;color:#8b7b69;font:500 11px Tajawal,sans-serif}
+    .owner-music-controls{display:flex;align-items:center;gap:6px}
+    .owner-music-control{display:grid;place-items:center;width:34px;height:34px;border:1px solid #eadfcf;border-radius:50%;background:#fff;color:#705a3d;font-size:14px;cursor:pointer;transition:transform .16s,background .16s}
+    .owner-music-control:hover{transform:scale(1.07);background:#fff6e7}
+    .owner-music-control.primary{width:38px;height:38px;border-color:#b38c45;background:linear-gradient(145deg,#c9a658,#a97c37);color:#fff;font-size:16px;box-shadow:0 5px 13px #a97c3730}
+    .owner-music-progress{display:flex;align-items:center;gap:6px;color:#8b7b69;font:500 9px system-ui,sans-serif;font-variant-numeric:tabular-nums}
+    .owner-music-progress input{flex:1;min-width:0;height:4px;accent-color:#ad8644;cursor:pointer}
+    .owner-music-dock-toggle{display:none;place-items:center;position:absolute;left:0;top:0;bottom:0;width:42px;border:0;border-radius:16px 0 0 16px;background:linear-gradient(180deg,#f9edcf,#ecd8aa);color:#735c31;font-size:20px;cursor:pointer}
+    .owner-music-player.is-collapsed .owner-music-dock-toggle{display:grid}
+    .owner-music-close{color:#9a756b}
+    .owner-music-audio{display:none}
+    @media(max-width:800px){.owner-profile-hero{min-height:290px}.owner-feature-grid{grid-template-columns:1fr}.owner-studio-grid{grid-template-columns:1fr 1fr}.owner-music-upload{grid-template-columns:1fr}}
+    @media(max-width:560px){#ownerStudioPanel{padding:10px}.owner-profile-hero{display:block;min-height:390px;padding:25px 20px 27px;border-radius:22px}.owner-profile-actions{top:14px;left:14px}.owner-profile-action{padding:8px 10px}.owner-profile-avatar{width:82px;height:82px;margin-top:72px;font-size:30px}.owner-hero-name{font-size:34px}.owner-hero-sun,.owner-hero-moon{left:56%;width:62px;height:62px}.owner-page-mark{font-size:9px}.owner-studio-grid{grid-template-columns:1fr}.owner-feature-card{padding:14px}.owner-profile-heading h2{font-size:19px}.owner-music-card{padding:14px}.owner-music-form-fields{grid-template-columns:1fr}.owner-music-file{min-height:58px}.owner-song-list{grid-template-columns:1fr}.owner-music-player{right:10px;bottom:calc(72px + env(safe-area-inset-bottom) + 10px);width:calc(100vw - 20px);min-height:82px;padding:9px}.owner-music-art{width:54px;height:54px;flex-basis:54px}}
     @media(prefers-reduced-motion:reduce){#ownerStudioPanel.open,.owner-profile-hero *, .owner-profile-hero .owner-hero-stars:after,.owner-feature-card,.owner-hero-name,.owner-hero-stars,.owner-butterfly-flight,.owner-butterfly-flight img{animation:none!important;transition:none!important}.owner-profile-hero:not(.is-night) .owner-hero-sun{opacity:.9;transform:translate(42px,-43px)}.owner-profile-hero.is-night .owner-hero-sun{opacity:0!important}.owner-profile-hero.is-night .owner-hero-moon{opacity:1;transform:none}.owner-profile-hero.is-night .owner-hero-stars{opacity:.96}}
   `;
   document.head.appendChild(style);
@@ -91,6 +140,8 @@
   let cal = '0', stored = null, operator = null, fresh = false, returnFocus = null;
   let lastAlertKey = null;
   let skyTimer = null, skyVisibilityBound = false;
+  let musicSongs = [], activeSong = null, activeAudioUrl = null, activeArtworkUrl = null, musicLoadSequence = 0;
+  let globalMusicPlayer = null, globalMusicAudio = null;
   const storageKey = (name) => `rifai:owner:${Number(state?.user?.id) || 'local'}:${name}`;
   function safe(value) {
     return String(value || '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -115,6 +166,10 @@
         <div class="owner-hero-copy"><div class="owner-hero-eyebrow">مساحتك الخاصة</div><h1 class="owner-hero-name" id="ownerProfileName">المالك</h1><p class="owner-hero-subtitle">ملفك الشخصي وأدواتك اليومية في مكان واحد</p><div class="owner-hero-badges"><span class="owner-hero-badge">✦ مالك المشروع</span><span class="owner-hero-badge">✓ تحقق بخطوتين مفعّل</span><span class="owner-hero-badge owner-sky-status" id="ownerSkyStatus"><span id="ownerSkyIcon" aria-hidden="true">☀</span><span id="ownerSkyLabel">النهار</span><time id="ownerSkyTime"></time></span></div></div>
       </section>
       <section class="owner-profile-main"><div class="owner-profile-heading"><div><h2>مساحتك</h2><p id="ownerSkyDescription">ملاحظاتك وأدواتك المفضلة، بتصميم هادئ وإضاءة شروق دافئة.</p></div></div>
+        <section class="owner-feature-card owner-music-card"><div class="owner-music-head"><div><div class="owner-music-title"><span class="owner-card-icon" aria-hidden="true">♫</span> أغانيك المفضلة</div><p class="owner-music-caption">مكتبتك الخاصة محفوظة لحسابك وترافقك بين أجهزتك.</p></div><span class="owner-music-count" id="ownerSongCount">0 أغاني</span></div>
+          <form class="owner-music-upload" id="ownerSongUploadForm"><div class="owner-music-form-fields"><input class="owner-input" id="ownerSongTitleInput" maxlength="120" placeholder="اسم الأغنية (اختياري)"><input class="owner-input" id="ownerSongArtistInput" maxlength="120" placeholder="اسم الفنان (اختياري)"></div><div class="owner-music-form-fields"><label class="owner-music-file">اختاري ملف الأغنية<input type="file" id="ownerSongAudioInput" accept="audio/*,.mp3,.m4a,.aac,.ogg,.opus,.wav,.flac,.webm" required><small id="ownerSongFileName">MP3 أو M4A أو WAV · حتى 25 ميجابايت</small></label><label class="owner-music-file">غلاف الأغنية (اختياري)<input type="file" id="ownerSongCoverInput" accept="image/jpeg,image/png,image/webp,image/avif"><small>JPG أو PNG أو WEBP · حتى 4 ميجابايت</small></label></div><div class="owner-music-upload-actions"><span class="owner-small">الأغاني خاصة بك ولا تظهر لباقي الحسابات.</span><button type="submit" class="btn btn-primary btn-sm" id="ownerSongUploadButton">＋ إضافة للمفضلة</button></div></form>
+          <div class="owner-song-list" id="ownerSongList"><div class="owner-small">جارٍ تحميل مكتبتك...</div></div>
+        </section>
         <div class="owner-feature-grid">
           <section class="owner-feature-card"><div class="owner-card-heading"><span style="display:flex;align-items:center;gap:10px"><span class="owner-card-icon" aria-hidden="true">✎</span> ملاحظاتي</span><button class="btn btn-primary btn-sm" id="ownerNewNote">＋ ملاحظة جديدة</button></div>
             <div class="owner-studio-box"><label class="owner-small" for="ownerNoteTitle">عنوان الملاحظة</label><input class="owner-input" id="ownerNoteTitle" maxlength="160" placeholder="عنوان واضح لملاحظتك"><label class="owner-small" for="ownerNoteBody" style="display:block;margin-top:10px">النص</label><textarea class="owner-input" id="ownerNoteBody" maxlength="20000" rows="3" placeholder="اكتبي فكرة أو تذكيرًا..."></textarea><button class="btn btn-subtle btn-sm" id="ownerSaveNote" style="margin-top:9px">حفظ الملاحظة</button></div><div id="ownerNotes" style="margin-top:11px"></div>
@@ -125,12 +180,24 @@
         </div><div class="owner-profile-footer">ملف خاص بهذا الحساب · يتم حفظ الملاحظات في مساحة المالك</div>
       </section>
     </main>`;
+    const canUseOwnerMusic = String(state.user.username || '').toLowerCase() === 'shrouk';
+    if (!canUseOwnerMusic) panel.querySelector('.owner-music-card')?.remove();
     document.body.appendChild(panel);
+    if (canUseOwnerMusic) mountGlobalMusicPlayer();
     panel.querySelector('#ownerStudioClose').addEventListener('click', closeOwnerProfile);
     panel.querySelector('#ownerProfileSettings').addEventListener('click', () => { closeOwnerProfile(); window.openAccountSettings?.(); });
     panel.addEventListener('click', event => { if (event.target === panel) closeOwnerProfile(); });
     panel.querySelector('#ownerNewNote').addEventListener('click', () => panel.querySelector('#ownerNoteTitle').focus());
     panel.querySelector('#ownerSaveNote').addEventListener('click', saveNote);
+    if (canUseOwnerMusic) {
+      panel.querySelector('#ownerSongUploadForm').addEventListener('submit', uploadSong);
+      panel.querySelector('#ownerSongAudioInput').addEventListener('change', event => {
+        const file = event.target.files?.[0];
+        panel.querySelector('#ownerSongFileName').textContent = file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB` : 'MP3 أو M4A أو WAV · حتى 25 ميجابايت';
+        if (file && !panel.querySelector('#ownerSongTitleInput').value.trim()) panel.querySelector('#ownerSongTitleInput').value = file.name.replace(/\.[^.]+$/, '');
+      });
+      panel.querySelector('#ownerSongList').addEventListener('click', handleSongListClick);
+    }
     panel.querySelectorAll('[data-calc]').forEach(key => key.addEventListener('click', () => calcKey(key.dataset.calc)));
     panel.querySelector('#ownerSoundFile').addEventListener('change', selectSound);
     for (const [oldKey, newKey] of [['ownerSoundData','soundData'],['ownerSoundEnabled','soundEnabled']]) {
@@ -183,6 +250,235 @@
       skyVisibilityBound = true;
     }
   }
+  function mountGlobalMusicPlayer() {
+    if (document.getElementById('ownerMusicPlayer')) {
+      globalMusicPlayer = document.getElementById('ownerMusicPlayer');
+      globalMusicAudio = globalMusicPlayer.querySelector('audio');
+      return;
+    }
+    const player = document.createElement('section');
+    player.className = 'owner-music-player'; player.id = 'ownerMusicPlayer';
+    player.setAttribute('aria-label', 'مشغل أغاني شروق');
+    player.innerHTML = `<button type="button" class="owner-music-dock-toggle" id="ownerMusicDockToggle" aria-label="إظهار مشغل الأغاني" title="إظهار المشغل">‹</button>
+      <div class="owner-music-art" id="ownerMusicArt" data-music-drag aria-label="غلاف الأغنية"><span aria-hidden="true">♫</span><img id="ownerMusicArtwork" alt="" hidden></div>
+      <div class="owner-music-body"><div class="owner-music-meta"><div class="owner-music-meta-copy" data-music-drag><strong id="ownerMusicTitle">اختاري أغنية</strong><span id="ownerMusicArtist">مكتبتك الموسيقية الخاصة</span></div><div class="owner-music-controls"><button type="button" class="owner-music-control primary" id="ownerMusicPlayPause" aria-label="تشغيل" title="تشغيل">▶</button><button type="button" class="owner-music-control owner-music-close" id="ownerMusicClose" aria-label="إغلاق الأغنية" title="إغلاق الأغنية">×</button></div></div>
+        <div class="owner-music-progress"><time id="ownerMusicCurrentTime">0:00</time><input type="range" id="ownerMusicSeek" min="0" max="1000" value="0" aria-label="موضع التشغيل"><time id="ownerMusicDuration">0:00</time></div></div>
+      <audio class="owner-music-audio" id="ownerMusicAudio" preload="metadata"></audio>`;
+    document.body.appendChild(player);
+    globalMusicPlayer = player; globalMusicAudio = player.querySelector('audio');
+    try { player.classList.toggle('is-collapsed', localStorage.getItem(storageKey('playerCollapsed')) === 'true'); } catch (_) {}
+    player.querySelector('#ownerMusicDockToggle').addEventListener('click', () => setMusicPlayerCollapsed(false));
+    player.querySelector('#ownerMusicPlayPause').addEventListener('click', toggleMusicPlayback);
+    player.querySelector('#ownerMusicClose').addEventListener('click', closeMusicPlayback);
+    player.querySelector('#ownerMusicSeek').addEventListener('input', event => {
+      if (globalMusicAudio?.duration) globalMusicAudio.currentTime = globalMusicAudio.duration * (Number(event.target.value) / 1000);
+    });
+    globalMusicAudio.addEventListener('timeupdate', updateMusicProgress);
+    globalMusicAudio.addEventListener('loadedmetadata', updateMusicProgress);
+    globalMusicAudio.addEventListener('play', updateMusicPlayState);
+    globalMusicAudio.addEventListener('pause', updateMusicPlayState);
+    globalMusicAudio.addEventListener('ended', updateMusicPlayState);
+    for (const handle of player.querySelectorAll('[data-music-drag]')) {
+      let startX = null;
+      handle.addEventListener('pointerdown', event => {
+        if (!event.isPrimary) return;
+        startX = event.clientX;
+        try { handle.setPointerCapture(event.pointerId); } catch (_) {}
+      });
+      handle.addEventListener('pointerup', event => {
+        if (startX === null) return;
+        const distance = event.clientX - startX; startX = null;
+        if (distance > 55) setMusicPlayerCollapsed(true);
+        else if (distance < -55) setMusicPlayerCollapsed(false);
+      });
+      handle.addEventListener('pointercancel', () => { startX = null; });
+    }
+  }
+  function setMusicPlayerCollapsed(collapsed) {
+    if (!globalMusicPlayer) return;
+    globalMusicPlayer.classList.toggle('is-collapsed', collapsed);
+    const toggle = globalMusicPlayer.querySelector('#ownerMusicDockToggle');
+    if (toggle) { toggle.textContent = collapsed ? '‹' : '›'; toggle.setAttribute('aria-label', collapsed ? 'إظهار مشغل الأغاني' : 'طي مشغل الأغاني'); }
+    try { localStorage.setItem(storageKey('playerCollapsed'), String(collapsed)); } catch (_) {}
+  }
+  function formatMusicTime(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+    const minutes = Math.floor(seconds / 60), remainder = Math.floor(seconds % 60);
+    return `${minutes}:${String(remainder).padStart(2, '0')}`;
+  }
+  function updateMusicProgress() {
+    if (!globalMusicAudio || !globalMusicPlayer) return;
+    const duration = globalMusicAudio.duration || 0;
+    globalMusicPlayer.querySelector('#ownerMusicCurrentTime').textContent = formatMusicTime(globalMusicAudio.currentTime);
+    globalMusicPlayer.querySelector('#ownerMusicDuration').textContent = formatMusicTime(duration);
+    const seek = globalMusicPlayer.querySelector('#ownerMusicSeek');
+    seek.value = duration ? String(Math.round(globalMusicAudio.currentTime / duration * 1000)) : '0';
+  }
+  function updateMusicPlayState() {
+    if (!globalMusicAudio || !globalMusicPlayer) return;
+    const playing = !globalMusicAudio.paused && !globalMusicAudio.ended;
+    const button = globalMusicPlayer.querySelector('#ownerMusicPlayPause');
+    button.textContent = playing ? 'Ⅱ' : '▶';
+    button.setAttribute('aria-label', playing ? 'إيقاف مؤقت' : 'تشغيل');
+    button.title = playing ? 'إيقاف مؤقت' : 'تشغيل';
+  }
+  async function fetchOwnerMusicBlob(url) {
+    const response = await fetch(API.base + url, { headers: { Authorization: `Bearer ${state.token}` } });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'تعذر تحميل ملف الأغنية');
+    }
+    return response.blob();
+  }
+  async function playOwnerSong(song) {
+    if (!song || !globalMusicPlayer || !globalMusicAudio) return;
+    if (activeSong?.id === song.id) {
+      if (globalMusicAudio.paused) globalMusicAudio.play().catch(() => toast('اضغطي تشغيل مرة أخرى لبدء الأغنية', 'warning'));
+      else globalMusicAudio.pause();
+      return;
+    }
+    const sequence = ++musicLoadSequence;
+    globalMusicAudio.pause();
+    if (activeAudioUrl) URL.revokeObjectURL(activeAudioUrl);
+    if (activeArtworkUrl) URL.revokeObjectURL(activeArtworkUrl);
+    activeAudioUrl = null; activeArtworkUrl = null; activeSong = null;
+    globalMusicPlayer.classList.add('is-visible');
+    globalMusicPlayer.querySelector('#ownerMusicTitle').textContent = song.title;
+    globalMusicPlayer.querySelector('#ownerMusicArtist').textContent = song.artist || 'فنان غير محدد';
+    globalMusicPlayer.querySelector('#ownerMusicArt span').hidden = false;
+    globalMusicPlayer.querySelector('#ownerMusicArtwork').hidden = true;
+    globalMusicPlayer.querySelector('#ownerMusicPlayPause').disabled = true;
+    globalMusicPlayer.classList.remove('is-collapsed');
+    try {
+      const audioBlob = await fetchOwnerMusicBlob(song.audio_url);
+      if (sequence !== musicLoadSequence) return;
+      activeAudioUrl = URL.createObjectURL(audioBlob);
+      globalMusicAudio.src = activeAudioUrl; globalMusicAudio.load();
+      activeSong = song;
+      if (song.has_cover && song.cover_url) {
+        fetchOwnerMusicBlob(song.cover_url).then(blob => {
+          if (sequence !== musicLoadSequence) return;
+          activeArtworkUrl = URL.createObjectURL(blob);
+          const image = globalMusicPlayer.querySelector('#ownerMusicArtwork');
+          image.src = activeArtworkUrl; image.hidden = false;
+          globalMusicPlayer.querySelector('#ownerMusicArt span').hidden = true;
+        }).catch(() => {});
+      }
+      try {
+        if ('mediaSession' in navigator && 'MediaMetadata' in window) {
+          navigator.mediaSession.metadata = new MediaMetadata({ title: song.title, artist: song.artist || 'مكتبة شروق', album: 'مساحتي الخاصة' });
+          navigator.mediaSession.setActionHandler('play', () => globalMusicAudio.play().catch(() => {}));
+          navigator.mediaSession.setActionHandler('pause', () => globalMusicAudio.pause());
+          navigator.mediaSession.setActionHandler('stop', closeMusicPlayback);
+        }
+      } catch (_) {}
+      await globalMusicAudio.play();
+    } catch (error) {
+      if (sequence === musicLoadSequence) toast(error.message || 'تعذر تشغيل الأغنية', 'danger');
+    } finally {
+      if (sequence === musicLoadSequence) globalMusicPlayer.querySelector('#ownerMusicPlayPause').disabled = false;
+    }
+    updateMusicPlayState(); updateMusicProgress();
+  }
+  function toggleMusicPlayback() {
+    if (!globalMusicAudio || !activeSong) return;
+    if (globalMusicAudio.paused) globalMusicAudio.play().catch(() => toast('تعذر استكمال تشغيل الأغنية', 'danger'));
+    else globalMusicAudio.pause();
+  }
+  function closeMusicPlayback() {
+    musicLoadSequence++;
+    if (globalMusicAudio) { globalMusicAudio.pause(); globalMusicAudio.removeAttribute('src'); globalMusicAudio.load(); }
+    if (activeAudioUrl) URL.revokeObjectURL(activeAudioUrl);
+    if (activeArtworkUrl) URL.revokeObjectURL(activeArtworkUrl);
+    activeAudioUrl = null; activeArtworkUrl = null; activeSong = null;
+    if (globalMusicPlayer) {
+      globalMusicPlayer.classList.remove('is-visible', 'is-collapsed');
+      globalMusicPlayer.querySelector('#ownerMusicTitle').textContent = 'اختاري أغنية';
+      globalMusicPlayer.querySelector('#ownerMusicArtist').textContent = 'مكتبتك الموسيقية الخاصة';
+      globalMusicPlayer.querySelector('#ownerMusicArt span').hidden = false;
+      globalMusicPlayer.querySelector('#ownerMusicArtwork').hidden = true;
+      globalMusicPlayer.querySelector('#ownerMusicArtwork').removeAttribute('src');
+      globalMusicPlayer.querySelector('#ownerMusicSeek').value = '0';
+    }
+    try { if ('mediaSession' in navigator) navigator.mediaSession.metadata = null; } catch (_) {}
+  }
+  function renderSongs(songs) {
+    musicSongs = songs;
+    const host = document.getElementById('ownerSongList');
+    if (!host) return;
+    document.getElementById('ownerSongCount').textContent = `${songs.length} ${songs.length === 1 ? 'أغنية' : 'أغانٍ'}`;
+    host.replaceChildren();
+    if (!songs.length) {
+      const empty = document.createElement('div'); empty.className = 'owner-small';
+      empty.style.cssText = 'grid-column:1/-1;padding:18px;text-align:center'; empty.textContent = 'مكتبتك جاهزة لأول أغنية ✨'; host.appendChild(empty); return;
+    }
+    for (const song of songs) {
+      const card = document.createElement('article'); card.className = 'owner-song-card';
+      card.innerHTML = `<div class="owner-song-art" aria-hidden="true">♫</div><div class="owner-song-copy"><strong>${safe(song.title)}</strong><span>${safe(song.artist || 'فنان غير محدد')}</span></div><div class="owner-song-actions"><button type="button" class="owner-song-action" data-song-play="${Number(song.id)}" aria-label="تشغيل ${safe(song.title)}" title="تشغيل">▶</button><button type="button" class="owner-song-action ${song.is_favorite ? 'is-favorite' : ''}" data-song-favorite="${Number(song.id)}" aria-label="${song.is_favorite ? 'إزالة من' : 'إضافة إلى'} المفضلة" title="المفضلة">${song.is_favorite ? '♥' : '♡'}</button><button type="button" class="owner-song-action" data-song-delete="${Number(song.id)}" aria-label="حذف ${safe(song.title)}" title="حذف">×</button></div>`;
+      host.appendChild(card);
+    }
+  }
+  async function loadSongs() {
+    if (String(state?.user?.username || '').toLowerCase() !== 'shrouk') return;
+    const host = document.getElementById('ownerSongList');
+    if (!host) return;
+    try {
+      let { songs } = await API.get('/owner-workspace/songs');
+      if (!songs.some(song => song.is_seeded)) {
+        try {
+          await API.post('/owner-workspace/songs/seed-initial', {});
+          songs = (await API.get('/owner-workspace/songs')).songs;
+        } catch (error) {
+          if (!songs.length) toast(error.message || 'تعذر تجهيز الأغنية المبدئية', 'warning');
+        }
+      }
+      renderSongs(songs);
+    } catch (error) {
+      host.textContent = error.message || 'تعذر تحميل مكتبة الأغاني.';
+    }
+  }
+  async function uploadSong(event) {
+    event.preventDefault();
+    const panel = document.getElementById('ownerStudioPanel');
+    const audio = panel.querySelector('#ownerSongAudioInput').files?.[0];
+    const cover = panel.querySelector('#ownerSongCoverInput').files?.[0];
+    if (!audio) { toast('اختاري ملف الأغنية أولاً', 'warning'); return; }
+    const button = panel.querySelector('#ownerSongUploadButton');
+    button.disabled = true; button.textContent = 'جارٍ الرفع…';
+    const form = new FormData();
+    form.append('audio', audio);
+    if (cover) form.append('cover', cover);
+    form.append('title', panel.querySelector('#ownerSongTitleInput').value.trim());
+    form.append('artist', panel.querySelector('#ownerSongArtistInput').value.trim());
+    try {
+      await API.post('/owner-workspace/songs', form);
+      panel.querySelector('#ownerSongUploadForm').reset();
+      panel.querySelector('#ownerSongTitleInput').value = '';
+      panel.querySelector('#ownerSongFileName').textContent = 'MP3 أو M4A أو WAV · حتى 25 ميجابايت';
+      await loadSongs(); toast('تمت إضافة الأغنية إلى مكتبتك الخاصة');
+    } catch (error) { toast(error.message || 'تعذر رفع الأغنية', 'danger'); }
+    finally { button.disabled = false; button.textContent = '＋ إضافة للمفضلة'; }
+  }
+  async function handleSongListClick(event) {
+    const playButton = event.target.closest('[data-song-play]');
+    const favoriteButton = event.target.closest('[data-song-favorite]');
+    const deleteButton = event.target.closest('[data-song-delete]');
+    const songId = Number(playButton?.dataset.songPlay || favoriteButton?.dataset.songFavorite || deleteButton?.dataset.songDelete);
+    const song = musicSongs.find(item => Number(item.id) === songId);
+    if (!song) return;
+    if (playButton) return playOwnerSong(song);
+    try {
+      if (favoriteButton) {
+        await API.put(`/owner-workspace/songs/${song.id}`, { is_favorite: !song.is_favorite });
+        return loadSongs();
+      }
+      if (deleteButton && window.confirm(`حذف «${song.title}» من مكتبتك؟`)) {
+        await API.delete(`/owner-workspace/songs/${song.id}`);
+        if (activeSong?.id === song.id) closeMusicPlayback();
+        await loadSongs(); toast('تم حذف الأغنية من مكتبتك');
+      }
+    } catch (error) { toast(error.message || 'تعذر تحديث الأغنية', 'danger'); }
+  }
   function updateProfileIdentity() {
     const user = state?.user || {};
     const name = document.getElementById('ownerProfileName');
@@ -198,7 +494,9 @@
     updateOwnerSky();
     returnFocus = document.activeElement;
     updateProfileIdentity(); panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
-    loadNotes(); panel.querySelector('#ownerStudioClose')?.focus({ preventScroll: true });
+    loadNotes();
+    if (String(state.user.username || '').toLowerCase() === 'shrouk') loadSongs();
+    panel.querySelector('#ownerStudioClose')?.focus({ preventScroll: true });
   }
   function closeOwnerProfile() {
     const panel = document.getElementById('ownerStudioPanel');
@@ -207,7 +505,15 @@
     if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
   }
   function handleProfileKeydown(event) { if (event.key === 'Escape' && document.getElementById('ownerStudioPanel')?.classList.contains('open')) closeOwnerProfile(); }
-  function handleOwnerStorage() { if (state?.user?.role !== 'owner') { document.getElementById('ownerStudioLauncher')?.remove(); document.getElementById('ownerStudioPanel')?.remove(); } }
+  function handleOwnerStorage() {
+    let sessionExists = false;
+    try { sessionExists = !!localStorage.getItem('arToken') && state?.user?.role === 'owner'; } catch (_) {}
+    if (!sessionExists) {
+      clearTimeout(skyTimer); skyTimer = null; closeMusicPlayback();
+      document.getElementById('ownerStudioLauncher')?.remove(); document.getElementById('ownerStudioPanel')?.remove();
+      globalMusicPlayer?.remove(); globalMusicPlayer = null; globalMusicAudio = null;
+    }
+  }
   async function saveNote() {
     const title = document.getElementById('ownerNoteTitle')?.value.trim();
     const body = document.getElementById('ownerNoteBody')?.value || '';
@@ -250,6 +556,7 @@
     if (lastAlertKey !== null && key !== lastAlertKey) { const audio = new Audio(source); audio.volume = .75; audio.play().catch(() => {}); }
     lastAlertKey = key;
   };
+  window.closeOwnerMusicPlayer = closeMusicPlayback;
   window.openOwnerProfile = openOwnerProfile;
   window.mountOwnerStudio = mount;
   if (state?.user?.role === 'owner') setTimeout(mount, 0);

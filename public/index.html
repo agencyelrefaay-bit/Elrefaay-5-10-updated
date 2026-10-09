@@ -6137,6 +6137,7 @@ document.getElementById('loginPassword').addEventListener('keydown', e => {
 document.getElementById('ownerTwoFactorCode').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 function logout() {
+  window.closeOwnerMusicPlayer?.();
   localStorage.removeItem('arToken');
   localStorage.removeItem('arUser');
   location.reload();
