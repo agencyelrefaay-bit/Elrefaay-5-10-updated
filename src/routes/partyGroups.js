@@ -14,6 +14,9 @@ const TYPES = {
   suppliers: { table: 'suppliers', group: 'supplier_groups', fk: 'supplier_group_id', label: 'مورد', manageRoles: ['admin','manager'], balanceSql: `COALESCE(p.opening_balance,0)+COALESCE(billed.total,0)-COALESCE(paid.total,0)`, joins: `LEFT JOIN (SELECT supplier_id,SUM(total) total FROM purchase_orders WHERE status NOT IN ('draft','cancelled') GROUP BY supplier_id) billed ON billed.supplier_id=p.id LEFT JOIN (SELECT supplier_id,SUM(amount) total FROM supplier_payments GROUP BY supplier_id) paid ON paid.supplier_id=p.id` },
 };
 function config(type) { return TYPES[type] || null; }
+function canManage(typeConfig, user) {
+  return user?.role === 'owner' || typeConfig.manageRoles.includes(user?.role);
+}
 
 const reportUpload = multer({
   storage: multer.memoryStorage(),
@@ -74,7 +77,7 @@ router.get('/:type', async (req, res) => {
 router.post('/:type', async (req, res) => {
   const c = config(req.params.type);
   if (!c) return res.status(400).json({ error: 'نوع المجموعات غير صحيح' });
-  if (!c.manageRoles.includes(req.user.role)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
+  if (!canManage(c, req.user)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
   const name = String(req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'اسم المجموعة مطلوب' });
   if (name.length > 80) return res.status(400).json({ error: 'اسم المجموعة يجب ألا يتجاوز 80 حرفاً' });
@@ -91,7 +94,7 @@ router.post('/:type', async (req, res) => {
 router.put('/:type/:id/members', async (req, res) => {
   const c = config(req.params.type);
   if (!c) return res.status(400).json({ error: 'نوع المجموعات غير صحيح' });
-  if (!c.manageRoles.includes(req.user.role)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
+  if (!canManage(c, req.user)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
   const group = await get(`SELECT id FROM ${c.group} WHERE id=?`, [req.params.id]);
   if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
   const ids = [...new Set((Array.isArray(req.body.person_ids) ? req.body.person_ids : []).map(Number))];
@@ -111,7 +114,7 @@ router.put('/:type/:id/members', async (req, res) => {
 router.put('/:type/:id', async (req, res) => {
   const c = config(req.params.type);
   if (!c) return res.status(400).json({ error: 'نوع المجموعات غير صحيح' });
-  if (!c.manageRoles.includes(req.user.role)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
+  if (!canManage(c, req.user)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
   const name = String(req.body.name || '').trim();
   if (!name || name.length > 80) return res.status(400).json({ error: 'أدخل اسم مجموعة صحيحاً (حتى 80 حرفاً)' });
   try {
@@ -129,7 +132,7 @@ router.put('/:type/:id', async (req, res) => {
 router.delete('/:type/:id', async (req, res) => {
   const c = config(req.params.type);
   if (!c) return res.status(400).json({ error: 'نوع المجموعات غير صحيح' });
-  if (!c.manageRoles.includes(req.user.role)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
+  if (!canManage(c, req.user)) return res.status(403).json({ error: 'ليس لديك صلاحية إدارة مجموعات هذا النوع' });
   const group = await get(`SELECT id FROM ${c.group} WHERE id=?`, [req.params.id]);
   if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
   const count = await get(`SELECT COUNT(*) AS c FROM ${c.table} WHERE ${c.fk}=?`, [req.params.id]);

@@ -42,14 +42,18 @@
         ob.selected.has(Number(person.id)) && balanceFilterMatches(person),
     );
   const canManage = (type) =>
-    type === "customers"
+    state.user?.role === "owner" ||
+    (type === "customers"
       ? ["admin", "manager", "sales"].includes(state.user?.role)
-      : ["admin", "manager"].includes(state.user?.role);
+      : ["admin", "manager"].includes(state.user?.role));
   window.syncPartyGroupPermissions = (role) =>
     document.querySelectorAll("[data-group-management]").forEach((button) => {
       const kind = button.getAttribute("data-group-management");
+      const isOwner = role === "owner";
       button.hidden =
-        kind === "both"
+        isOwner
+          ? false
+          : kind === "both"
           ? !(
               ["admin", "manager", "sales"].includes(role) ||
               ["admin", "manager"].includes(role)
