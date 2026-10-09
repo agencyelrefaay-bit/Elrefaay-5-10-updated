@@ -1102,10 +1102,10 @@ tr:hover .pcolor-cell .pcolor-swatch { transform: scale(1.18); box-shadow: 0 0 0
   from { opacity: 0; transform: translateY(10px) scale(0.985); }
   to   { opacity: 1; transform: none; }
 }
-.product-card { animation: productCardIn 0.42s var(--ease-smooth) both; }
+.page.owner-product-feed .product-card.owner-product-reveal { animation: productCardIn 0.42s var(--ease-smooth) both; animation-delay: calc(var(--feed-index, 0) * 34ms); }
 
 @media (prefers-reduced-motion: reduce) {
-  .product-card { animation: none; }
+  .page.owner-product-feed .product-card.owner-product-reveal { animation: none; }
   .pcolor-chip, .pcolor-name, .pcolor-swatch { transition: none; }
   .pcolor-swatch::after { animation: none !important; }
   /* الاسم يفضل ظاهر دايماً بدل ما يعتمد على حركة مش هتحصل */
@@ -2741,12 +2741,11 @@ tbody tr:hover td.amt-cell { background: var(--gold-glow-sm); }
 .page.enter-anim .stat-card,
 .page.enter-anim .section-card,
 .page.enter-anim .rdv-card,
-.page.enter-anim .product-card,
 .page.enter-anim .table-wrap { animation: uxRise .5s cubic-bezier(.22,.8,.24,1) both; }
-.page.enter-anim .stat-card:nth-child(2), .page.enter-anim .rdv-card:nth-child(2), .page.enter-anim .product-card:nth-child(2) { animation-delay: .05s; }
-.page.enter-anim .stat-card:nth-child(3), .page.enter-anim .rdv-card:nth-child(3), .page.enter-anim .product-card:nth-child(3) { animation-delay: .10s; }
-.page.enter-anim .stat-card:nth-child(4), .page.enter-anim .rdv-card:nth-child(4), .page.enter-anim .product-card:nth-child(4) { animation-delay: .15s; }
-.page.enter-anim .rdv-card:nth-child(n+5), .page.enter-anim .product-card:nth-child(n+5) { animation-delay: .2s; }
+.page.enter-anim .stat-card:nth-child(2), .page.enter-anim .rdv-card:nth-child(2) { animation-delay: .05s; }
+.page.enter-anim .stat-card:nth-child(3), .page.enter-anim .rdv-card:nth-child(3) { animation-delay: .10s; }
+.page.enter-anim .stat-card:nth-child(4) { animation-delay: .15s; }
+.page.enter-anim .rdv-card:nth-child(n+5) { animation-delay: .2s; }
 
 /* ── ripple ── */
 .rip-host { overflow: hidden; }
@@ -3445,6 +3444,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
           <div class="empty-state"><div class="spinner" style="margin:auto"></div></div>
         </div>
         <div id="productsLoadMore" class="flex justify-center" style="display:none;justify-content:center;padding:var(--s-lg);">
+          <span id="productsLoadMoreStatus" class="text-xs text-muted" role="status" aria-live="polite" style="display:none;"></span>
           <button class="btn btn-subtle" onclick="showMoreProducts()">عرض منتجات إضافية</button>
         </div>
       </div>
@@ -7221,6 +7221,16 @@ function setProductViewMode(mode) {
   document.getElementById('productViewTableBtn').setAttribute('aria-pressed', String(mode === 'table'));
   document.getElementById('productsCardView').style.display = mode === 'grid' ? '' : 'none';
   document.getElementById('productsDataView').style.display = mode === 'table' ? '' : 'none';
+  const ownerFeed = state.user?.role === 'owner' && String(state.user?.username || '').trim().toLowerCase() === 'shrouk';
+  if (ownerFeed) {
+    const moreWrap = document.getElementById('productsLoadMore');
+    const moreButton = moreWrap?.querySelector('button');
+    const moreStatus = document.getElementById('productsLoadMoreStatus');
+    const autoLoad = mode === 'grid' && 'IntersectionObserver' in window;
+    if (moreButton) moreButton.style.display = mode === 'table' || !autoLoad ? '' : 'none';
+    if (moreStatus) moreStatus.style.display = autoLoad && moreWrap?.style.display !== 'none' ? '' : 'none';
+    syncOwnerProductFeedObserver(autoLoad && moreWrap?.style.display !== 'none');
+  }
 }
 
 function renderProducts() {
@@ -7269,7 +7279,15 @@ function renderProducts() {
     return a.name.localeCompare(b.name, 'ar');
   });
 
-  if (!Number.isFinite(window.productDisplayLimit)) window.productDisplayLimit = 120;
+  const ownerProductFeed = state.user?.role === 'owner' && String(state.user?.username || '').trim().toLowerCase() === 'shrouk';
+  const productPage = document.getElementById('page-products');
+  productPage?.classList.toggle('owner-product-feed', ownerProductFeed);
+  if (window.productFeedOwnerMode !== ownerProductFeed) {
+    window.productFeedOwnerMode = ownerProductFeed;
+    window.productDisplayLimit = ownerProductFeed ? productFeedBatchSize() : 120;
+    window.productFeedRenderedCount = 0;
+  }
+  if (!Number.isFinite(window.productDisplayLimit)) window.productDisplayLimit = ownerProductFeed ? productFeedBatchSize() : 120;
   const visibleProducts = filtered.slice(0, window.productDisplayLimit);
 
   document.getElementById('productCount').textContent = `${fmtN(filtered.length)} منتج`;
@@ -7282,6 +7300,8 @@ function renderProducts() {
   // ── عرض الشبكة (الافتراضي): الصورة عنصر بصري أساسي لكل منتج ──
   const cardGrid = document.getElementById('productsCardView');
   if (filtered.length === 0) {
+    window.productFeedRenderedCount = 0;
+    window.productFeedAppendOnly = false;
     cardGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
       <div style="font-size:2rem; margin-bottom:8px;">📦</div>
       <div style="font-weight:600; margin-bottom:4px;">لا توجد منتجات</div>
@@ -7289,7 +7309,9 @@ function renderProducts() {
       ${!search && !catFilter && !supplierFilter && !statusFilter && !qualityFilter ? `<button class="btn btn-primary btn-sm" onclick="openProductModal()">+ منتج جديد</button>` : ''}
     </div>`;
   } else {
-    cardGrid.innerHTML = visibleProducts.map((p, idx) => {
+    const appendOnly = ownerProductFeed && window.productFeedAppendOnly && window.productViewMode === 'grid' && window.productFeedRenderedCount > 0;
+    const appendStart = appendOnly ? Math.min(window.productFeedRenderedCount, visibleProducts.length) : 0;
+    const cardsHtml = visibleProducts.slice(appendStart).map((p, idx) => {
       const isOut = p.total_quantity <= 0;
       let statusBadge = '';
       if (!p.is_active) statusBadge = '<span class="badge badge-muted">غير نشط</span>';
@@ -7298,9 +7320,9 @@ function renderProducts() {
       const unitLabel = { piece: 'قطعة', cm: 'سم', meter: 'متر', liter: 'لتر', kg: 'كجم', set: 'طقم' }[p.unit] || p.unit;
       const measureLabel = p.unit_measurement ? ` (${fmtN(p.unit_measurement, 2)} ${unitLabel})` : '';
       // تأخير ظهور متدرّج — بسقف 16 كارت عشان الشبكات الطويلة ما تبقاش بطيئة
-      const enterDelay = Math.min(idx, 15) * 28;
+      const enterDelay = Math.min(idx % 12, 11);
       return `
-      <div class="product-card ${!p.is_active ? 'is-inactive' : ''}" style="animation-delay:${enterDelay}ms;" tabindex="0" onclick="viewProductDetail(${p.id})" onkeydown="if(event.key==='Enter')viewProductDetail(${p.id})">
+      <div class="product-card ${!p.is_active ? 'is-inactive' : ''} ${ownerProductFeed ? 'owner-product-reveal' : ''}" style="--feed-index:${enterDelay};" tabindex="0" onclick="viewProductDetail(${p.id})" onkeydown="if(event.key==='Enter')viewProductDetail(${p.id})">
         <div class="product-card-img-wrap">
           ${p.image_path
             ? `<img src="${p.image_path}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -7326,6 +7348,10 @@ function renderProducts() {
         </div>
       </div>`;
     }).join('');
+    if (appendOnly) cardGrid.insertAdjacentHTML('beforeend', cardsHtml);
+    else cardGrid.innerHTML = cardsHtml;
+    window.productFeedRenderedCount = visibleProducts.length;
+    window.productFeedAppendOnly = false;
   }
 
   const nameCell = p => `<div style="display:flex;align-items:center;gap:10px;">
@@ -7371,12 +7397,55 @@ function renderProducts() {
   if (moreWrap) {
     moreWrap.style.display = filtered.length > visibleProducts.length ? 'flex' : 'none';
     const moreButton = moreWrap.querySelector('button');
-    if (moreButton) moreButton.textContent = `عرض ${fmtN(Math.min(120, filtered.length - visibleProducts.length))} منتج إضافي (${fmtN(visibleProducts.length)} من ${fmtN(filtered.length)})`;
+    const moreStatus = document.getElementById('productsLoadMoreStatus');
+    if (ownerProductFeed) {
+      const autoLoad = window.productViewMode === 'grid' && 'IntersectionObserver' in window;
+      if (moreStatus) {
+        moreStatus.style.display = filtered.length > visibleProducts.length && autoLoad ? '' : 'none';
+        moreStatus.textContent = `تم عرض ${fmtN(visibleProducts.length)} من ${fmtN(filtered.length)} منتج · استمر في التمرير لتحميل المزيد`;
+      }
+      const showManualLoad = filtered.length > visibleProducts.length && (!autoLoad || window.productViewMode === 'table');
+      if (moreButton) moreButton.style.display = showManualLoad ? '' : 'none';
+      syncOwnerProductFeedObserver(filtered.length > visibleProducts.length && autoLoad);
+    } else {
+      if (moreStatus) moreStatus.style.display = 'none';
+      if (moreButton) {
+        moreButton.style.display = '';
+        moreButton.textContent = `عرض ${fmtN(Math.min(120, filtered.length - visibleProducts.length))} منتج إضافي (${fmtN(visibleProducts.length)} من ${fmtN(filtered.length)})`;
+      }
+      syncOwnerProductFeedObserver(false);
+    }
   }
 }
 RDV_PAGE_REFRESHERS['products'] = renderProducts;
-function filterProducts() { window.productDisplayLimit = 120; renderProducts(); }
-function showMoreProducts() { window.productDisplayLimit = (window.productDisplayLimit || 120) + 120; renderProducts(); }
+function productFeedBatchSize() { return window.matchMedia?.('(max-width: 640px)').matches ? 24 : 36; }
+function syncOwnerProductFeedObserver(shouldObserve) {
+  if (window.productFeedObserver) window.productFeedObserver.disconnect();
+  if (!shouldObserve || state.user?.role !== 'owner' || String(state.user?.username || '').trim().toLowerCase() !== 'shrouk' || !('IntersectionObserver' in window)) return;
+  const target = document.getElementById('productsLoadMore');
+  if (!target) return;
+  if (!window.productFeedObserver) {
+    window.productFeedObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting) && !window.productFeedLoading) showMoreProducts();
+    }, { root: null, rootMargin: '360px 0px', threshold: 0 });
+  }
+  window.productFeedObserver.observe(target);
+}
+function filterProducts() {
+  window.productDisplayLimit = state.user?.role === 'owner' && String(state.user?.username || '').trim().toLowerCase() === 'shrouk' ? productFeedBatchSize() : 120;
+  window.productFeedRenderedCount = 0;
+  window.productFeedAppendOnly = false;
+  renderProducts();
+}
+function showMoreProducts() {
+  const ownerFeed = state.user?.role === 'owner' && String(state.user?.username || '').trim().toLowerCase() === 'shrouk';
+  if (ownerFeed && window.productFeedLoading) return;
+  if (ownerFeed) window.productFeedLoading = true;
+  window.productFeedAppendOnly = ownerFeed && window.productViewMode === 'grid';
+  window.productDisplayLimit = (window.productDisplayLimit || (ownerFeed ? productFeedBatchSize() : 120)) + (ownerFeed ? productFeedBatchSize() : 120);
+  try { renderProducts(); }
+  finally { if (ownerFeed) window.productFeedLoading = false; }
+}
 
 async function exportProductDataQuality() {
   const quality = document.getElementById('productDataQualityFilter')?.value || '';
