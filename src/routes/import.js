@@ -258,6 +258,63 @@ const FIELD_LABELS = {
 const NUMERIC_FIELDS = new Set(['unit_measurement', 'cost_price', 'sale_price', 'min_stock_threshold', 'allow_fractional_qty']);
 
 // ═══════════════════ GET /api/import/template ═══════════════════
+// تصدير قائمة معالجة نواقص بيانات المنتجات بصيغة متوافقة مع مستورد المنتجات.
+// لا يُصدَّر سعر التكلفة للمستخدم الذي لا يملك صلاحية الاطلاع عليه.
+router.get('/products/export', authorize('admin', 'manager', 'warehouse'), async (req, res) => {
+  const quality = String(req.query.quality || '');
+  const allowedQuality = new Set(['missing_image', 'missing_sale_price', 'missing_cost_price', 'missing_category', 'missing_any']);
+  if (!allowedQuality.has(quality)) return res.status(400).json({ error: 'اختر نوع نقص بيانات صحيحاً' });
+  const canViewCost = req.user.can_view_cost_price || ['admin', 'owner'].includes(req.user.role);
+  if (quality === 'missing_cost_price' && !canViewCost) return res.status(403).json({ error: 'ليس لديك صلاحية الاطلاع على سعر الشراء' });
+
+  const missingImage = `(p.image_path IS NULL OR TRIM(p.image_path) = '')`;
+  const missingSale = `(p.sale_price IS NULL OR p.sale_price <= 0)`;
+  const missingCost = `(p.cost_price IS NULL OR p.cost_price <= 0)`;
+  const missingCategory = `(p.category_id IS NULL)`;
+  const clauses = {
+    missing_image: missingImage,
+    missing_sale_price: missingSale,
+    missing_cost_price: missingCost,
+    missing_category: missingCategory,
+    missing_any: `(${missingImage} OR ${missingSale} OR ${missingCategory}${canViewCost ? ` OR ${missingCost}` : ''})`,
+  };
+  const products = await all(`
+    SELECT p.name, p.sku, p.barcode, c.name AS category, p.unit, p.unit_measurement, p.image_path,
+           p.color_preset, p.color_hex, p.cost_price, p.sale_price,
+           p.min_stock_threshold, p.description
+    FROM products p LEFT JOIN categories c ON c.id = p.category_id
+    WHERE ${clauses[quality]}
+    ORDER BY p.name
+  `);
+  const headers = ['name', 'sku', 'barcode', 'category', 'unit', 'unit_measurement', 'color', 'cost_price', 'sale_price', 'min_stock_threshold', 'description'];
+  const rows = products.map((p) => [
+    p.name, p.sku || '', p.barcode || '', p.category || '', p.unit || 'piece', p.unit_measurement ?? '',
+    p.color_hex || p.color_preset || 'none',
+    canViewCost ? (p.cost_price ?? '') : '',
+    p.sale_price ?? '', p.min_stock_threshold ?? '', p.description || '',
+  ]);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map((h) => ({ wch: Math.max(14, h.length + 4) }));
+  XLSX.utils.book_append_sheet(wb, ws, 'المنتجات');
+  const gapRows = products.map((p) => {
+    const gaps = [];
+    if (!p.image_path) gaps.push('الصورة');
+    if (!(Number(p.sale_price) > 0)) gaps.push('سعر البيع');
+    if (canViewCost && !(Number(p.cost_price) > 0)) gaps.push('سعر الشراء');
+    if (!p.category) gaps.push('التصنيف');
+    return [p.name, p.sku || '', p.barcode || '', gaps.join('، '), !p.image_path ? 'أضف الصورة من تعديل المنتج في النظام' : ''];
+  });
+  const wsGaps = XLSX.utils.aoa_to_sheet([['اسم المنتج', 'SKU', 'الباركود', 'البيانات الناقصة', 'طريقة استكمال الصورة'], ...gapRows]);
+  wsGaps['!cols'] = [{ wch: 36 }, { wch: 18 }, { wch: 20 }, { wch: 36 }, { wch: 42 }];
+  XLSX.utils.book_append_sheet(wb, wsGaps, 'مراجعة النواقص');
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const safeQuality = quality.replace(/[^a-z_]/g, '');
+  res.setHeader('Content-Disposition', `attachment; filename="products-${safeQuality}.xlsx"`);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.send(buffer);
+});
+
 router.get('/template', authorize('admin', 'manager', 'warehouse'), async (req, res) => {
   const headers = [
     'name', 'sku', 'barcode', 'category', 'unit', 'unit_measurement', 'color',

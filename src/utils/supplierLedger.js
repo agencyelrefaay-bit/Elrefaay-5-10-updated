@@ -30,15 +30,24 @@ async function getSupplierBalance(supplierId) {
     WHERE supplier_id = ?
   `, [supplierId]);
 
+  const returnTotals = await get(`SELECT COALESCE(SUM(total_amount),0) AS total_returns
+    FROM supplier_returns WHERE supplier_id=? AND status='approved'`, [supplierId]);
+  const refundsReceived = await get(`SELECT COALESCE(SUM(total_amount),0) AS total_refunds_received
+    FROM supplier_returns WHERE supplier_id=? AND status='approved' AND settlement_type='refund' AND compensation_status='refunded'`, [supplierId]);
+
   const openingBalance = round2(supplier.opening_balance || 0);
   const totalInvoiced = round2(poTotals.total_invoiced || 0);
   const totalPaid = round2(payTotals.total_paid || 0);
-  const balance = round2(openingBalance + totalInvoiced - totalPaid);
+  const totalReturns = round2(returnTotals.total_returns || 0);
+  const totalRefundsReceived = round2(refundsReceived.total_refunds_received || 0);
+  const balance = round2(openingBalance + totalInvoiced - totalPaid - totalReturns + totalRefundsReceived);
 
   return {
     opening_balance: openingBalance,
     total_invoiced: totalInvoiced,
     total_paid: totalPaid,
+    total_returns: totalReturns,
+    total_refunds_received: totalRefundsReceived,
     balance, // موجب = المورد دائن علينا
     is_overdue:       false,
   };
@@ -55,7 +64,9 @@ async function getSupplierBalanceAsOf(supplierId, asOf, excludePoId = 0) {
     WHERE supplier_id=? AND status NOT IN ('draft','cancelled') AND id<>? AND created_at < ?`,
     [supplierId, excludePoId || 0, asOf]);
   const pay = await get(`SELECT COALESCE(SUM(amount),0) as t FROM supplier_payments WHERE supplier_id=? AND created_at < ?`, [supplierId, asOf]);
-  return round2((supplier.opening_balance || 0) + (po.t || 0) - (pay.t || 0));
+  const returns = await get(`SELECT COALESCE(SUM(total_amount),0) as t FROM supplier_returns WHERE supplier_id=? AND status='approved' AND return_date < ?`, [supplierId, asOf]);
+  const refunds = await get(`SELECT COALESCE(SUM(total_amount),0) as t FROM supplier_returns WHERE supplier_id=? AND status='approved' AND settlement_type='refund' AND compensation_status='refunded' AND compensation_received_at < ?`, [supplierId, asOf]);
+  return round2((supplier.opening_balance || 0) + (po.t || 0) - (pay.t || 0) - (returns.t || 0) + (refunds.t || 0));
 }
 
 // ── الرصيد السابق المطبوع على أمر الشراء (نفس مبدأ الفاتورة): لقطة → حي (مسودة) → تقدير ──

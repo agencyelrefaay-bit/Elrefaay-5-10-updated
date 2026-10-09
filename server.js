@@ -114,6 +114,7 @@ app.use('/api/inventory-counts', require('./src/routes/inventoryCounts'));
 app.use('/api/transfers', require('./src/routes/transfers'));
 app.use('/api/import', require('./src/routes/import'));
 app.use('/api/suppliers', require('./src/routes/suppliers'));
+app.use('/api/supplier-returns', require('./src/routes/supplierReturns'));
 app.use('/api/party-groups', require('./src/routes/partyGroups'));
 app.use('/api/purchase-orders', require('./src/routes/purchaseOrders'));
 app.use('/api/purchase-receipts', require('./src/routes/purchaseReceipts'));
@@ -198,6 +199,7 @@ async function startServer() {
     // Railway/VPS جديدة) السيرفر كان هيفشل في الإقلاع تمامًا. تم اكتشافها
     // بتجربة فعلية على قاعدة بيانات فاضية أثناء تدقيق القبول النهائي.
     await createSalesSchema();
+    await require('./src/db/schema').createSupplierReturnsSchema();
     await createPhase4Schema();
     await migrateProcurementSchema();
     await migrateInventoryAlertsSchema();

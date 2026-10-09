@@ -26,7 +26,29 @@ async function genSupplierCode() {
 // ── GET /api/suppliers ──
 router.get('/', async (req, res) => {
   const { search, is_active } = req.query;
-  let sql = `SELECT s.*, sg.name AS supplier_group_name FROM suppliers s LEFT JOIN supplier_groups sg ON sg.id=s.supplier_group_id WHERE 1=1`;
+  let sql = `
+    SELECT s.*, sg.name AS supplier_group_name,
+           COALESCE(po.total_invoiced, 0) AS total_invoiced,
+           COALESCE(pay.total_paid, 0) AS total_paid,
+           COALESCE(ret.total_returns, 0) AS total_returns,
+           COALESCE(ret.refunds_received, 0) AS refunds_received,
+           COALESCE(s.opening_balance, 0) + COALESCE(po.total_invoiced, 0) - COALESCE(pay.total_paid, 0) - COALESCE(ret.total_returns, 0) + COALESCE(ret.refunds_received, 0) AS current_balance
+    FROM suppliers s
+    LEFT JOIN supplier_groups sg ON sg.id=s.supplier_group_id
+    LEFT JOIN (
+      SELECT supplier_id, SUM(total) AS total_invoiced FROM purchase_orders
+      WHERE status NOT IN ('draft','cancelled') GROUP BY supplier_id
+    ) po ON po.supplier_id=s.id
+    LEFT JOIN (
+      SELECT supplier_id, SUM(amount) AS total_paid FROM supplier_payments GROUP BY supplier_id
+    ) pay ON pay.supplier_id=s.id
+    LEFT JOIN (
+      SELECT supplier_id, SUM(total_amount) AS total_returns,
+             SUM(total_amount) FILTER (WHERE settlement_type='refund' AND compensation_status='refunded') AS refunds_received
+      FROM supplier_returns
+      WHERE status='approved' GROUP BY supplier_id
+    ) ret ON ret.supplier_id=s.id
+    WHERE 1=1`;
   const params = [];
   if (search) {
     sql += ` AND (s.name LIKE ? OR s.code LIKE ? OR s.phone LIKE ? OR s.contact_person LIKE ?)`;
@@ -38,11 +60,19 @@ router.get('/', async (req, res) => {
   sql += ` ORDER BY s.name ASC`;
 
   const supplierRows = await all(sql, params);
-  const suppliers = await Promise.all(supplierRows.map(async s => ({
+  const suppliers = supplierRows.map(s => ({
     ...s,
     is_active: !!s.is_active,
-    balance: await getSupplierBalance(s.id),
-  })));
+    balance: {
+      opening_balance: Number(s.opening_balance || 0),
+      total_invoiced: Number(s.total_invoiced || 0),
+      total_paid: Number(s.total_paid || 0),
+      total_returns: Number(s.total_returns || 0),
+      total_refunds_received: Number(s.refunds_received || 0),
+      balance: Number(s.current_balance || 0),
+      is_overdue: false,
+    },
+  }));
   res.json({ suppliers, count: suppliers.length });
 });
 

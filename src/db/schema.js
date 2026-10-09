@@ -377,6 +377,58 @@ async function createProcurementSchema() {
 
 module.exports.createProcurementSchema = createProcurementSchema;
 
+// ─── مردودات الموردين: تتبع المرتجع وبنوده واعتماده المالي والمخزني ───
+async function createSupplierReturnsSchema() {
+  await run(`CREATE TABLE IF NOT EXISTS supplier_returns (
+    id SERIAL PRIMARY KEY,
+    return_number TEXT NOT NULL UNIQUE,
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id),
+    purchase_order_id INTEGER REFERENCES purchase_orders(id),
+    sales_return_id INTEGER REFERENCES sales_returns(id),
+    location_id INTEGER NOT NULL REFERENCES locations(id),
+    return_date TEXT NOT NULL DEFAULT (date('now')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+    settlement_type TEXT NOT NULL DEFAULT 'credit' CHECK(settlement_type IN ('credit','refund')),
+    compensation_status TEXT NOT NULL DEFAULT 'pending' CHECK(compensation_status IN ('pending','credited','refunded')),
+    compensation_received_at TEXT,
+    compensation_received_by INTEGER REFERENCES users(id),
+    total_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+    reason TEXT,
+    notes TEXT,
+    user_id INTEGER REFERENCES users(id),
+    approved_by INTEGER REFERENCES users(id),
+    approved_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );`);
+  await run(`CREATE TABLE IF NOT EXISTS supplier_return_items (
+    id SERIAL PRIMARY KEY,
+    return_id INTEGER NOT NULL REFERENCES supplier_returns(id) ON DELETE CASCADE,
+    purchase_order_item_id INTEGER REFERENCES purchase_order_items(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    quantity DOUBLE PRECISION NOT NULL CHECK(quantity > 0),
+    unit_cost DOUBLE PRECISION NOT NULL CHECK(unit_cost >= 0),
+    condition TEXT NOT NULL DEFAULT 'damaged' CHECK(condition IN ('good','damaged','repair')),
+    notes TEXT
+  );`);
+  await run(`CREATE TABLE IF NOT EXISTS quarantined_inventory (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    location_id INTEGER NOT NULL REFERENCES locations(id),
+    quantity DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK(quantity >= 0),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(product_id, location_id)
+  );`);
+  await run(`ALTER TABLE supplier_returns ADD COLUMN IF NOT EXISTS sales_return_id INTEGER REFERENCES sales_returns(id);`);
+  await run(`ALTER TABLE supplier_returns ADD COLUMN IF NOT EXISTS compensation_status TEXT NOT NULL DEFAULT 'pending';`);
+  await run(`ALTER TABLE supplier_returns ADD COLUMN IF NOT EXISTS compensation_received_at TEXT;`);
+  await run(`ALTER TABLE supplier_returns ADD COLUMN IF NOT EXISTS compensation_received_by INTEGER REFERENCES users(id);`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_supplier_returns_supplier_date ON supplier_returns(supplier_id, return_date DESC);`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_supplier_returns_status ON supplier_returns(status);`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_supplier_return_items_return ON supplier_return_items(return_id);`);
+}
+module.exports.createSupplierReturnsSchema = createSupplierReturnsSchema;
+
 // ═══════════════════════════════════════════════════════
 //  المرحلة الثالثة — المبيعات والعملاء والتقسيط والمردودات
 // ═══════════════════════════════════════════════════════

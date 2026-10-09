@@ -141,23 +141,30 @@ router.post('/:id/approve', authorize('admin','manager'), async (req, res) => {
       // (المنتج فعلياً خرج من عهدة العميل، سواء هيترجع للمخزون أو للإصلاح)
       await run(`UPDATE invoice_items SET returned_qty=returned_qty+? WHERE id=?`,[item.quantity, item.invoice_item_id]);
 
-      // إعادة المخزون القابل للبيع — لكل الأنواع ما عدا "إصلاح": منتج تحت
-      // الإصلاح مش سلعة جاهزة للبيع، فمينفعش يتحسب متاح في المخزون
-      if (item.restock && !isRepair) {
-        const stock  = await get(`SELECT * FROM inventory WHERE product_id=? AND location_id=? FOR UPDATE`,[item.product_id, ret.location_id]);
-        const before = stock?.quantity || 0;
-        const after  = before + item.quantity;
-        if (stock) {
-          await run(`UPDATE inventory SET quantity=?, updated_at=datetime('now') WHERE product_id=? AND location_id=?`,
-            [after, item.product_id, ret.location_id]);
-        } else {
-          await insert(`INSERT INTO inventory (product_id,location_id,quantity) VALUES (?,?,?)`,
-            [item.product_id, ret.location_id, after]);
-        }
+      // المنتج السليم فقط يعود لمخزون البيع. التالف، والإصلاح، وأي صنف
+      // لم يُعتمد لإعادة البيع ينتقل إلى رصيد حجر مستقل لا يدخل في المتاح.
+      if (item.restock && item.condition === 'good' && !isRepair) {
+        await get(`SELECT id FROM inventory WHERE product_id=? AND location_id=? FOR UPDATE`,[item.product_id, ret.location_id]);
+        const stockAfter = await get(`INSERT INTO inventory (product_id,location_id,quantity) VALUES (?,?,?)
+          ON CONFLICT (product_id,location_id) DO UPDATE SET quantity=inventory.quantity+EXCLUDED.quantity, updated_at=datetime('now')
+          RETURNING quantity`, [item.product_id, ret.location_id, item.quantity]);
+        const after = Number(stockAfter.quantity);
+        const before = after - Number(item.quantity);
         await insert(`INSERT INTO stock_movements
           (product_id,location_id,movement_type,quantity,quantity_before,quantity_after,reference_type,reference_id,notes,user_id)
           VALUES (?,?,'in',?,?,?,'sales_return',?,?,?)`,
           [item.product_id, ret.location_id, item.quantity, before, after, ret.id, `مرتجع مبيعات — ${ret.return_number}`, req.user.id]);
+      } else {
+        await get(`SELECT id FROM quarantined_inventory WHERE product_id=? AND location_id=? FOR UPDATE`, [item.product_id, ret.location_id]);
+        const quarantineAfter = await get(`INSERT INTO quarantined_inventory (product_id,location_id,quantity) VALUES (?,?,?)
+          ON CONFLICT (product_id,location_id) DO UPDATE SET quantity=quarantined_inventory.quantity+EXCLUDED.quantity, updated_at=datetime('now')
+          RETURNING quantity`, [item.product_id, ret.location_id, item.quantity]);
+        const after = Number(quarantineAfter.quantity);
+        const before = after - Number(item.quantity);
+        await insert(`INSERT INTO stock_movements
+          (product_id,location_id,movement_type,quantity,quantity_before,quantity_after,reference_type,reference_id,notes,user_id)
+          VALUES (?,?,'adjustment',?,?,?,'sales_return_quarantine',?,?,?)`,
+          [item.product_id, ret.location_id, item.quantity, before, after, ret.id, `حجر صحي لمرتجع مبيعات — ${ret.return_number}`, req.user.id]);
       }
     }
 
@@ -212,7 +219,23 @@ router.post('/:id/return-to-customer', authorize('admin','manager','sales'), asy
   if (ret.status !== 'approved' || ret.repair_status !== 'in_repair')
     return res.status(400).json({ error: 'هذا المنتج ليس قيد الإصلاح حالياً' });
 
-  await run(`UPDATE sales_returns SET status='completed', repair_status='returned_to_customer', updated_at=datetime('now') WHERE id=?`,[ret.id]);
+  await transaction(async () => {
+    const locked = await get(`SELECT id FROM sales_returns WHERE id=? FOR UPDATE`, [ret.id]);
+    if (!locked) throw new Error('المرتجع غير موجود');
+    const items = await all(`SELECT * FROM sales_return_items WHERE return_id=?`, [ret.id]);
+    for (const item of items) {
+      const quarantine = await get(`SELECT quantity FROM quarantined_inventory WHERE product_id=? AND location_id=? FOR UPDATE`, [item.product_id, ret.location_id]);
+      if (!quarantine) continue; // طلب إصلاح قديم سابق لنظام الحجر الصحي
+      const before = Number(quarantine.quantity || 0);
+      if (before < item.quantity) throw new Error(`رصيد الحجر الصحي غير كافٍ لتسليم المنتج رقم ${item.product_id}`);
+      const after = before - Number(item.quantity);
+      await run(`UPDATE quarantined_inventory SET quantity=?, updated_at=datetime('now') WHERE product_id=? AND location_id=?`, [after, item.product_id, ret.location_id]);
+      await insert(`INSERT INTO stock_movements (product_id,location_id,movement_type,quantity,quantity_before,quantity_after,reference_type,reference_id,notes,user_id)
+        VALUES (?,?,'adjustment',?,?,?,'sales_return_repair_out',?,?,?)`,
+        [item.product_id, ret.location_id, -item.quantity, before, after, ret.id, `تسليم منتج مُصلح للعميل — ${ret.return_number}`, req.user.id]);
+    }
+    await run(`UPDATE sales_returns SET status='completed', repair_status='returned_to_customer', updated_at=datetime('now') WHERE id=?`,[ret.id]);
+  });
   await logAction(req.user.id,'return_to_customer','sales_return',ret.id,null);
   res.json({ message: 'تم تسليم المنتج المُصلَح للعميل، واعتُبر المرتجع مكتملاً' });
 });

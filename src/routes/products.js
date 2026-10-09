@@ -14,8 +14,33 @@ const {
   evaluateLowStock,
 } = require('../utils/stockAlerts');
 const eventBus = require('../utils/eventBus');
+const { getAllowedLocationIds, buildLocationFilter } = require('../utils/locationPermissions');
 
 router.use(authenticate);
+
+// ملخص خفيف للوحة التحكم: الأرقام تُحسب في قاعدة البيانات دون إرسال كامل
+// كتالوج المنتجات أو تحميل روابط الموردين وبيانات كل موقع إلى المتصفح.
+router.get('/dashboard-summary', async (req, res) => {
+  const allowedIds = await getAllowedLocationIds(req.user);
+  const locFilter = buildLocationFilter(allowedIds, 'l');
+  const summary = await get(`
+    SELECT COUNT(*) AS total_products,
+           COUNT(*) FILTER (WHERE p.is_active = 1) AS active_products,
+           COALESCE(SUM(COALESCE(stock.quantity, 0) * COALESCE(p.sale_price, 0)), 0) AS sale_value
+    FROM products p
+    LEFT JOIN (
+      SELECT i.product_id, SUM(i.quantity) AS quantity
+      FROM inventory i JOIN locations l ON l.id = i.location_id
+      WHERE l.is_active = 1 ${locFilter}
+      GROUP BY i.product_id
+    ) stock ON stock.product_id = p.id
+  `);
+  res.json({
+    total_products: Number(summary?.total_products || 0),
+    active_products: Number(summary?.active_products || 0),
+    sale_value: Number(summary?.sale_value || 0),
+  });
+});
 
 // ===================== رفع الصور =====================
 const uploadsDir = path.join(__dirname, '../uploads/products');

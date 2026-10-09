@@ -34,29 +34,26 @@ async function getProductsStockRows(productIds, locFilter = '', locParams = []) 
 
   const placeholders = productIds.map(() => '?').join(',');
 
+  // اقرأ صفوف المخزون الموجودة وحدود المواقع فقط. الـ CROSS JOIN القديم
+  // كان ينشئ صفاً لكل (منتج × موقع) حتى لو لم يوجد مخزون ولا حد خاص، ما
+  // يجعل تحميل الكتالوج بطيئاً جداً بعد تضخم عدد المنتجات.
   const rows = await all(`
-    SELECT
-      i.product_id,
-      l.id as location_id,
-      l.name as location_name,
-      l.type,
-      COALESCE(i.quantity, 0) as quantity,
-      plt.min_stock_threshold as location_threshold
-    FROM locations l
-    CROSS JOIN (
-      SELECT id as product_id
-      FROM products
-      WHERE id IN (${placeholders})
-    ) selected_products
-    LEFT JOIN inventory i
-      ON i.location_id = l.id
-      AND i.product_id = selected_products.product_id
+    SELECT i.product_id, l.id as location_id, l.name as location_name, l.type,
+           i.quantity, plt.min_stock_threshold as location_threshold
+    FROM inventory i
+    JOIN locations l ON l.id=i.location_id AND l.is_active=1
     LEFT JOIN product_location_thresholds plt
-      ON plt.location_id = l.id
-      AND plt.product_id = selected_products.product_id
-    WHERE l.is_active = 1 ${locFilter}
-    ORDER BY selected_products.product_id, l.id
-  `, [...productIds, ...locParams]);
+      ON plt.location_id=l.id AND plt.product_id=i.product_id
+    WHERE i.product_id IN (${placeholders}) ${locFilter}
+    UNION ALL
+    SELECT plt.product_id, l.id as location_id, l.name as location_name, l.type,
+           0 as quantity, plt.min_stock_threshold as location_threshold
+    FROM product_location_thresholds plt
+    JOIN locations l ON l.id=plt.location_id AND l.is_active=1
+    LEFT JOIN inventory i ON i.product_id=plt.product_id AND i.location_id=plt.location_id
+    WHERE plt.product_id IN (${placeholders}) AND i.product_id IS NULL ${locFilter}
+    ORDER BY product_id, location_id
+  `, [...productIds, ...locParams, ...productIds, ...locParams]);
 
   const grouped = new Map();
 

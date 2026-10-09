@@ -3369,6 +3369,9 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               استيراد
             </button>
+            <button class="btn btn-ghost btn-sm" onclick="exportProductDataQuality()" title="تصدير المنتجات حسب فلتر نقص البيانات الحالي إلى Excel">
+              تصدير النواقص Excel
+            </button>
             <button class="btn btn-ghost btn-sm" onclick="openBarcodePrintPage()" title="طباعة ملصقات الباركود">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               طباعة الباركود
@@ -3410,6 +3413,14 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
             <option value="low">مخزون منخفض</option>
             <option value="out">نفدت الكمية</option>
           </select>
+          <select class="filter-select" id="productDataQualityFilter" onchange="filterProducts()" aria-label="فلترة نواقص بيانات المنتجات">
+            <option value="">اكتمال البيانات: الكل</option>
+            <option value="missing_image">بدون صورة</option>
+            <option value="missing_sale_price">بدون سعر بيع</option>
+            <option value="missing_cost_price">بدون سعر شراء</option>
+            <option value="missing_category">بدون تصنيف</option>
+            <option value="missing_any">أي بيانات ناقصة</option>
+          </select>
           <select class="filter-select" id="productSortFilter" onchange="filterProducts()">
             <option value="name_asc">الاسم (أ-ي)</option>
             <option value="stock_desc">الأعلى مخزوناً</option>
@@ -3432,6 +3443,9 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
         <div id="productsCardView" class="product-card-grid"></div>
         <div id="productsDataView" class="rdv-container" style="display:none;">
           <div class="empty-state"><div class="spinner" style="margin:auto"></div></div>
+        </div>
+        <div id="productsLoadMore" class="flex justify-center" style="display:none;justify-content:center;padding:var(--s-lg);">
+          <button class="btn btn-subtle" onclick="showMoreProducts()">عرض منتجات إضافية</button>
         </div>
       </div>
 
@@ -3755,6 +3769,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
               استيراد Excel
             </button>
             <button class="btn btn-ghost btn-sm" data-group-management="suppliers" onclick="openPartyGroups('suppliers')">مجموعات الموردين</button>
+            <button class="btn btn-subtle btn-sm" onclick="navigate('supplier-returns')">مرتجعات الموردين</button>
             <button class="btn btn-primary btn-sm" onclick="openSupplierModal()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               مورد جديد
@@ -3777,6 +3792,30 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
 
         <div id="suppliersDataView" class="rdv-container">
           <div class="empty-state"><div class="spinner" style="margin:auto"></div></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-supplier-returns">
+        <div class="page-header">
+          <div>
+            <div class="page-title">مرتجعات الموردين</div>
+            <div class="page-subtitle">طلبات الإرجاع المرتبطة بأوامر الشراء أو مرتجعات العملاء، مع أثر مخزني ومالي موثق</div>
+          </div>
+          <div class="flex gap-sm">
+            <button class="btn btn-subtle btn-sm" onclick="navigate('suppliers')">الموردون</button>
+            <button id="supplierReturnCreateButton" class="btn btn-primary btn-sm" onclick="openSupplierReturnModal()">+ مرتجع جديد</button>
+          </div>
+        </div>
+        <div class="filters-bar">
+          <select class="filter-select" id="supplierReturnStatusFilter" onchange="loadSupplierReturns()">
+            <option value="">كل الحالات</option><option value="pending">بانتظار الاعتماد</option><option value="approved">معتمد</option><option value="rejected">مرفوض</option>
+          </select>
+          <span class="text-xs text-muted" id="supplierReturnCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>رقم المرتجع</th><th>المورد</th><th>مرتجع عميل مرتبط</th><th>الموقع</th><th>القيمة</th><th>الحالة</th><th>تاريخ الطلب</th><th></th></tr></thead>
+            <tbody id="supplierReturnsTbody"><tr><td colspan="8"><div class="empty-state"><div class="spinner" style="margin:auto"></div></div></td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -4112,8 +4151,8 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
     <div class="page" id="page-sales-returns">
       <div class="page-header">
         <div>
-          <div class="page-title">المرتجعات</div>
-          <div class="page-subtitle">متابعة مردودات البيع والمرتجعات</div>
+          <div class="page-title">مرتجعات العملاء</div>
+          <div class="page-subtitle">متابعة مردودات البيع ومرتجعات العملاء</div>
         </div>
         <div class="flex gap-sm">
           <button class="btn btn-primary btn-sm" onclick="openReturnModal()">
@@ -4191,7 +4230,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
     <div class="page" id="page-collections">
       <div class="page-header">
         <div>
-          <div class="page-title">تحصيل الأقساط</div>
+          <div class="page-title">تحصيل أقساط العملاء</div>
           <div class="page-subtitle">قوائم تحصيل قابلة للطباعة، مجمّعة بالمحافظة والمنطقة</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="printCollectionsReport()" id="colPrintBtn" style="display:none;">🖨️ طباعة القائمة</button>
@@ -6457,16 +6496,17 @@ const NAV_CONFIG = [
   { section: 'المبيعات', sectionVisibleFor: 'all', items: [
     { page: 'customers', label: 'العملاء', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`, badge: null, visibleFor: 'all' },
     { page: 'invoices', label: 'الفواتير', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`, badge: 'navInvoiceBadge', visibleFor: 'all' },
-    { page: 'sales-returns', label: 'المرتجعات', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>`, badge: null, visibleFor: 'all' },
+    { page: 'sales-returns', label: 'مرتجعات العملاء', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>`, badge: null, visibleFor: 'all' },
     { page: 'cust-installments', label: 'أقساط العملاء', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`, badge: 'navCustInstallBadge', visibleFor: 'all' },
-    { page: 'collections', label: 'تحصيل الأقساط', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`, badge: null, visibleFor: ["admin","manager"] },
   ]},
   { section: 'المشتريات', sectionVisibleFor: 'all', items: [
     { page: 'suppliers', label: 'الموردون', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`, badge: null, visibleFor: 'all' },
     { page: 'purchase-orders', label: 'أوامر الشراء', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`, badge: null, visibleFor: 'all' },
+    { page: 'supplier-returns', label: 'مرتجعات الموردين', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>`, badge: null, visibleFor: 'all' },
     { page: 'installments', label: 'الأقساط والمدفوعات', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`, badge: 'navInstallBadge', visibleFor: 'all' },
   ]},
   { section: 'المالية', sectionVisibleFor: 'all', items: [
+    { page: 'collections', label: 'تحصيل أقساط العملاء', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`, badge: null, visibleFor: ["admin","manager"] },
     { page: 'outstanding-balances', label: 'الأرصدة المستحقة', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h18M3 10h18M3 15h10M3 20h7"/><circle cx="18" cy="17" r="4"/></svg>`, badge: null, visibleFor: 'all' },
     { page: 'expenses', label: 'المصروفات', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>`, badge: null, visibleFor: ["admin","manager"] },
     { page: 'commissions', label: 'العمولات', icon: `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4.5a1.5 1.5 0 010 3H10a1.5 1.5 0 000 3h5"/></svg>`, badge: null, visibleFor: 'all' },
@@ -6881,15 +6921,16 @@ function navigate(page, entity = null) {
     auditlog: ['سجل التدقيق', 'تاريخ كامل لكل العمليات على النظام'],
     movements: ['حركات المخزون', 'سجل تفصيلي للوارد والصادر والتسويات'],
     suppliers: ['الموردون', 'إدارة بيانات الموردين وكشوف الحسابات'],
+    'supplier-returns': ['مرتجعات الموردين', 'إدارة الإرجاع والاعتماد والأثر المالي والمخزني'],
     'purchase-orders': ['أوامر الشراء', 'إنشاء ومتابعة أوامر الشراء من الموردين'],
     installments: ['الأقساط والمدفوعات', 'متابعة أقساط الموردين والمدفوعات المستحقة'],
     'supplier-detail': ['تفاصيل المورد', ''],
     'po-detail': ['تفاصيل أمر الشراء', ''],
     customers: ['العملاء', 'إدارة بيانات العملاء وكشوف حساباتهم'],
     invoices: ['الفواتير', 'إنشاء ومتابعة فواتير البيع'],
-    'sales-returns': ['المرتجعات', 'متابعة مردودات البيع والمرتجعات'],
+    'sales-returns': ['مرتجعات العملاء', 'متابعة مردودات البيع ومرتجعات العملاء'],
     'cust-installments': ['أقساط العملاء', 'متابعة أقساط فواتير البيع الآجل'],
-    'collections': ['تحصيل الأقساط', 'قوائم تحصيل قابلة للطباعة مجمّعة بالمحافظة والمنطقة'],
+    'collections': ['تحصيل أقساط العملاء', 'قوائم تحصيل قابلة للطباعة مجمّعة بالمحافظة والمنطقة'],
     'outstanding-balances': ['الأرصدة المستحقة', 'اختيار العملاء أو الموردين وإعداد كشف قابل للطباعة'],
     'invoice-detail': ['تفاصيل الفاتورة', ''],
     'customer-detail': ['تفاصيل العميل', ''],
@@ -6919,6 +6960,7 @@ function navigate(page, entity = null) {
   if (page === 'auditlog') loadAuditLog();
   if (page === 'movements') loadMovements();
   if (page === 'suppliers') loadSuppliers();
+  if (page === 'supplier-returns') loadSupplierReturns();
   if (page === 'purchase-orders') loadPurchaseOrders();
   if (page === 'installments') loadInstallments();
   if (page === 'customers') loadCustomers();
@@ -6987,27 +7029,24 @@ async function loadDashboard() {
 
   // Stats
   try {
-    const [pData, invData, lsData, trData] = await Promise.all([
-      API.get('/products'),
-      API.get('/inventory/overview'),
+    const [pData, lsData, trData] = await Promise.all([
+      API.get('/products/dashboard-summary'),
       API.get('/inventory/low-stock'),
       API.get('/transfers'),
     ]);
 
-    const products = pData.products || [];
-    const inv = invData.inventory || [];
     const lowStock = lsData.low_stock_products || [];
     const transfers = trData.transfers || [];
 
     // Stat grid
-    const totalValue = products.reduce((s, p) => s + (p.total_quantity || 0) * (p.sale_price || 0), 0);
+    const totalValue = Number(pData.sale_value || 0);
     const grid = document.getElementById('dashStatGrid');
     grid.innerHTML = `
       <div class="stat-card card-gold" style="--accent-glow:var(--gold-glow);">
         <div class="stat-label">إجمالي المنتجات</div>
-        <div class="stat-value">${fmtN(products.length)}</div>
+        <div class="stat-value">${fmtN(pData.total_products || 0)}</div>
         <div class="stat-meta">
-          <span class="badge badge-gold">${fmtN(products.filter(p => p.is_active).length)} نشط</span>
+          <span class="badge badge-gold">${fmtN(pData.active_products || 0)} نشط</span>
         </div>
         <div class="stat-icon-wrap">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
@@ -7099,6 +7138,9 @@ async function loadDashboard() {
 // ── Products ──
 async function loadProducts() {
   try {
+    const costFilter = document.querySelector('#productDataQualityFilter option[value="missing_cost_price"]');
+    const canViewCost = !!(state.user?.can_view_cost_price || ['admin', 'owner'].includes(state.user?.role));
+    if (costFilter) costFilter.disabled = !canViewCost;
     const data = await API.get('/products');
     state.products = data.products || [];
     renderProducts();
@@ -7187,6 +7229,7 @@ function renderProducts() {
   const catFilter = document.getElementById('productCategoryFilter')?.value || '';
   const supplierFilter = document.getElementById('productSupplierFilter')?.value || '';
   const statusFilter = document.getElementById('productStatusFilter')?.value || '';
+  const qualityFilter = document.getElementById('productDataQualityFilter')?.value || '';
   const sortBy = document.getElementById('productSortFilter')?.value || 'name_asc';
 
   let filtered = state.products.filter(p => {
@@ -7203,7 +7246,19 @@ function renderProducts() {
     const matchCat = !catFilter || String(p.category_id) === catFilter;
     const matchSupplier = !supplierFilter || (p.suppliers || []).some(s => String(s.id) === supplierFilter);
     const matchStatus = !statusFilter || (statusFilter === 'active' && p.is_active) || (statusFilter === 'inactive' && !p.is_active) || (statusFilter === 'low' && p.is_low_stock) || (statusFilter === 'out' && p.total_quantity <= 0);
-    return matchSearch && matchCat && matchSupplier && matchStatus;
+    const missingImage = !p.image_path;
+    const missingSale = !(Number(p.sale_price) > 0);
+    const canViewCost = !!(state.user?.can_view_cost_price || ['admin', 'owner'].includes(state.user?.role));
+    const missingCost = canViewCost && !(Number(p.cost_price) > 0);
+    const missingCategory = !p.category_id;
+    const missingAny = missingImage || missingSale || missingCost || missingCategory;
+    const matchQuality = !qualityFilter ||
+      (qualityFilter === 'missing_image' && missingImage) ||
+      (qualityFilter === 'missing_sale_price' && missingSale) ||
+      (qualityFilter === 'missing_cost_price' && missingCost) ||
+      (qualityFilter === 'missing_category' && missingCategory) ||
+      (qualityFilter === 'missing_any' && missingAny);
+    return matchSearch && matchCat && matchSupplier && matchStatus && matchQuality;
   });
 
   filtered = filtered.slice().sort((a, b) => {
@@ -7213,6 +7268,9 @@ function renderProducts() {
     if (sortBy === 'price_asc') return a.sale_price - b.sale_price;
     return a.name.localeCompare(b.name, 'ar');
   });
+
+  if (!Number.isFinite(window.productDisplayLimit)) window.productDisplayLimit = 120;
+  const visibleProducts = filtered.slice(0, window.productDisplayLimit);
 
   document.getElementById('productCount').textContent = `${fmtN(filtered.length)} منتج`;
 
@@ -7227,11 +7285,11 @@ function renderProducts() {
     cardGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
       <div style="font-size:2rem; margin-bottom:8px;">📦</div>
       <div style="font-weight:600; margin-bottom:4px;">لا توجد منتجات</div>
-      <div style="font-size:0.82rem; color:var(--cream-4); margin-bottom:12px;">${search || catFilter || statusFilter ? 'لا توجد نتائج مطابقة لبحثك أو الفلاتر المحددة' : 'ابدأ بإضافة منتجات جديدة إلى الكتالوج'}</div>
-      ${!search && !catFilter && !statusFilter ? `<button class="btn btn-primary btn-sm" onclick="openProductModal()">+ منتج جديد</button>` : ''}
+      <div style="font-size:0.82rem; color:var(--cream-4); margin-bottom:12px;">${search || catFilter || supplierFilter || statusFilter || qualityFilter ? 'لا توجد نتائج مطابقة لبحثك أو الفلاتر المحددة' : 'ابدأ بإضافة منتجات جديدة إلى الكتالوج'}</div>
+      ${!search && !catFilter && !supplierFilter && !statusFilter && !qualityFilter ? `<button class="btn btn-primary btn-sm" onclick="openProductModal()">+ منتج جديد</button>` : ''}
     </div>`;
   } else {
-    cardGrid.innerHTML = filtered.map((p, idx) => {
+    cardGrid.innerHTML = visibleProducts.map((p, idx) => {
       const isOut = p.total_quantity <= 0;
       let statusBadge = '';
       if (!p.is_active) statusBadge = '<span class="badge badge-muted">غير نشط</span>';
@@ -7254,6 +7312,7 @@ function renderProducts() {
           <button type="button" class="product-card-quick-edit" title="تعديل سريع" onclick="event.stopPropagation(); editProduct(${p.id})">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
+          ${!p.image_path ? `<button type="button" class="product-card-quick-edit" style="inset-inline-end:42px;" title="إضافة صورة المنتج" aria-label="إضافة صورة ${escHtml(p.name)}" onclick="event.stopPropagation(); editProduct(${p.id})">＋ صورة</button>` : ''}
         </div>
         <div class="product-card-body">
           ${p.category_name ? `<div class="product-card-kicker">${escHtml(p.category_name)}</div>` : ''}
@@ -7300,7 +7359,7 @@ function renderProducts() {
       { key: 'sale_price', label: 'سعر البيع', priority: 'primary', render: p => `<span style="font-weight:600;color:var(--gold-0);">${p.sale_price.toLocaleString('ar-EG-u-nu-latn')} ج.م</span>` },
       { key: 'is_active', label: 'الحالة', priority: 'primary', isStatus: true, render: p => `<span class="badge ${p.is_active ? 'badge-success' : 'badge-muted'}">${p.is_active ? 'نشط' : 'غير نشط'}</span>` },
     ],
-    rows: filtered,
+    rows: visibleProducts,
     actions: [
       { label: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, title: 'عرض التفاصيل', onClick: p => `viewProductDetail(${p.id})` },
       { label: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`, title: 'تعديل', onClick: p => `editProduct(${p.id})` },
@@ -7308,9 +7367,38 @@ function renderProducts() {
     onRowClick: p => `viewProductDetail(${p.id})`,
     emptyState: { icon: '📦', title: 'لا توجد منتجات', desc: 'ابدأ بإضافة منتجات جديدة إلى الكتالوج', actionLabel: '+ منتج جديد', actionOnClick: 'openProductModal()' },
   });
+  const moreWrap = document.getElementById('productsLoadMore');
+  if (moreWrap) {
+    moreWrap.style.display = filtered.length > visibleProducts.length ? 'flex' : 'none';
+    const moreButton = moreWrap.querySelector('button');
+    if (moreButton) moreButton.textContent = `عرض ${fmtN(Math.min(120, filtered.length - visibleProducts.length))} منتج إضافي (${fmtN(visibleProducts.length)} من ${fmtN(filtered.length)})`;
+  }
 }
 RDV_PAGE_REFRESHERS['products'] = renderProducts;
-function filterProducts() { renderProducts(); }
+function filterProducts() { window.productDisplayLimit = 120; renderProducts(); }
+function showMoreProducts() { window.productDisplayLimit = (window.productDisplayLimit || 120) + 120; renderProducts(); }
+
+async function exportProductDataQuality() {
+  const quality = document.getElementById('productDataQualityFilter')?.value || '';
+  if (!quality) { toast('اختر نوع نقص البيانات أولاً لتصدير النتائج', 'warn'); return; }
+  try {
+    const response = await fetch(`${API.base}/import/products/export?quality=${encodeURIComponent(quality)}`, {
+      headers: state.token ? { Authorization: `Bearer ${state.token}` } : {},
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `products-${quality}-${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('تم تنزيل ملف Excel. عدّل بيانات الكتالوج ثم ارفعه من زر استيراد.');
+  } catch (err) { toast('تعذر تصدير المنتجات: ' + err.message, 'danger'); }
+}
 
 // ── شريط بحث/فلترة المنتجات: إخفاء تلقائي مع النزول، ظهور فوري مع الطلوع ──
 // معزولة في IIFE خاص بيها ومحمية بـ try/catch في كل نقطة تفاعل، عشان أي
@@ -9686,6 +9774,174 @@ function renderSuppliers() {
 RDV_PAGE_REFRESHERS['suppliers'] = renderSuppliers;
 
 function filterSuppliers() { renderSuppliers(); }
+
+function supplierReturnStatusLabel(status) {
+  return ({ pending: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض' })[status] || status || '—';
+}
+
+async function loadSupplierReturns() {
+  const body = document.getElementById('supplierReturnsTbody');
+  if (!body) return;
+  const createButton = document.getElementById('supplierReturnCreateButton');
+  if (createButton) createButton.style.display = ['admin','manager','warehouse'].includes(state.user?.role) ? '' : 'none';
+  body.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="spinner" style="margin:auto"></div></div></td></tr>';
+  try {
+    const status = document.getElementById('supplierReturnStatusFilter')?.value || '';
+    const { returns = [] } = await API.get(`/supplier-returns${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+    document.getElementById('supplierReturnCount').textContent = `${fmtN(returns.length)} مرتجع`;
+    if (!returns.length) {
+      body.innerHTML = '<tr><td colspan="8"><div class="empty-state">لا توجد مرتجعات موردين مسجلة</div></td></tr>';
+      return;
+    }
+    body.innerHTML = returns.map(r => `<tr>
+      <td><button class="btn btn-ghost btn-sm" onclick="viewSupplierReturn(${r.id})">${escHtml(r.return_number)}</button></td>
+      <td>${escHtml(r.supplier_name)}</td><td>${r.sales_return_id ? `<span class="mono">${escHtml(r.sales_return_number || `#${r.sales_return_id}`)}</span>` : '—'}</td>
+      <td>${escHtml(r.location_name)}</td><td>${fmt(r.total_amount)} ج.م</td>
+      <td><span class="badge ${r.status === 'approved' ? 'badge-success' : r.status === 'rejected' ? 'badge-danger' : 'badge-warn'}">${supplierReturnStatusLabel(r.status)}</span></td>
+      <td>${escHtml(r.return_date || '—')}</td>
+      <td>${r.status === 'pending' && ['admin','manager'].includes(state.user?.role) ? `<button class="btn btn-xs btn-primary" onclick="approveSupplierReturn(${r.id})">اعتماد</button> <button class="btn btn-xs btn-ghost" onclick="rejectSupplierReturn(${r.id})">رفض</button>` : r.status === 'approved' && r.settlement_type === 'refund' && r.compensation_status === 'pending' && ['admin','manager'].includes(state.user?.role) ? `<button class="btn btn-xs btn-primary" onclick="confirmSupplierRefund(${r.id})">تأكيد استلام المبلغ</button>` : ''}</td>
+    </tr>`).join('');
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-state">تعذر تحميل مرتجعات الموردين: ${escHtml(err.message)}</div></td></tr>`;
+  }
+}
+
+function supplierReturnProductOptions(poItems = null) {
+  const options = poItems
+    ? poItems.filter(i => Number(i.qty_received) > 0).map(i => `<option value="${i.product_id}" data-po-item-id="${i.id}" data-unit-cost="${Number(i.unit_cost || 0)}">${escHtml(i.product_name)} — متاح ${fmtN(i.qty_received)} (أمر ${escHtml(i.po_number || '')})</option>`)
+    : (state.products || []).map(p => `<option value="${p.id}" data-unit-cost="${Number(p.cost_price || 0)}">${escHtml(p.name)} · ${escHtml(p.sku || '')}</option>`);
+  return `<option value="">اختر المنتج</option>${options.join('')}`;
+}
+
+function addSupplierReturnItemRow(poItems = null) {
+  const host = document.getElementById('supplierReturnItems');
+  if (!host) return;
+  const row = document.createElement('div');
+  row.className = 'supplier-return-item-row';
+  row.style.cssText = 'display:grid;grid-template-columns:minmax(180px,2fr) 100px 120px 130px 38px;gap:8px;align-items:end;margin-bottom:8px;';
+  row.innerHTML = `<label class="form-group" style="margin:0;"><span class="form-label">المنتج</span><select class="form-control sri-product" onchange="supplierReturnProductChanged(this)">${supplierReturnProductOptions(poItems)}</select></label>
+    <label class="form-group" style="margin:0;"><span class="form-label">الكمية</span><input class="form-control sri-qty" type="number" min="0.01" step="any" value="1"/></label>
+    <label class="form-group" style="margin:0;"><span class="form-label">تكلفة الوحدة</span><input class="form-control sri-cost" type="number" min="0" step="0.01"/></label>
+    <label class="form-group" style="margin:0;"><span class="form-label">الحالة</span><select class="form-control sri-condition"><option value="damaged">تالف</option><option value="good">سليم</option><option value="repair">يحتاج إصلاح</option></select></label>
+    <button class="btn btn-ghost btn-sm" type="button" aria-label="حذف البند" title="حذف البند" onclick="this.closest('.supplier-return-item-row').remove()">×</button>`;
+  host.appendChild(row);
+}
+
+function supplierReturnProductChanged(select) {
+  const opt = select.selectedOptions[0];
+  const row = select.closest('.supplier-return-item-row');
+  const cost = row?.querySelector('.sri-cost');
+  if (cost && opt?.dataset.unitCost !== undefined) cost.value = opt.dataset.unitCost;
+}
+
+async function loadSupplierReturnPOItems() {
+  const poId = document.getElementById('srmPurchaseOrder')?.value;
+  if (!poId) {
+    document.querySelectorAll('.sri-product').forEach(sel => { sel.innerHTML = supplierReturnProductOptions(); });
+    return;
+  }
+  try {
+    const { items = [] } = await API.get(`/purchase-orders/${poId}`);
+    const poItems = items.map(i => ({ ...i, unit_cost: Number(i.unit_cost || 0) * (1 - Number(i.discount_pct || 0) / 100), po_number: document.getElementById('srmPurchaseOrder').selectedOptions[0]?.textContent }));
+    document.querySelectorAll('.sri-product').forEach(sel => { sel.innerHTML = supplierReturnProductOptions(poItems); });
+  } catch (err) { toast('تعذر تحميل بنود أمر الشراء: ' + err.message, 'danger'); }
+}
+
+async function openSupplierReturnModal(presetSupplierId = '') {
+  try {
+    if (!state.products?.length) state.products = (await API.get('/products')).products || [];
+    const [supplierResult, locationResult, returnResult] = await Promise.all([
+      state.suppliers?.length ? Promise.resolve({ suppliers: state.suppliers }) : API.get('/suppliers'),
+      state.locations?.length ? Promise.resolve({ locations: state.locations }) : API.get('/locations'),
+      API.get('/sales-returns'),
+    ]);
+    state.suppliers = supplierResult.suppliers || [];
+    state.locations = locationResult.locations || [];
+    const supplierOptions = state.suppliers.filter(s => s.is_active).map(s => `<option value="${s.id}" ${Number(s.id) === Number(presetSupplierId) ? 'selected' : ''}>${escHtml(s.name)}</option>`).join('');
+    const locationOptions = state.locations.filter(l => l.is_active).map(l => `<option value="${l.id}">${escHtml(l.name)}</option>`).join('');
+    const returns = (returnResult.returns || []).filter(r => r.status === 'completed');
+    mountDynamicModal(`<div class="modal-overlay" id="supplierReturnModal" data-dynamic="true"><div class="modal modal-lg"><div class="modal-header"><div class="modal-title">طلب مرتجع مورد</div><button class="modal-close" onclick="closeModal('supplierReturnModal')">×</button></div>
+      <div class="modal-body"><div class="form-grid">
+        <label class="form-group"><span class="form-label">المورد *</span><select id="srmSupplier" class="form-control" onchange="loadSupplierReturnPOs()"><option value="">اختر المورد</option>${supplierOptions}</select></label>
+        <label class="form-group"><span class="form-label">أمر الشراء (اختياري)</span><select id="srmPurchaseOrder" class="form-control" onchange="loadSupplierReturnPOItems()"><option value="">بدون ربط بأمر شراء</option></select></label>
+        <label class="form-group"><span class="form-label">مرتجع عميل مرتبط (اختياري)</span><select id="srmSalesReturn" class="form-control"><option value="">بدون ربط</option>${returns.map(r => `<option value="${r.id}">${escHtml(r.return_number)} · ${escHtml(r.customer_name || '')}</option>`).join('')}</select></label>
+        <label class="form-group"><span class="form-label">الموقع الذي ستخرج منه البضاعة *</span><select id="srmLocation" class="form-control"><option value="">اختر الموقع</option>${locationOptions}</select></label>
+        <label class="form-group"><span class="form-label">طريقة التسوية</span><select id="srmSettlement" class="form-control"><option value="credit">إشعار دائن يخصم من رصيد المورد</option><option value="refund">مطالبة استرداد نقدي من المورد</option></select></label>
+        <label class="form-group"><span class="form-label">تاريخ الإرجاع</span><input id="srmDate" class="form-control" type="date" value="${new Date().toISOString().slice(0,10)}"/></label>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:var(--s-md) 0 8px"><strong>الأصناف المرتجعة</strong><button type="button" class="btn btn-xs btn-subtle" onclick="addSupplierReturnItemRow()">+ إضافة صنف</button></div>
+      <div id="supplierReturnItems"></div>
+      <label class="form-group"><span class="form-label">سبب الإرجاع *</span><input id="srmReason" class="form-control" maxlength="500" placeholder="عيب توريد، تلف، مواصفات غير مطابقة..."/></label>
+      <label class="form-group"><span class="form-label">ملاحظات</span><textarea id="srmNotes" class="form-control" rows="2"></textarea></label>
+      <div class="text-xs text-muted">عند الاعتماد تُخصم الكميات من مخزون الموقع المحدد ويُسجل أثر المرتجع في حساب المورد. مطالبة الاسترداد النقدي تظل معلقة حتى توثيق استلام المبلغ.</div>
+      </div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('supplierReturnModal')">إلغاء</button><button class="btn btn-primary" onclick="createSupplierReturn()">حفظ الطلب</button></div></div></div>`,'supplierReturnModal');
+    addSupplierReturnItemRow();
+    if (presetSupplierId) await loadSupplierReturnPOs();
+    openModal('supplierReturnModal');
+  } catch (err) { toast('تعذر فتح نموذج مرتجع المورد: ' + err.message, 'danger'); }
+}
+
+async function loadSupplierReturnPOs() {
+  const select = document.getElementById('srmPurchaseOrder');
+  const supplierId = document.getElementById('srmSupplier')?.value;
+  if (!select) return;
+  select.innerHTML = '<option value="">بدون ربط بأمر شراء</option>';
+  if (!supplierId) { await loadSupplierReturnPOItems(); return; }
+  try {
+    const { orders = [] } = await API.get(`/purchase-orders?supplier_id=${encodeURIComponent(supplierId)}`);
+    select.innerHTML = '<option value="">بدون ربط بأمر شراء</option>' + orders.filter(o => !['draft','cancelled'].includes(o.status)).map(o => `<option value="${o.id}">${escHtml(o.po_number)} · ${escHtml(o.order_date || '')}</option>`).join('');
+  } catch (err) { toast('تعذر تحميل أوامر شراء المورد: ' + err.message, 'danger'); }
+}
+
+async function createSupplierReturn() {
+  const rows = [...document.querySelectorAll('#supplierReturnItems .supplier-return-item-row')];
+  const items = rows.map(row => {
+    const select = row.querySelector('.sri-product');
+    return { product_id: Number(select.value), purchase_order_item_id: select.selectedOptions[0]?.dataset.poItemId || null,
+      quantity: Number(row.querySelector('.sri-qty').value), unit_cost: Number(row.querySelector('.sri-cost').value || 0),
+      condition: row.querySelector('.sri-condition').value };
+  });
+  const body = { supplier_id: Number(document.getElementById('srmSupplier').value), purchase_order_id: document.getElementById('srmPurchaseOrder').value || null,
+    sales_return_id: document.getElementById('srmSalesReturn').value || null, location_id: Number(document.getElementById('srmLocation').value),
+    settlement_type: document.getElementById('srmSettlement').value, return_date: document.getElementById('srmDate').value,
+    reason: document.getElementById('srmReason').value.trim(), notes: document.getElementById('srmNotes').value.trim(), items };
+  if (!body.supplier_id || !body.location_id || !body.reason || items.some(i => !i.product_id || !i.quantity)) { toast('أكمل المورد والموقع والسبب وبنود المنتجات', 'danger'); return; }
+  try {
+    await API.post('/supplier-returns', body);
+    closeModal('supplierReturnModal'); document.getElementById('supplierReturnModal')?.remove();
+    toast('تم تسجيل طلب المرتجع بانتظار الاعتماد'); loadSupplierReturns(); loadSuppliers();
+  } catch (err) { toast('تعذر حفظ المرتجع: ' + err.message, 'danger'); }
+}
+
+async function approveSupplierReturn(id) {
+  if (!confirm('اعتماد المرتجع سيخصم الكمية من المخزون ويخفض رصيد المورد. هل تريد المتابعة؟')) return;
+  try { await API.post(`/supplier-returns/${id}/approve`, {}); toast('تم اعتماد المرتجع وتحديث المخزون وحساب المورد'); loadSupplierReturns(); loadSuppliers(); }
+  catch (err) { toast('تعذر اعتماد المرتجع: ' + err.message, 'danger'); }
+}
+
+async function rejectSupplierReturn(id) {
+  const reason = prompt('اكتب سبب رفض طلب المرتجع:');
+  if (!reason || !reason.trim()) return;
+  try { await API.put(`/supplier-returns/${id}/reject`, { reason: reason.trim() }); toast('تم رفض طلب المرتجع'); loadSupplierReturns(); }
+  catch (err) { toast('تعذر رفض الطلب: ' + err.message, 'danger'); }
+}
+
+async function confirmSupplierRefund(id) {
+  if (!confirm('هل تم استلام مبلغ الاسترداد من المورد بالفعل؟')) return;
+  try { await API.post(`/supplier-returns/${id}/confirm-refund`, {}); toast('تم توثيق استلام مبلغ الاسترداد'); loadSupplierReturns(); }
+  catch (err) { toast('تعذر تحديث المطالبة: ' + err.message, 'danger'); }
+}
+
+async function viewSupplierReturn(id) {
+  try {
+    const { return: record, items } = await API.get(`/supplier-returns/${id}`);
+    mountDynamicModal(`<div class="modal-overlay" id="supplierReturnDetailsModal" data-dynamic="true"><div class="modal modal-lg"><div class="modal-header"><div class="modal-title">مرتجع ${escHtml(record.return_number)}</div><button class="modal-close" onclick="closeModal('supplierReturnDetailsModal')">×</button></div>
+      <div class="modal-body"><div class="form-grid"><div><b>المورد:</b> ${escHtml(record.supplier_name)}</div><div><b>حالة الطلب:</b> ${supplierReturnStatusLabel(record.status)}</div><div><b>حالة التسوية:</b> ${record.settlement_type === 'refund' ? (record.compensation_status === 'refunded' ? 'تم استلام المبلغ' : 'مبلغ مستحق الاسترداد') : (record.compensation_status === 'credited' ? 'تم الخصم من رصيد المورد' : 'بانتظار الاعتماد')}</div><div><b>التاريخ:</b> ${escHtml(record.return_date)}</div><div><b>القيمة:</b> ${fmt(record.total_amount)} ج.م</div><div><b>مرتجع العميل:</b> ${record.sales_return_id ? escHtml(record.sales_return_number || `#${record.sales_return_id}`) : '—'}</div><div><b>أمر الشراء:</b> ${record.purchase_order_id || '—'}</div></div>
+      <p><b>السبب:</b> ${escHtml(record.reason || '—')}</p><table><thead><tr><th>المنتج</th><th>الكمية</th><th>تكلفة الوحدة</th><th>الحالة</th></tr></thead><tbody>${items.map(i => `<tr><td>${escHtml(i.product_name)} <span class="mono">${escHtml(i.sku || '')}</span></td><td>${fmtN(i.quantity)}</td><td>${fmt(i.unit_cost)}</td><td>${i.condition === 'good' ? 'سليم' : i.condition === 'repair' ? 'يحتاج إصلاح' : 'تالف'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="modal-footer">${record.status === 'pending' && ['admin','manager'].includes(state.user?.role) ? `<button class="btn btn-primary" onclick="approveSupplierReturn(${record.id});closeModal('supplierReturnDetailsModal');document.getElementById('supplierReturnDetailsModal')?.remove();">اعتماد المرتجع</button>` : ''}<button class="btn btn-ghost" onclick="closeModal('supplierReturnDetailsModal');document.getElementById('supplierReturnDetailsModal')?.remove();">إغلاق</button></div></div></div>`,'supplierReturnDetailsModal');
+    openModal('supplierReturnDetailsModal');
+  } catch (err) { toast('تعذر فتح تفاصيل المرتجع: ' + err.message, 'danger'); }
+}
 
 function openSupplierModal() {
   ['smId','smName','smCode','smPhone','smPhone2','smEmail','smCity','smAddress','smContact','smContactPhone','smNotes'].forEach(id => {
@@ -13106,7 +13362,7 @@ async function searchInvoiceForReturn() {
         <td style="font-weight:600;">${it.product_name}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${available}</td>
         <td><input class="form-control" type="number" id="rfQty${i}" min="0" max="${available}" step="0.001" value="0" oninput="if(this.value>${available})this.value=${available};"></td>
-        <td><select class="form-control" id="rfCond${i}">
+        <td><select class="form-control" id="rfCond${i}" onchange="syncReturnRestock(${i})">
               <option value="good">سليم</option><option value="damaged">تالف</option><option value="repair">يحتاج إصلاح</option>
             </select></td>
         <td style="text-align:center;"><input type="checkbox" id="rfRestock${i}" checked></td>
@@ -13167,6 +13423,17 @@ async function searchInvoiceForReturn() {
 function toggleRfRepairDate() {
   const isRepair = document.getElementById('rfType').value === 'repair';
   document.getElementById('rfRepairDateRow').style.display = isRepair ? '' : 'none';
+  _rfInvoice?.items?.forEach((_, i) => syncReturnRestock(i));
+}
+
+function syncReturnRestock(index) {
+  const condition = document.getElementById(`rfCond${index}`)?.value;
+  const restock = document.getElementById(`rfRestock${index}`);
+  if (!restock) return;
+  const sellable = condition === 'good' && document.getElementById('rfType')?.value !== 'repair';
+  restock.disabled = !sellable;
+  if (!sellable) restock.checked = false;
+  else if (!restock.dataset.touched) restock.checked = true;
 }
 
 async function submitReturn() {

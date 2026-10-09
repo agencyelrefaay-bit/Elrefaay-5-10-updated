@@ -127,7 +127,15 @@ async function buildSupplierStatement({ accountId, dateFrom, dateTo }) {
       `SELECT COALESCE(SUM(amount),0) as v FROM supplier_payments WHERE supplier_id = ? AND payment_date < ?`,
       [accountId, dateFrom]
     );
-    openingBalance += (priorOrders.v || 0) - (priorPayments.v || 0);
+    const priorReturns = await get(
+      `SELECT COALESCE(SUM(total_amount),0) as v FROM supplier_returns WHERE supplier_id=? AND status='approved' AND return_date < ?`,
+      [accountId, dateFrom]
+    );
+    const priorRefunds = await get(
+      `SELECT COALESCE(SUM(total_amount),0) as v FROM supplier_returns WHERE supplier_id=? AND status='approved' AND settlement_type='refund' AND compensation_status='refunded' AND compensation_received_at < ?`,
+      [accountId, dateFrom]
+    );
+    openingBalance += (priorOrders.v || 0) - (priorPayments.v || 0) - (priorReturns.v || 0) + (priorRefunds.v || 0);
   }
 
   const dateParams = [accountId];
@@ -152,6 +160,20 @@ async function buildSupplierStatement({ accountId, dateFrom, dateTo }) {
     dateFrom || dateTo ? dateParams : [accountId]
   );
 
+  const returnRows = await all(
+    `SELECT id, return_number as doc_number, return_date as txn_date, total_amount as amount
+     FROM supplier_returns WHERE supplier_id=? AND status='approved' ${dateClause.replace(/{{DATE_COL}}/g, 'return_date')}
+     ORDER BY return_date ASC, id ASC`,
+    dateFrom || dateTo ? dateParams : [accountId]
+  );
+
+  const refundRows = await all(
+    `SELECT id, return_number as doc_number, compensation_received_at as txn_date, total_amount as amount
+     FROM supplier_returns WHERE supplier_id=? AND status='approved' AND settlement_type='refund' AND compensation_status='refunded' ${dateClause.replace(/{{DATE_COL}}/g, 'compensation_received_at')}
+     ORDER BY compensation_received_at ASC, id ASC`,
+    dateFrom || dateTo ? dateParams : [accountId]
+  );
+
   // ملحوظة: لا يوجد مردودات مشتريات في النظام الحالي (لا جدول ولا مسار API).
   // نقطة التوسّع: لإضافة PURCHASE_RETURN لاحقاً، يضاف مصدر بيانات هنا بنفس
   // شكل orderRows/paymentRows فوق — منطق finalizeStatement عام ومش هيتغيّر.
@@ -172,6 +194,20 @@ async function buildSupplierStatement({ accountId, dateFrom, dateTo }) {
       debit: 0, credit: r.amount,
       reference: { type: 'supplier_payment', id: r.id, po_id: r.po_id || null },
       sort_key: 3,
+    })),
+    ...returnRows.map(r => ({
+      date: r.txn_date, type: 'supplier_return', type_label: 'مرتجع مشتريات',
+      doc_number: r.doc_number, description: `مرتجع مشتريات رقم ${r.doc_number}`,
+      debit: 0, credit: r.amount,
+      reference: { type: 'supplier_return', id: r.id },
+      sort_key: 3,
+    })),
+    ...refundRows.map(r => ({
+      date: r.txn_date, type: 'supplier_refund_received', type_label: 'تحصيل استرداد مورد',
+      doc_number: r.doc_number, description: `استلام مبلغ مسترد للمرتجع ${r.doc_number}`,
+      debit: r.amount, credit: 0,
+      reference: { type: 'supplier_return', id: r.id },
+      sort_key: 2,
     })),
   ];
 
