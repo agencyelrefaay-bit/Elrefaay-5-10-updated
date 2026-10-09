@@ -2875,9 +2875,13 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
    كروت الإحصائيات مدمجة في عمودين، الفلاتر شبكة مرتبة، وكل عنصر لمس ≥44px.
 ═══════════════════════════════════════════════════════════════════ */
 .mob-search-btn { display: none; }
+.ic-search-controls { display:grid; grid-template-columns:minmax(128px,.72fr) minmax(0,1.5fr); gap:10px; align-items:end; }
+.ic-search-controls .form-group { min-width:0; }
+.ic-search-controls .form-control { min-height:44px; }
 
 @media (max-width: 599px) {
   :root { --touch-min: 44px; }
+  .ic-search-controls { grid-template-columns:minmax(0,1fr); gap:8px; }
 
   /* ── الهيدر: صف واحد (نجفة · عنوان · بحث · إشعارات)، والبحث بيتفتح عند الطلب ── */
   .topbar { min-height: 56px; padding-block: 4px; row-gap: 0; }
@@ -8068,7 +8072,7 @@ async function loadLocations() {
 // ═══════════════════════════════════════════════════════════════════
 state.invCount = {
   session: null, progress: null, selectedProduct: null,
-  searchResults: [], reviewFilter: 'all', reviewData: null,
+  searchResults: [], searchField: 'all', reviewFilter: 'all', reviewData: null,
 };
 
 async function renderInventoryCountHome() {
@@ -8187,11 +8191,24 @@ function renderInventoryCountScreen() {
       <div style="height:100%; width:${pct}%; background:linear-gradient(90deg, var(--gold-2), var(--gold-0)); transition: width var(--t-med);"></div>
     </div>
 
-    <div class="card" style="max-width:520px; margin:0 auto;">
-      <label class="form-label">ابحث بالاسم / SKU / الباركود — أو استخدم قارئ باركود</label>
-      <input type="text" class="form-control" id="icSearchInput" placeholder="اكتب أو امسح الباركود..." autocomplete="off"
-             oninput="icDebouncedSearch()" onkeydown="if(event.key==='Enter'){event.preventDefault(); icHandleScanEnter();}" autofocus>
-      <div id="icSearchResults" style="margin-top:var(--s-sm); display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto;"></div>
+    <div class="card" style="max-width:560px; margin:0 auto;">
+      <div class="ic-search-controls">
+        <div>
+          <label class="form-label" for="icSearchField">ابحث باستخدام</label>
+          <select class="form-control" id="icSearchField" onchange="icUpdateSearchField()">
+            <option value="all" ${state.invCount.searchField === 'all' ? 'selected' : ''}>كل الحقول</option>
+            <option value="name" ${state.invCount.searchField === 'name' ? 'selected' : ''}>اسم المنتج</option>
+            <option value="sku" ${state.invCount.searchField === 'sku' ? 'selected' : ''}>SKU</option>
+            <option value="barcode" ${state.invCount.searchField === 'barcode' ? 'selected' : ''}>الباركود</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="icSearchInput">بيانات المنتج <span style="font-weight:400;color:var(--cream-4);">— أو امسح الباركود</span></label>
+          <input type="search" class="form-control" id="icSearchInput" placeholder="${icSearchPlaceholder(state.invCount.searchField)}" autocomplete="off" autocapitalize="off" spellcheck="false"
+                 oninput="icDebouncedSearch()" onkeydown="if(event.key==='Enter'){event.preventDefault(); icHandleScanEnter();}" autofocus>
+        </div>
+      </div>
+      <div id="icSearchResults" aria-live="polite" style="margin-top:var(--s-sm); display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto;"></div>
     </div>
 
     <!-- ترشيح المنتجات اللي لسه محتاجة عدّ — بدل ما تسيرش كل شوية، دول أول
@@ -8228,36 +8245,58 @@ async function icLoadNextUp() {
 }
 
 let _icSearchTimer = null;
+let _icSearchRequestId = 0;
+function icSearchPlaceholder(field) {
+  return ({ name: 'اكتب اسم المنتج...', sku: 'اكتب كود SKU...', barcode: 'اكتب أو امسح الباركود...', all: 'ابحث بالاسم أو SKU أو الباركود...' })[field] || 'ابحث بالاسم أو SKU أو الباركود...';
+}
+function icUpdateSearchField() {
+  const field = document.getElementById('icSearchField')?.value || 'all';
+  state.invCount.searchField = ['all', 'name', 'sku', 'barcode'].includes(field) ? field : 'all';
+  const input = document.getElementById('icSearchInput');
+  if (input) input.placeholder = icSearchPlaceholder(state.invCount.searchField);
+  icDebouncedSearch();
+}
 function icDebouncedSearch() {
   clearTimeout(_icSearchTimer);
+  _icSearchRequestId++;
   _icSearchTimer = setTimeout(icRunSearch, 300);
 }
 
 async function icRunSearch() {
   const term = document.getElementById('icSearchInput').value.trim();
   const box = document.getElementById('icSearchResults');
-  if (term.length < 2) { box.innerHTML = ''; return; }
+  const requestId = ++_icSearchRequestId;
+  if (term.length < 2) { box.innerHTML = ''; state.invCount.searchResults = []; return; }
   try {
-    const res = await API.get(`/products?search=${encodeURIComponent(term)}&is_active=true`);
+    const field = document.getElementById('icSearchField')?.value || 'all';
+    state.invCount.searchField = field;
+    const query = new URLSearchParams({ search: term, is_active: 'true' });
+    if (field !== 'all') query.set('search_field', field);
+    const res = await API.get(`/products?${query.toString()}`);
+    if (requestId !== _icSearchRequestId) return;
     state.invCount.searchResults = res.products || [];
     box.innerHTML = state.invCount.searchResults.slice(0, 20).map(p => `
-      <div class="card" style="padding:10px 12px; cursor:pointer;" onclick="icSelectProduct(${p.id})">
+      <button type="button" class="card" style="width:100%; padding:10px 12px; cursor:pointer; text-align:right; color:inherit;" onclick="icSelectProduct(${p.id})">
         <div style="font-weight:600; font-size:0.9rem;">${p.name}</div>
         <div style="font-size:0.75rem; color:var(--cream-4);">SKU: ${p.sku}${p.barcode ? ' · ' + p.barcode : ''}</div>
-      </div>`).join('') || `<div style="color:var(--cream-4); font-size:0.85rem; padding:var(--s-sm);">لا توجد نتائج</div>`;
-  } catch (e) { toast(e.message, 'danger'); }
+      </button>`).join('') || `<div style="color:var(--cream-4); font-size:0.85rem; padding:var(--s-sm);">لا توجد نتائج</div>`;
+  } catch (e) { if (requestId === _icSearchRequestId) toast(e.message, 'danger'); }
 }
 
 // لو المستخدم مسح باركود بقارئ (بيتصرف كلوحة مفاتيح وبيبعت Enter في الآخر)،
 // نجرّب أولاً مطابقة باركود دقيقة (أسرع وأدق)، ولو مفيش نتيجة نرجع للبحث الجزئي العادي
 async function icHandleScanEnter() {
+  clearTimeout(_icSearchTimer);
   const term = document.getElementById('icSearchInput').value.trim();
   if (!term) return;
-  try {
-    const res = await API.get(`/products/barcode/${encodeURIComponent(term)}`);
-    icSelectProductObj(res.product);
-    return;
-  } catch (e) { /* مفيش منتج بالباركود ده — نكمل بالبحث الجزئي العادي */ }
+  const field = document.getElementById('icSearchField')?.value || 'all';
+  if (field === 'all' || field === 'barcode') {
+    try {
+      const res = await API.get(`/products/barcode/${encodeURIComponent(term)}`);
+      icSelectProductObj(res.product);
+      return;
+    } catch (e) { /* لا يوجد تطابق دقيق؛ نكمل بالبحث الجزئي في الحقل المختار */ }
+  }
   icRunSearch();
 }
 
@@ -8267,6 +8306,8 @@ function icSelectProduct(productId) {
 }
 
 function icSelectProductObj(p) {
+  clearTimeout(_icSearchTimer);
+  _icSearchRequestId++;
   state.invCount.selectedProduct = p;
   document.getElementById('icSearchResults').innerHTML = '';
   document.getElementById('icSearchInput').value = '';
