@@ -3414,6 +3414,7 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
             <option value="active">نشطة فقط</option>
             <option value="inactive">غير نشطة</option>
             <option value="low">مخزون منخفض</option>
+            <option value="in_stock">متوفر بالمخزون</option>
             <option value="out">نفدت الكمية</option>
           </select>
           <select class="filter-select" id="productDataQualityFilter" onchange="filterProducts()" aria-label="فلترة نواقص بيانات المنتجات">
@@ -7259,7 +7260,7 @@ function renderProducts() {
     }
     const matchCat = !catFilter || String(p.category_id) === catFilter;
     const matchSupplier = !supplierFilter || (p.suppliers || []).some(s => String(s.id) === supplierFilter);
-    const matchStatus = !statusFilter || (statusFilter === 'active' && p.is_active) || (statusFilter === 'inactive' && !p.is_active) || (statusFilter === 'low' && p.is_low_stock) || (statusFilter === 'out' && p.total_quantity <= 0);
+    const matchStatus = !statusFilter || (statusFilter === 'active' && p.is_active) || (statusFilter === 'inactive' && !p.is_active) || (statusFilter === 'low' && p.is_low_stock) || (statusFilter === 'in_stock' && Number(p.total_quantity) > 0) || (statusFilter === 'out' && Number(p.total_quantity) <= 0);
     const missingImage = !p.image_path;
     const missingSale = !(Number(p.sale_price) > 0);
     const canViewCost = !!(state.user?.can_view_cost_price || ['admin', 'owner'].includes(state.user?.role));
