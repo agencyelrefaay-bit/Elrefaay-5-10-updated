@@ -9743,7 +9743,19 @@ async function processImportFile(file) {
       headers: { 'Authorization': `Bearer ${state.token}` },
       body: formData,
     });
-    const data = await r.json();
+    const responseText = await r.text();
+    let data;
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch (_) {
+      const contentType = r.headers.get('content-type') || '';
+      const status = `HTTP ${r.status}${r.statusText ? ` ${r.statusText}` : ''}`;
+      if (r.redirected || contentType.includes('text/html')) {
+        throw new Error(`الخادم أعاد صفحة بدل نتيجة الاستيراد (${status}). قد تكون مهلة رفع الملف انتهت قبل اكتمال المعالجة.`);
+      }
+      const preview = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
+      throw new Error(`استجابة الخادم غير صالحة (${status})${preview ? `: ${preview}` : '.'}`);
+    }
     if (!r.ok) throw new Error(data.error || 'فشل الاستيراد');
 
     resultEl.innerHTML = renderImportReport(data, cfg, file.name);

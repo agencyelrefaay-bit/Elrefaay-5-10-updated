@@ -229,8 +229,8 @@
     if (label) label.textContent = isDay ? 'النهار' : 'الليل';
     if (icon) icon.textContent = isDay ? '☀' : '☾';
     if (description) description.textContent = isDay
-      ? 'مساحة هادئة بإضاءة نهارية دافئة وفراشات رقيقة.'
-      : 'مساحة ليلية هادئة بقمر مبتسم ونجوم متلألئة وفراشات رقيقة.';
+      ? 'مساحة هادئة بإضاءة نهارية دافئة وفراشات رقيقة تُشبه شروق ☺️'
+      : 'مساحة ليلية هادئة بقمر مبتسم ونجوم متلألئة وفراشات رقيقة تُشبه شروق ☺️';
     if (time) {
       time.textContent = new Intl.DateTimeFormat('ar-EG', { timeZone, hour: 'numeric', minute: '2-digit' }).format(now);
       time.dateTime = now.toISOString();
