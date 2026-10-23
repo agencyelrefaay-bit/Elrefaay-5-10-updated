@@ -1,6 +1,6 @@
 // utils/customerLedger.js
 // حساب رصيد العميل في الوقت الفعلي
-const { get, run } = require('../db/database');
+const { get, all, run } = require('../db/database');
 const { round2 } = require('./money');
 
 async function getCustomerBalance(customerId) {
@@ -34,6 +34,42 @@ async function getCustomerBalance(customerId) {
     total_refunded: round2(returnTotals.total_refunded || 0),
     balance,
   };
+}
+
+
+// ── نسخة "دفعة واحدة" من getCustomerBalance لقوائم العملاء الكبيرة ──
+// المشكلة: GET /customers كان بينادي getCustomerBalance لكل عميل (4 استعلامات
+// لكل عميل). مع آلاف العملاء ده آلاف الاستعلامات على pool صغير = بطء ملحوظ.
+// هنا بنجيب نفس الإجماليات بـ 3 استعلامات GROUP BY فقط لكل العملاء، وبنفس
+// شروط الفلترة بالظبط (نفس الفواتير المستبعدة، نفس المرتجعات المكتملة) ونفس
+// قواعد التقريب، فالناتج مطابق حرفياً لـ getCustomerBalance لكل عميل.
+async function getCustomerBalancesBatch(customerRows) {
+  const [inv, pay, ret] = await Promise.all([
+    all(`SELECT customer_id, COALESCE(SUM(total),0) AS t FROM invoices
+         WHERE status NOT IN ('draft','cancelled') AND customer_id IS NOT NULL GROUP BY customer_id`),
+    all(`SELECT customer_id, COALESCE(SUM(amount),0) AS t FROM customer_payments
+         WHERE customer_id IS NOT NULL GROUP BY customer_id`),
+    all(`SELECT customer_id, COALESCE(SUM(total_refund),0) AS t FROM sales_returns
+         WHERE status='completed' AND customer_id IS NOT NULL GROUP BY customer_id`),
+  ]);
+  const toMap = (rows) => new Map(rows.map((r) => [Number(r.customer_id), Number(r.t) || 0]));
+  const invMap = toMap(inv), payMap = toMap(pay), retMap = toMap(ret);
+  const out = new Map();
+  for (const c of customerRows) {
+    const openingBalance = round2(c.opening_balance || 0);
+    const totalInvoiced = round2(invMap.get(Number(c.id)) || 0);
+    const paid = payMap.get(Number(c.id)) || 0;
+    const refunded = retMap.get(Number(c.id)) || 0;
+    const totalPaid = round2(paid + refunded);
+    out.set(Number(c.id), {
+      opening_balance: openingBalance,
+      total_invoiced: totalInvoiced,
+      total_paid: round2(paid),
+      total_refunded: round2(refunded),
+      balance: round2(openingBalance + totalInvoiced - totalPaid),
+    });
+  }
+  return out;
 }
 
 // ── التحقق من حد الائتمان قبل حفظ فاتورة آجلة/تقسيط ──
@@ -100,4 +136,4 @@ async function syncCustomerInstallments(run_fn) {
   await require('./installmentEngine').syncOverdueInstallments('customer', run_fn);
 }
 
-module.exports = { getCustomerBalance, getCustomerBalanceAsOf, getInvoicePreviousBalance, checkCreditLimit, syncCustomerInstallments };
+module.exports = { getCustomerBalance, getCustomerBalancesBatch, getCustomerBalanceAsOf, getInvoicePreviousBalance, checkCreditLimit, syncCustomerInstallments };

@@ -21,6 +21,16 @@
 })();
 </script>
 
+<!-- ═══ تجربة موبايل شروق (shrouk-ux): تفعيل مبكر قبل الرسم عشان شاشة الافتتاح تظهر فوراً بدون وميض.
+     بيشتغل لحساب role=owner/username=shrouk فقط؛ أي حساب تاني = لا أثر. ═══ -->
+<script>
+(function(){try{var u=JSON.parse(localStorage.getItem('arUser')||'null');
+if(u&&u.role==='owner'&&String(u.username||'').trim().toLowerCase()==='shrouk'&&localStorage.getItem('arToken')){
+var r=document.documentElement;r.classList.add('shrouk-ux');r.setAttribute('data-sx-splash','1');
+setTimeout(function(){r.removeAttribute('data-sx-splash')},7000);}}catch(e){}})();
+</script>
+<link rel="stylesheet" href="/shrouk-mobile.css?v=1"/>
+
 <!-- ═══ PWA — Manifest، الأيقونات، وألوان الهوية ═══ -->
 <link rel="manifest" href="/manifest.json"/>
 <meta name="theme-color" content="#0f0d10"/>
@@ -2941,6 +2951,8 @@ tbody.ts-flash > tr:nth-child(4) { animation-delay: .06s; } tbody.ts-flash > tr:
   onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';document.head.appendChild(s);"></script>
 </head>
 <body>
+<!-- شاشة افتتاح "شروق": شمس بتطلع من الأفق (بتظهر لحساب شروق فقط، CSS بيخفيها لغيره) -->
+<div id="sxSplash" aria-hidden="true"><div class="sx-stars"></div><div class="sx-sunwrap"><div class="sx-rays"></div><div class="sx-disc"></div></div><div class="sx-horizon"></div><div class="sx-word"><b>شروق</b><span>مؤسسة الرفاعي</span></div></div>
 
 <!-- ═══ PWA UI — عناصر مستقلة تماماً عن باقي التطبيق (شوف script منفصل آخر الملف) ═══ -->
 <div id="pwaUpdateBanner">
@@ -7253,7 +7265,8 @@ function renderProducts() {
     // باركوده فيه "966" بالغلط بدل الكود المقصود).
     let matchSearch = true;
     if (search) {
-      if (searchField === 'name') matchSearch = p.name.toLowerCase().includes(search);
+      if (window.ShroukSearch && ShroukSearch.on()) matchSearch = ShroukSearch.product(p, search, searchField);
+      else if (searchField === 'name') matchSearch = p.name.toLowerCase().includes(search);
       else if (searchField === 'sku') matchSearch = (p.sku || '').toLowerCase().includes(search);
       else if (searchField === 'barcode') matchSearch = (p.barcode || '').includes(search);
       else matchSearch = p.name.toLowerCase().includes(search) || (p.sku || '').toLowerCase().includes(search) || (p.barcode || '').includes(search);
@@ -9868,7 +9881,7 @@ function renderSuppliers() {
   const search = (document.getElementById('supplierSearch')?.value || '').toLowerCase();
   const statusF = document.getElementById('supplierStatusFilter')?.value || '';
   let list = state.suppliers.filter(s => {
-    const ms = !search || s.name.toLowerCase().includes(search) || (s.code||'').toLowerCase().includes(search) || (s.phone||'').includes(search);
+    const ms = !search || (window.ShroukSearch && ShroukSearch.on() ? ShroukSearch.supplier(s, search) : (s.name.toLowerCase().includes(search) || (s.code||'').toLowerCase().includes(search) || (s.phone||'').includes(search)));
     const mst = !statusF || (statusF === 'active' && s.is_active) || (statusF === 'inactive' && !s.is_active);
     return ms && mst;
   });
@@ -16686,5 +16699,6 @@ async function saveSettings() {
 <script src="/receivables.js?v=13" defer></script>
 
 <script src="/owner-space.js" defer></script>
+<script src="/shrouk-mobile.js?v=1" defer></script>
 </body>
 </html>

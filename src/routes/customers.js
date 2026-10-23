@@ -8,7 +8,8 @@ const fs      = require('fs');
 const { all, get, run, insert } = require('../db/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction }               = require('../utils/auditLog');
-const { getCustomerBalance }      = require('../utils/customerLedger');
+const { getCustomerBalance, getCustomerBalancesBatch } = require('../utils/customerLedger');
+const { useFastLists }          = require('../utils/featureFlags');
 const { buildStatement }          = require('../utils/statementEngine');
 
 router.use(authenticate);
@@ -39,10 +40,17 @@ router.get('/', async (req, res) => {
   sql += ` ORDER BY c.name ASC`;
 
   const customerRows = await all(sql, params);
-  const customers = await Promise.all(customerRows.map(async c => ({
-    ...c, is_active: !!c.is_active,
-    balance: await getCustomerBalance(c.id),
-  })));
+  let customers;
+  if (useFastLists(req.user)) {
+    // مسار سريع: 3 استعلامات تجميعية بدل 4 استعلامات لكل عميل (نفس النتيجة بالظبط)
+    const balances = await getCustomerBalancesBatch(customerRows);
+    customers = customerRows.map(c => ({ ...c, is_active: !!c.is_active, balance: balances.get(Number(c.id)) }));
+  } else {
+    customers = await Promise.all(customerRows.map(async c => ({
+      ...c, is_active: !!c.is_active,
+      balance: await getCustomerBalance(c.id),
+    })));
+  }
   res.json({ customers, count: customers.length });
 });
 

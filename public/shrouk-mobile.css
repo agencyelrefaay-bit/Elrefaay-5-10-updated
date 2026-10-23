@@ -1,0 +1,243 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   shrouk-mobile.css — تجربة موبايل/iOS مطوّرة (حساب المالكة "شروق" أولاً)
+   ───────────────────────────────────────────────────────────────────────
+   كل القواعد هنا مقيّدة بـ  html.shrouk-ux  ← الكلاس ده بيتحط بالـ JS فقط
+   لما يكون المستخدم الحالي role=owner و username=shrouk. أي حساب تاني =
+   صفر تأثير. لتعميمها لاحقاً: غيّر شرط التفعيل في shrouk-mobile.js.
+   الفكرة الإبداعية: "شروق" = شروق الشمس ← كل الـ loading والـ transitions
+   مبنية على شمس بتطلع من الأفق.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root { --sx-sun-0:#fff6c9; --sx-sun-1:#ffd55f; --sx-sun-2:#f4a02d; --sx-sun-3:#e0701f; --sx-glow:rgba(255,190,70,.55); }
+
+/* ───────────── 1) الأساسيات: لمس، سكرول، iOS ───────────── */
+html.shrouk-ux { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+html.shrouk-ux body { overscroll-behavior-y:none; -webkit-font-smoothing:antialiased; }
+html.shrouk-ux button, html.shrouk-ux a, html.shrouk-ux label, html.shrouk-ux select,
+html.shrouk-ux .btn, html.shrouk-ux .nav-item, html.shrouk-ux .bnav-item, html.shrouk-ux .rdv-card,
+html.shrouk-ux .product-card, html.shrouk-ux [onclick] { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+html.shrouk-ux .main, html.shrouk-ux .page-content, html.shrouk-ux .modal-body, html.shrouk-ux .more-page-content {
+  -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain;
+}
+html.shrouk-ux ::selection { background:rgba(244,160,45,.35); }
+
+/* ───────────── 2) محرك الأداء: ارسم اللي على الشاشة بس ───────────── */
+html.shrouk-ux .rdv-card { content-visibility:auto; contain-intrinsic-size:auto 200px; }
+html.shrouk-ux .product-card { content-visibility:auto; contain-intrinsic-size:auto 330px; }
+html.shrouk-ux .page.enter-anim .rdv-card:nth-child(n+7) { animation:none; }
+html.shrouk-ux .page { animation:none; }
+html.shrouk-ux .page.active.sx-enter { animation:sxPageIn .28s cubic-bezier(.22,.8,.24,1) both; }
+@keyframes sxPageIn { from { opacity:0; transform:translate3d(0,12px,0); } to { opacity:1; transform:none; } }
+
+/* ───────────── 3) الـ Loader: شروق الشمس ───────────── */
+html.shrouk-ux .spinner {
+  position:relative; display:block; width:84px; height:50px; margin:0 auto;
+  border:0; border-radius:0; animation:none; overflow:hidden; background:none;
+  border-bottom:2px solid rgba(244,160,45,.75);
+  box-shadow:0 8px 14px -10px var(--sx-glow);
+}
+html.shrouk-ux .spinner::before { /* قرص الشمس */
+  content:""; position:absolute; left:50%; bottom:-24px; width:38px; height:38px; margin-left:-19px; border-radius:50%;
+  background:radial-gradient(circle at 50% 38%, var(--sx-sun-0) 0, var(--sx-sun-1) 45%, var(--sx-sun-2) 78%, var(--sx-sun-3) 100%);
+  box-shadow:0 0 16px 5px var(--sx-glow), 0 0 40px 12px rgba(255,170,60,.28);
+  animation:sxSunRise 2.1s cubic-bezier(.3,.7,.25,1) infinite; z-index:2;
+}
+html.shrouk-ux .spinner::after { /* الأشعة */
+  content:""; position:absolute; left:50%; bottom:-62px; width:124px; height:124px; margin-left:-62px; border-radius:50%;
+  background:repeating-conic-gradient(from 0deg, rgba(255,208,92,.42) 0 5deg, transparent 5deg 18deg);
+  -webkit-mask:radial-gradient(circle, transparent 20px, #000 22px, transparent 60px);
+          mask:radial-gradient(circle, transparent 20px, #000 22px, transparent 60px);
+  animation:sxRays 9s linear infinite, sxRayFade 2.1s ease-in-out infinite; z-index:1;
+}
+@keyframes sxSunRise { 0% { transform:translateY(30px); opacity:.35; } 55%,80% { transform:translateY(-8px); opacity:1; } 100% { transform:translateY(30px); opacity:.35; } }
+@keyframes sxRays { to { transform:rotate(360deg); } }
+@keyframes sxRayFade { 0%,100% { opacity:0; } 55%,80% { opacity:1; } }
+html.shrouk-ux .empty-state .spinner { margin:28px auto; }
+html.shrouk-ux .btn .spinner, html.shrouk-ux button .spinner { width:34px; height:22px; border-bottom-width:1.5px; }
+html.shrouk-ux .btn .spinner::before, html.shrouk-ux button .spinner::before { width:15px; height:15px; margin-left:-7.5px; bottom:-10px; box-shadow:0 0 8px 2px var(--sx-glow); }
+html.shrouk-ux .btn .spinner::after, html.shrouk-ux button .spinner::after { display:none; }
+
+/* شريط التقدم العلوي (شعاع شمس يمشي) */
+#sxBar { position:fixed; top:0; inset-inline:0; height:3px; z-index:99998; pointer-events:none; opacity:0; transition:opacity .25s ease; display:none; }
+html.shrouk-ux #sxBar { display:block; }
+#sxBar.on { opacity:1; }
+#sxBar::before { content:""; position:absolute; inset:0; background:linear-gradient(90deg, transparent, var(--sx-sun-2), var(--sx-sun-1), var(--sx-sun-0), var(--sx-sun-1), transparent); background-size:45% 100%; background-repeat:no-repeat; animation:sxBarRun 1.15s cubic-bezier(.45,.05,.3,1) infinite; filter:drop-shadow(0 0 5px var(--sx-glow)); }
+@keyframes sxBarRun { from { background-position:-60% 0; } to { background-position:160% 0; } }
+html.shrouk-ux #sxBar { top:env(safe-area-inset-top,0px); }
+
+/* ───────────── 4) شاشة الافتتاح: شروق ───────────── */
+#sxSplash { display:none; }
+html.shrouk-ux[data-sx-splash] #sxSplash { display:flex; }
+#sxSplash {
+  position:fixed; inset:0; z-index:100000; align-items:center; justify-content:center; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,#0e1030 0%,#2a2352 38%,#7b3f6b 66%,#e0701f 92%,#ffb24d 100%);
+  background-size:100% 160%; background-position:0 0; animation:sxSky 2.6s ease-out forwards;
+  transition:opacity .55s ease, transform .55s ease;
+}
+#sxSplash.hide { opacity:0; transform:scale(1.04); pointer-events:none; }
+@keyframes sxSky { to { background-position:0 100%; } }
+#sxSplash .sx-stars { position:absolute; inset:0 0 40% 0; opacity:.9; animation:sxStars 2.2s ease-out forwards;
+  background-image:radial-gradient(1.5px 1.5px at 12% 22%,#fff 98%,transparent),radial-gradient(1px 1px at 33% 12%,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 58% 28%,#fff 98%,transparent),radial-gradient(1px 1px at 79% 14%,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 91% 34%,#fff 98%,transparent),radial-gradient(1px 1px at 46% 6%,#fff 98%,transparent); }
+@keyframes sxStars { to { opacity:0; } }
+#sxSplash .sx-sunwrap { position:absolute; left:50%; bottom:34%; width:0; height:0; }
+#sxSplash .sx-rays { position:absolute; left:-210px; top:-210px; width:420px; height:420px; border-radius:50%; opacity:0;
+  background:repeating-conic-gradient(from 0deg, rgba(255,214,110,.34) 0 4deg, transparent 4deg 16deg);
+  -webkit-mask:radial-gradient(circle, transparent 60px, #000 64px, transparent 205px); mask:radial-gradient(circle, transparent 60px, #000 64px, transparent 205px);
+  animation:sxRays 28s linear infinite, sxFadeIn 1.4s ease .9s forwards; }
+#sxSplash .sx-disc { position:absolute; left:-58px; top:-58px; width:116px; height:116px; border-radius:50%;
+  background:radial-gradient(circle at 50% 38%, var(--sx-sun-0) 0, var(--sx-sun-1) 42%, var(--sx-sun-2) 76%, var(--sx-sun-3) 100%);
+  box-shadow:0 0 50px 16px var(--sx-glow), 0 0 140px 50px rgba(255,160,50,.35);
+  transform:translateY(170px); animation:sxDiscUp 1.9s cubic-bezier(.2,.8,.2,1) .15s forwards; }
+@keyframes sxDiscUp { to { transform:translateY(0); } }
+@keyframes sxFadeIn { to { opacity:1; } }
+#sxSplash .sx-horizon { position:absolute; left:0; right:0; bottom:0; height:34%; z-index:2;
+  background:linear-gradient(180deg,#2a1a38 0%,#150f22 100%); clip-path:polygon(0 18%,14% 8%,30% 20%,48% 4%,66% 18%,84% 6%,100% 16%,100% 100%,0 100%); }
+#sxSplash .sx-word { position:relative; z-index:3; margin-top:-6vh; text-align:center; opacity:0; animation:sxWord 1.2s ease 1.25s forwards; }
+#sxSplash .sx-word b { display:block; font:900 clamp(54px,17vw,96px)/1.1 Tajawal,sans-serif; letter-spacing:.02em;
+  background:linear-gradient(180deg,#fffbe2 0%,#ffd55f 55%,#f4a02d 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 4px 18px rgba(20,8,30,.55)); }
+#sxSplash .sx-word span { display:block; margin-top:4px; font:500 13px Tajawal,sans-serif; letter-spacing:.28em; color:#ffe6b8; opacity:.85; }
+@keyframes sxWord { from { opacity:0; transform:translateY(14px); letter-spacing:.2em; } to { opacity:1; transform:none; letter-spacing:.02em; } }
+
+/* ───────────── 5) iOS: المناطق الآمنة + الشريط العلوي ───────────── */
+html.shrouk-ux .topbar { padding-top:env(safe-area-inset-top,0px); }
+html.shrouk-ux .topbar.is-scrolled { backdrop-filter:saturate(1.4) blur(14px); -webkit-backdrop-filter:saturate(1.4) blur(14px); }
+html.shrouk-ux .modal-footer { padding-bottom:calc(var(--s-md,14px) + env(safe-area-inset-bottom,0px)); }
+html.shrouk-ux .toast-container { top:calc(env(safe-area-inset-top,0px) + 10px); }
+
+/* ───────────── 6) موبايل: الشريط السفلي، الأزرار العايمة، المسافات ───────────── */
+@media (max-width:899px) {
+  html.shrouk-ux .page-content { padding-bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 84px); }
+  html.shrouk-ux .bottom-nav { background:color-mix(in srgb, var(--ink-1,#14110c) 88%, transparent); backdrop-filter:saturate(1.5) blur(18px); -webkit-backdrop-filter:saturate(1.5) blur(18px); transition:transform .28s cubic-bezier(.22,.8,.24,1), opacity .2s ease; }
+  html.shrouk-ux .bnav-item { min-height:56px; }
+  html.shrouk-ux .bnav-item:active { transform:scale(.88); }
+  html.shrouk-ux .bnav-item.active::before { background:linear-gradient(90deg,var(--sx-sun-2),var(--sx-sun-1)); box-shadow:0 0 10px var(--sx-glow); }
+  /* الكيبورد مفتوح: اخفي الشريط السفلي والأزرار العايمة */
+  html.shrouk-ux.sx-kb-open .bottom-nav { transform:translateY(110%); opacity:0; pointer-events:none; }
+  html.shrouk-ux.sx-kb-open #ownerStudioLauncher, html.shrouk-ux.sx-kb-open #pwaInstallBtn, html.shrouk-ux.sx-kb-open #sxFab { display:none !important; }
+
+  /* *** إصلاح جذري: زرار "✦ مساحتي" كان فوق أيقونة في الشريط السفلي ويفتح صفحة غلط ***
+     بقى زرار دائري صغير فوق الشريط، مش فوقه. */
+  html.shrouk-ux #ownerStudioLauncher { bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 14px); left:14px; width:50px; height:50px; padding:0; font-size:0; display:grid; place-items:center; border-radius:50%; z-index:880; }
+  html.shrouk-ux #ownerStudioLauncher::before { content:"✦"; font-size:21px; line-height:1; }
+  html.shrouk-ux #pwaInstallBtn { bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 74px); left:14px; z-index:880; }
+  html.shrouk-ux.sx-modal-open #ownerStudioLauncher, html.shrouk-ux.sx-modal-open #sxFab { display:none !important; }
+
+  /* ───── رؤوس الصفحات: الأزرار في شبكة واضحة، مفيش تلاصق ───── */
+  html.shrouk-ux .page-header { gap:14px; }
+  html.shrouk-ux .page-header > .flex, html.shrouk-ux .page-header > div:last-child:not(:first-child) {
+    display:grid !important; grid-template-columns:1fr 1fr; gap:10px !important; width:100%; margin:0 !important;
+  }
+  html.shrouk-ux .page-header .btn { width:100%; min-height:48px; padding:0 12px; justify-content:center; font-size:.92rem; border-radius:14px; white-space:normal; line-height:1.25; }
+  html.shrouk-ux .page-header .btn-primary { grid-column:1 / -1; order:-1; min-height:52px; font-size:1rem; font-weight:800; background:linear-gradient(135deg,var(--sx-sun-1),var(--sx-sun-2)); color:#2b1700; box-shadow:0 8px 20px -8px var(--sx-glow); }
+  html.shrouk-ux .page-header .btn:only-child { grid-column:1 / -1; }
+
+  /* ───── شريط البحث والفلاتر: البحث بعرض كامل، والفلاتر شرائح تتسحب أفقياً تحته ───── */
+  html.shrouk-ux .filters-bar { display:flex; flex-wrap:wrap; gap:10px; padding:10px var(--s-md,14px); align-items:center; }
+  html.shrouk-ux .filters-bar .filter-search { flex:1 1 100%; width:100%; min-height:52px; border-radius:16px; }
+  html.shrouk-ux .filters-bar .filter-search input { font-size:16px; min-height:50px; }
+  html.shrouk-ux .filters-bar.sx-ready { flex-direction:column; flex-wrap:nowrap; align-items:stretch; overflow:visible; }
+  html.shrouk-ux .sx-chips { display:flex; gap:10px; overflow-x:auto; padding:2px var(--s-md,14px) 6px; margin-inline:calc(var(--s-md,14px) * -1); scroll-snap-type:x proximity; scrollbar-width:none; -webkit-overflow-scrolling:touch; align-items:center; }
+  html.shrouk-ux .sx-chips::-webkit-scrollbar { display:none; }
+  html.shrouk-ux .sx-chips > * { flex:0 0 auto; scroll-snap-align:start; }
+  html.shrouk-ux .filter-select { min-height:46px; min-width:120px; border-radius:23px; padding-inline:16px; font-size:.9rem; }
+  html.shrouk-ux .filters-bar .btn-icon { width:46px; height:46px; }
+
+  /* ───── كروت القوائم (عملاء/موردين/فواتير…): أزرار كبيرة بنص واضح ───── */
+  html.shrouk-ux .rdv-card { padding:16px; border-radius:20px; transition:transform .16s ease, box-shadow .2s ease; }
+  html.shrouk-ux .rdv-card:active { transform:scale(.985); box-shadow:0 0 0 2px rgba(244,160,45,.35); }
+  html.shrouk-ux .rdv-card-actions { margin-top:14px; padding-top:14px; border-top:1px solid var(--overlay-05,rgba(255,255,255,.06)); }
+  html.shrouk-ux .rdv-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:10px; width:100%; }
+  html.shrouk-ux .rdv-actions .btn { min-height:46px; border-radius:13px; gap:7px; font-size:.88rem; font-weight:700; justify-content:center; }
+  html.shrouk-ux .rdv-actions .btn[title]:not([title=""])::after { content:attr(title); }  /* أزرار الأيقونات بقت بنص واضح */
+  html.shrouk-ux .rdv-actions .btn svg { width:17px; height:17px; flex:none; }
+  html.shrouk-ux .btn:active { transform:scale(.96); }
+  html.shrouk-ux .btn { transition:transform .14s ease, background .2s ease, box-shadow .2s ease; }
+
+  /* ───── الفورمات ───── */
+  html.shrouk-ux .form-control, html.shrouk-ux input, html.shrouk-ux select, html.shrouk-ux textarea { font-size:16px; }
+  html.shrouk-ux .form-control { min-height:50px; border-radius:13px; }
+  html.shrouk-ux .modal-footer { gap:10px; }
+  html.shrouk-ux .modal-footer .btn { min-height:52px; border-radius:14px; }
+  html.shrouk-ux .modal-footer .btn-primary { flex:2; background:linear-gradient(135deg,var(--sx-sun-1),var(--sx-sun-2)); color:#2b1700; font-weight:800; }
+  html.shrouk-ux .modal-close { width:44px; height:44px; display:grid; place-items:center; border-radius:50%; }
+  html.shrouk-ux .modal-overlay .modal { will-change:transform; }
+  html.shrouk-ux .modal-overlay .modal.sx-dragging { transition:none !important; }
+  html.shrouk-ux .modal-overlay .modal::before { width:46px; height:5px; background:rgba(244,160,45,.55); }
+
+  /* بطاقات المنتجات: شبكة عمودين مريحة */
+  html.shrouk-ux .product-card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  html.shrouk-ux .product-card { border-radius:18px; }
+  html.shrouk-ux .product-card:active { transform:scale(.97); }
+  html.shrouk-ux .product-card-quick-edit { opacity:1; transform:none; width:40px; height:40px; inset-block-start:8px; inset-inline-end:8px; z-index:3; }  /* مفيش hover على اللمس */
+  /* زرار "＋ صورة" كان فوق زرار التعديل (نفس المكان) → نفصلهم: التعديل في الركن، و"＋ صورة" جنبه بمسافة 8px */
+  html.shrouk-ux .product-card-quick-edit[aria-label^="إضافة صورة"] { width:auto; min-width:40px; padding:0 12px; border-radius:20px; inset-inline-end:56px !important; font-size:.76rem; font-weight:700; white-space:nowrap; }
+  html.shrouk-ux .page-header .btn.sx-span2 { grid-column:1 / -1; }
+  html.shrouk-ux .product-card-name { font-size:.92rem; }
+}
+
+@media (max-width:599px) { html.shrouk-ux .modal-body [style*="grid-template-columns:1fr 1fr"], html.shrouk-ux .modal-body [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns:1fr !important; } }
+
+/* ───────────── 7) تحميل تدريجي للقوائم الطويلة ───────────── */
+.sx-more { display:flex; flex-direction:column; align-items:center; gap:6px; padding:22px 0 30px; color:var(--cream-4,#999); font-size:.8rem; }
+.sx-more .spinner { margin:0 auto; }
+
+/* ───────────── 8) سحب للتحديث ───────────── */
+#sxPtr { position:fixed; top:calc(env(safe-area-inset-top,0px) + 56px); left:50%; z-index:99990; width:64px; height:64px; margin-left:-32px; pointer-events:none; opacity:0; transform:translateY(-70px); }
+#sxPtr .sx-ptr-disc { position:absolute; left:50%; bottom:6px; width:30px; height:30px; margin-left:-15px; border-radius:50%; background:radial-gradient(circle at 50% 38%,var(--sx-sun-0),var(--sx-sun-1) 50%,var(--sx-sun-2)); box-shadow:0 0 18px 4px var(--sx-glow); transform:translateY(calc((1 - var(--p,0)) * 18px)) scale(calc(.6 + var(--p,0) * .4)); }
+#sxPtr.loading .sx-ptr-disc { animation:sxPulse 1s ease-in-out infinite; }
+@keyframes sxPulse { 50% { box-shadow:0 0 30px 10px var(--sx-glow); } }
+
+/* ───────────── 9) البحث الشامل (Spotlight) ───────────── */
+#sxFab { display:none; }
+@media (max-width:899px) {
+  html.shrouk-ux #sxFab { display:grid; place-items:center; position:fixed; z-index:881; right:14px; bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 14px);
+    width:54px; height:54px; border:0; border-radius:50%; color:#2b1700; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%,var(--sx-sun-0),var(--sx-sun-1) 45%,var(--sx-sun-2));
+    box-shadow:0 10px 26px -6px var(--sx-glow), 0 0 0 4px rgba(255,200,90,.18); transition:transform .18s ease; }
+  html.shrouk-ux #sxFab:active { transform:scale(.9); }
+  html.shrouk-ux #sxFab, html.shrouk-ux #ownerStudioLauncher { transition:transform .25s cubic-bezier(.22,.8,.24,1), opacity .2s ease; }
+  html.shrouk-ux.sx-fab-hide #sxFab, html.shrouk-ux.sx-fab-hide #ownerStudioLauncher { transform:translateY(90px) scale(.8); opacity:0; pointer-events:none; }
+  html.shrouk-ux #sxFab svg { width:24px; height:24px; }
+}
+#sxPalette { position:fixed; inset:0; z-index:100001; display:none; flex-direction:column; background:var(--ink-1,#14110c); color:var(--cream-1,#f3ead8); padding-top:env(safe-area-inset-top,0px); }
+#sxPalette.open { display:flex; animation:sxPageIn .24s ease both; }
+#sxPalette .sx-p-top { display:flex; gap:10px; align-items:center; padding:12px 14px; border-bottom:1px solid var(--overlay-05,rgba(255,255,255,.07)); }
+#sxPalette .sx-p-input { flex:1; min-height:52px; border-radius:16px; border:1.5px solid rgba(244,160,45,.5); background:var(--ink-2,#1b1710); color:inherit; padding:0 16px; font:600 17px Tajawal,sans-serif; outline:none; }
+#sxPalette .sx-p-input:focus { border-color:var(--sx-sun-2); box-shadow:0 0 0 4px rgba(244,160,45,.18); }
+#sxPalette .sx-p-close { min-width:52px; min-height:52px; border-radius:16px; border:0; background:var(--ink-3,#241f16); color:inherit; font:700 15px Tajawal,sans-serif; }
+#sxPalette .sx-p-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 14px calc(env(safe-area-inset-bottom,0px) + 24px); overscroll-behavior:contain; }
+#sxPalette .sx-p-group { margin:16px 4px 6px; font:800 12px Tajawal,sans-serif; letter-spacing:.12em; color:var(--sx-sun-2); }
+#sxPalette .sx-p-item { display:flex; align-items:center; gap:12px; width:100%; min-height:62px; padding:10px 12px; margin-bottom:8px; border:1px solid var(--overlay-05,rgba(255,255,255,.07)); border-radius:16px; background:var(--ink-2,#1b1710); color:inherit; text-align:right; font-family:inherit; cursor:pointer; transition:transform .14s ease, border-color .2s ease; }
+#sxPalette .sx-p-item:active { transform:scale(.98); border-color:var(--sx-sun-2); }
+#sxPalette .sx-p-ico { flex:none; width:42px; height:42px; border-radius:13px; display:grid; place-items:center; font-size:19px; background:rgba(244,160,45,.14); }
+#sxPalette .sx-p-main { flex:1; min-width:0; }
+#sxPalette .sx-p-title { font-weight:700; font-size:.97rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#sxPalette .sx-p-sub { margin-top:2px; font-size:.78rem; color:var(--cream-4,#999); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction:rtl; }
+#sxPalette .sx-p-meta { flex:none; font:700 .86rem var(--font-mono,monospace); color:var(--sx-sun-1); direction:ltr; }
+#sxPalette .sx-p-empty { text-align:center; padding:48px 20px; color:var(--cream-4,#999); }
+#sxPalette mark { background:rgba(244,160,45,.28); color:inherit; border-radius:4px; padding:0 2px; }
+
+/* ───────────── 10) بطاقة الصباح في لوحة التحكم ───────────── */
+.sx-hero { position:relative; overflow:hidden; margin-bottom:var(--s-lg,18px); padding:20px 18px 16px; border-radius:24px; color:#fff7e6; border:1px solid rgba(244,160,45,.35);
+  background:linear-gradient(135deg,#1b1840 0%,#4b2f66 52%,#b8582a 100%); box-shadow:0 14px 34px -14px rgba(120,60,20,.55); }
+.sx-hero.is-day { background:linear-gradient(135deg,#2d5aa0 0%,#6aa5d8 55%,#f6c46b 100%); }
+.sx-hero.is-night { background:linear-gradient(135deg,#0b0d24 0%,#1d2150 55%,#3b2c5e 100%); }
+.sx-hero .sx-hero-sun { position:absolute; width:34px; height:34px; border-radius:50%; background:radial-gradient(circle at 50% 38%,var(--sx-sun-0),var(--sx-sun-1) 50%,var(--sx-sun-2)); box-shadow:0 0 22px 7px var(--sx-glow); transform:translate(-50%,-50%); transition:top 1.2s cubic-bezier(.2,.8,.2,1); z-index:1; }
+.sx-hero.is-night .sx-hero-sun { background:radial-gradient(circle at 40% 35%,#fffdf0,#dfe3ff 60%,#a9b2e6); box-shadow:0 0 20px 6px rgba(190,200,255,.4); }
+.sx-hero h2 { margin:0; padding-inline-end:0; padding-left:78px; font:900 1.32rem/1.35 Tajawal,sans-serif; text-shadow:0 2px 12px rgba(20,8,30,.4); position:relative; z-index:2; }
+.sx-hero p { margin:4px 0 16px; padding-left:78px; font:500 .84rem/1.5 Tajawal,sans-serif; opacity:.92; position:relative; z-index:2; }
+.sx-hero .sx-sky-line { position:absolute; left:14px; top:74px; width:50px; height:1.5px; border-radius:2px; background:linear-gradient(90deg,transparent,rgba(255,235,190,.7),transparent); }
+.sx-quick { position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.sx-quick button { display:flex; flex-direction:column; align-items:center; gap:6px; min-height:70px; padding:10px 4px; border:1px solid rgba(255,255,255,.22); border-radius:16px; background:rgba(20,10,30,.28); color:#fff; font:700 .74rem Tajawal,sans-serif; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:transform .15s ease, background .2s ease; }
+.sx-quick button:active { transform:scale(.93); background:rgba(20,10,30,.5); }
+.sx-quick .sx-qi { font-size:22px; line-height:1; }
+@media (min-width:900px) { .sx-hero { display:none; } }
+
+/* ───────────── 11) حركة أقل لمن يفضّل ذلك ───────────── */
+@media (prefers-reduced-motion:reduce) {
+  html.shrouk-ux .spinner::before, html.shrouk-ux .spinner::after, #sxBar::before, #sxSplash *, #sxSplash { animation:none !important; }
+  html.shrouk-ux .spinner::before { transform:translateY(-8px); }
+  #sxSplash .sx-disc { transform:none; } #sxSplash .sx-word, #sxSplash .sx-rays { opacity:1; }
+  html.shrouk-ux .page.active.sx-enter { animation:none; }
+}
